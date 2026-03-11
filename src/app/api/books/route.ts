@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { createClient } from '@/lib/supabase/server';
 
+const sanitizeFilename = (name: string) => name.replace(/[^a-zA-Z0-9.-]/g, '_');
+
 // POST — upload EPUB + metadata
 export async function POST(req: NextRequest) {
   try {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const formData = await req.formData();
@@ -24,7 +27,7 @@ export async function POST(req: NextRequest) {
     const adminSupabase = createAdminClient();
 
     // Upload EPUB to private 'books' bucket
-    const epubPath = `${user.id}/${Date.now()}-${epubFile.name.replace(/\s/g, '_')}`;
+    const epubPath = `${user.id}/${Date.now()}-${sanitizeFilename(epubFile.name)}`;
     const epubBuffer = await epubFile.arrayBuffer();
 
     const { error: epubError } = await adminSupabase.storage
@@ -39,7 +42,7 @@ export async function POST(req: NextRequest) {
     // Upload cover to public 'covers' bucket (optional)
     let coverUrl: string | null = null;
     if (coverFile) {
-      const coverPath = `${user.id}/${Date.now()}-${coverFile.name.replace(/\s/g, '_')}`;
+      const coverPath = `${user.id}/${Date.now()}-${sanitizeFilename(coverFile.name)}`;
       const coverBuffer = await coverFile.arrayBuffer();
 
       const { error: coverError } = await adminSupabase.storage
@@ -80,3 +83,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to upload book' }, { status: 500 });
   }
 }
+
