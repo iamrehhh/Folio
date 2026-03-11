@@ -88,7 +88,7 @@ export async function DELETE(
 
     const { data: book, error: fetchError } = await supabase
       .from('books')
-      .select('file_path, cover_path, uploaded_by')
+      .select('epub_path, cover_url, uploaded_by')
       .eq('id', params.bookId)
       .single();
 
@@ -99,10 +99,22 @@ export async function DELETE(
     }
 
     const admin = createAdminClient();
-    if (book.file_path) await admin.storage.from('books').remove([book.file_path]);
-    if (book.cover_path) await admin.storage.from('covers').remove([book.cover_path]);
+    
+    // Remove EPUB file
+    if (book.epub_path) {
+      await admin.storage.from('books').remove([book.epub_path]);
+    }
+    
+    // Remove cover image if it exists
+    if (book.cover_url) {
+      const coverPath = book.cover_url.split('/public/covers/')[1];
+      if (coverPath) {
+        await admin.storage.from('covers').remove([coverPath]);
+      }
+    }
 
-    const { error } = await supabase.from('books').delete().eq('id', params.bookId);
+    // Use admin client to bypass RLS missing delete policy
+    const { error } = await admin.from('books').delete().eq('id', params.bookId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     return NextResponse.json({ success: true });
