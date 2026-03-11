@@ -177,7 +177,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
                     style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}
                   >
                     {/* Cover */}
-                    <div className="w-full aspect-[2/3] bg-[#E5E0D8] flex items-center justify-center overflow-hidden relative">
+                    <div className="w-full aspect-[3/4] bg-[#E5E0D8] flex items-center justify-center overflow-hidden relative">
                       {book.cover_url ? (
                         <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
                       ) : (
