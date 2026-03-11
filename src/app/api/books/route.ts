@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 
 const sanitizeFilename = (name: string) => name.replace(/[^a-zA-Z0-9.-]/g, '_');
 
-// POST — upload EPUB + metadata
 export async function POST(req: NextRequest) {
   try {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const formData = await req.formData();
-    const epubFile = formData.get('epub') as File | null;
-    const coverFile = formData.get('cover') as File | null;
-    const title = formData.get('title') as string;
-    const author = formData.get('author') as string;
-    const genre = formData.get('genre') as string | null;
+    const epubFile    = formData.get('epub')        as File   | null;
+    const coverFile   = formData.get('cover')       as File   | null;
+    const title       = formData.get('title')       as string;
+    const author      = formData.get('author')      as string;
+    const genre       = formData.get('genre')       as string | null;
     const description = formData.get('description') as string | null;
 
     if (!epubFile || !title || !author) {
@@ -26,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     const adminSupabase = createAdminClient();
 
-    // Upload EPUB to private 'books' bucket
+    // Upload original EPUB as-is (no repair to avoid breaking valid files)
     const epubPath = `${user.id}/${Date.now()}-${sanitizeFilename(epubFile.name)}`;
     const epubBuffer = await epubFile.arrayBuffer();
 
@@ -39,23 +36,18 @@ export async function POST(req: NextRequest) {
 
     if (epubError) throw epubError;
 
-    // Upload cover to public 'covers' bucket (optional)
+    // Upload cover (optional)
     let coverUrl: string | null = null;
+    let coverPath: string | null = null;
     if (coverFile) {
-      const coverPath = `${user.id}/${Date.now()}-${sanitizeFilename(coverFile.name)}`;
+      coverPath = `${user.id}/${Date.now()}-${sanitizeFilename(coverFile.name)}`;
       const coverBuffer = await coverFile.arrayBuffer();
-
       const { error: coverError } = await adminSupabase.storage
         .from('covers')
-        .upload(coverPath, coverBuffer, {
-          contentType: coverFile.type,
-          upsert: false,
-        });
+        .upload(coverPath, coverBuffer, { contentType: coverFile.type, upsert: false });
 
       if (!coverError) {
-        const { data: urlData } = adminSupabase.storage
-          .from('covers')
-          .getPublicUrl(coverPath);
+        const { data: urlData } = adminSupabase.storage.from('covers').getPublicUrl(coverPath);
         coverUrl = urlData.publicUrl;
       }
     }
@@ -66,9 +58,10 @@ export async function POST(req: NextRequest) {
       .insert({
         title,
         author,
-        cover_url: coverUrl,
-        epub_path: epubPath,
-        genre: genre || null,
+        cover_url:   coverUrl,
+        cover_path:  coverPath,
+        epub_path:   epubPath,
+        genre:       genre       || null,
         description: description || null,
         uploaded_by: user.id,
       })
@@ -78,9 +71,9 @@ export async function POST(req: NextRequest) {
     if (dbError) throw dbError;
 
     return NextResponse.json({ book });
+
   } catch (err) {
     console.error('[Books Upload Error]', err);
     return NextResponse.json({ error: 'Failed to upload book' }, { status: 500 });
   }
 }
-

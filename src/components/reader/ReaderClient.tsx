@@ -31,6 +31,7 @@ export default function ReaderClient({
   const [highlights, setHighlights] = useState<Highlight[]>(initialHighlights);
   const [chapterText, setChapterText] = useState('');
   const [showQuiz, setShowQuiz] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const [selectionToolbar, setSelectionToolbar] = useState<{
     x: number; y: number; text: string; cfiRange: string;
@@ -81,13 +82,6 @@ export default function ReaderClient({
       await epubBook.ready;
       if (!mounted) return;
 
-      try {
-        // Generate locations for accurate progress calculation
-        await epubBook.locations.generate(1600);
-      } catch (err) {
-        console.error('Failed to generate locations:', err);
-      }
-
       const nav = epubBook.navigation;
       const toc = nav?.toc ?? [];
       const chapterList: ChapterInfo[] = toc.map((item: any, i: number) => {
@@ -101,13 +95,66 @@ export default function ReaderClient({
       });
       setChapters(chapterList);
 
-      if (initialProgress?.cfi) {
-        await rendition.display(initialProgress.cfi);
-      } else {
-        await rendition.display();
-      }
+      // Display with timeout fallback for stubborn EPUB3 books
+      let displayOk = false;
+      await Promise.race([
+        (initialProgress?.cfi
+          ? rendition.display(initialProgress.cfi)
+          : rendition.display()
+        ).then(() => { displayOk = true; }),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('display timeout')), 8000)
+        ),
+      ]).catch(async (err) => {
+        // First attempt failed — retry with flow: 'scrolled'
+        console.warn('[Reader] display failed, retrying:', err.message);
+        if (!mounted || !viewerRef.current) return;
+        renditionRef.current?.destroy?.();
+        viewerRef.current.innerHTML = '';
 
+        const fallback = epubBook.renderTo(viewerRef.current!, {
+          width: '100%', height: '100%', spread: 'none',
+          flow: 'scrolled', allowScriptedContent: true,
+        });
+        renditionRef.current = fallback;
+        applyTheme(fallback, theme, fontSize, lineHeight);
+
+        await Promise.race([
+          fallback.display().then(() => { displayOk = true; }),
+          new Promise<void>((_, reject) =>
+            setTimeout(() => reject(new Error('fallback timeout')), 8000)
+          ),
+        ]).catch(() => {
+          console.warn('[Reader] fallback also failed — showing error');
+        });
+
+        if (displayOk) {
+          fallback.hooks.content.register((contents: any) => {
+            const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
+            if (iframe) iframe.style.cssText = 'width:100% !important;height:100% !important;border:none !important;';
+            const doc = contents.document;
+            if (doc?.body) doc.body.style.cssText = 'width:100% !important;margin:0 !important;padding:3rem 5rem !important;box-sizing:border-box !important;overflow-x:hidden !important;word-wrap:break-word !important;';
+            doc.addEventListener('click', () => {
+              const sel = contents.window.getSelection();
+              if (!sel || sel.isCollapsed) { setSelectionToolbar(null); setWordPopover(null); }
+            });
+          });
+        }
+      });
+
+      if (!mounted) return;
+      if (!displayOk) {
+        setLoadError(true);
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(false);
+
+      // Generate locations in background AFTER rendering (non-blocking)
+      setTimeout(() => {
+        if (!mounted) return;
+        epubBook.locations.generate(1000).catch(() => {});
+      }, 500);
 
       // Fix iframe and body sizing after each render
       rendition.hooks.content.register((contents: any) => {
@@ -210,10 +257,23 @@ export default function ReaderClient({
       }
     }
 
-    initEpub().catch(console.error);
+    // Safety net — if loading takes more than 16s, show error
+    const loadingTimeout = setTimeout(() => {
+      if (!mounted) return;
+      setIsLoading(false);
+      setLoadError(true);
+    }, 16000);
+
+    initEpub()
+      .catch((err) => {
+        console.error('[Reader] initEpub error:', err);
+        if (mounted) { setIsLoading(false); setLoadError(true); }
+      })
+      .finally(() => clearTimeout(loadingTimeout));
 
     return () => {
       mounted = false;
+      clearTimeout(loadingTimeout);
       renditionRef.current?.destroy?.();
       bookRef.current?.destroy?.();
     };
@@ -319,12 +379,43 @@ export default function ReaderClient({
           <div
             className="w-full h-full relative max-w-[1050px] mx-auto"
           >
-            {isLoading && (
+            {isLoading && !loadError && (
               <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                 <div
                   className="w-6 h-6 border-2 rounded-full animate-spin"
                   style={{ borderColor: 'var(--border)', borderTopColor: '#8B6914' }}
                 />
+              </div>
+            )}
+
+            {loadError && (
+              <div className="absolute inset-0 flex items-center justify-center z-10 p-8">
+                <div className="text-center max-w-sm">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+                    style={{ backgroundColor: '#8B691415' }}>
+                    <span className="text-2xl">📖</span>
+                  </div>
+                  <h3 className="font-semibold text-base mb-2"
+                    style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>
+                    Unable to load this book
+                  </h3>
+                  <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    This EPUB uses a format that isn't fully supported. It may be a complex EPUB3 or have custom DRM.
+                  </p>
+                  <p className="text-xs mb-5 px-4 py-3 rounded-lg" style={{ backgroundColor: '#8B691410', color: '#8B6914' }}>
+                    ✦ For best results, use EPUBs from{' '}
+                    <a href="https://gutenberg.org" target="_blank" rel="noopener noreferrer"
+                      className="underline font-medium">Project Gutenberg</a>{' '}
+                    or{' '}
+                    <a href="https://standardebooks.org" target="_blank" rel="noopener noreferrer"
+                      className="underline font-medium">Standard Ebooks</a>
+                  </p>
+                  <a href="/library"
+                    className="inline-block px-5 py-2.5 rounded-lg text-sm font-medium text-white"
+                    style={{ backgroundColor: '#8B6914' }}>
+                    Back to Library
+                  </a>
+                </div>
               </div>
             )}
             <div
