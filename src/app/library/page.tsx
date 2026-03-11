@@ -20,6 +20,7 @@ export default async function LibraryPage() {
   const { data: books } = await supabase
     .from('books')
     .select('*')
+    .eq('uploaded_by', user.id)
     .order('created_at', { ascending: false });
 
   // Fetch this user's reading progress for all books

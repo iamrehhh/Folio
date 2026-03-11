@@ -170,8 +170,8 @@ ALTER TABLE public.reading_sessions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- Books: everyone authenticated can read; only uploader can insert/update
-CREATE POLICY "books_select_authenticated" ON public.books FOR SELECT TO authenticated USING (true);
+-- Books: authenticated can only select their own; only uploader can insert/update
+CREATE POLICY "books_select_own" ON public.books FOR SELECT USING (auth.uid() = uploaded_by);
 CREATE POLICY "books_insert_own" ON public.books FOR INSERT WITH CHECK (auth.uid() = uploaded_by);
 CREATE POLICY "books_update_own" ON public.books FOR UPDATE USING (auth.uid() = uploaded_by);
 
