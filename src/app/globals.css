@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Google Fonts ─────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ─── CSS Variables / Design Tokens ─────────── */
+:root {
+  /* Light theme (default) */
+  --bg: #FAF8F4;
+  --bg-sidebar: #F2EFE9;
+  --bg-card: #FFFFFF;
+  --text-primary: #1C1C1E;
+  --text-secondary: #6B6860;
+  --text-muted: #9B9890;
+  --border: #E5E0D8;
+  --accent: #8B6914;
+  --accent-hover: #A07D20;
+
+  --font-reading: 'Lora', Georgia, serif;
+  --font-ui: 'Inter', system-ui, sans-serif;
+
+  --radius: 6px;
+  --radius-md: 8px;
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-soft-lg: 0 4px 20px rgba(0, 0, 0, 0.10);
+  --shadow-popover: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* ─── Reading Themes ─────────────────────────── */
+[data-theme="light"] {
+  --bg: #FAF8F4;
+  --bg-sidebar: #F2EFE9;
+  --bg-card: #FFFFFF;
+  --text-primary: #1C1C1E;
+  --text-secondary: #6B6860;
+  --border: #E5E0D8;
+}
+
+[data-theme="sepia"] {
+  --bg: #F5EDD6;
+  --bg-sidebar: #EEE4C4;
+  --bg-card: #FBF6E8;
+  --text-primary: #1C1C1E;
+  --text-secondary: #6B5E38;
+  --border: #DDD0A8;
+}
+
+[data-theme="dark"] {
+  --bg: #1A1A1A;
+  --bg-sidebar: #242424;
+  --bg-card: #2A2A2A;
+  --text-primary: #E8E6E0;
+  --text-secondary: #A0998C;
+  --border: #333333;
+  --accent: #C9972A;
+}
+
+/* ─── Base Styles ─────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ─── Typography Utilities ────────────────────── */
+.font-reading {
+  font-family: var(--font-lora), Georgia, serif;
+}
+
+/* ─── Scrollbar Styling ───────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted, #9B9890);
+}
+
+/* ─── epub.js Reader Container ────────────────── */
+#epub-viewer {
+  width: 100%;
+  height: 100%;
+}
+
+#epub-viewer iframe {
+  background: transparent !important;
+}
+
+/* Inject into epub iframe via epub.js themes */
+.epub-container {
+  overflow: hidden !important;
+}
+
+/* ─── Highlight Colors (applied inside epub iframe) ── */
+.highlight-yellow { background-color: #FFE066; border-radius: 2px; }
+.highlight-blue   { background-color: #93C5FD; border-radius: 2px; }
+.highlight-green  { background-color: #86EFAC; border-radius: 2px; }
+.highlight-pink   { background-color: #F9A8D4; border-radius: 2px; }
+
+/* ─── Animations ──────────────────────────────── */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);   opacity: 1; }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0);   opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes floatUp {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-slide-in-right  { animation: slideInRight 0.25s ease-out; }
+.animate-slide-out-right { animation: slideOutRight 0.2s ease-in forwards; }
+.animate-fade-in         { animation: fadeIn 0.2s ease-out; }
+.animate-float-up        { animation: floatUp 0.2s ease-out; }
+
+/* ─── Reading Progress Bar ─────────────────────── */
+.progress-bar {
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+/* ─── Selection Toolbar ─────────────────────────── */
+.selection-toolbar {
+  animation: floatUp 0.18s ease-out;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
+}
+
+/* ─── Word Popover ──────────────────────────────── */
+.word-popover {
+  animation: floatUp 0.2s ease-out;
+}
