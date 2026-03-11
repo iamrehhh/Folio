@@ -183,47 +183,58 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
                       ) : (
                         <BookOpen className="w-10 h-10 opacity-25" style={{ color: 'var(--text-secondary)' }} />
                       )}
-                      {book.genre && (
-                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-medium"
-                          style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff' }}>
-                          {book.genre}
-                        </span>
-                      )}
-
-                      {/* ⋮ Menu button — appears on hover */}
-                      <div className="absolute top-2 right-2">
-                        <button
-                          onClick={(e) => { e.preventDefault(); setOpenMenuId(menuOpen ? null : book.id); }}
-                          className="w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
-                        >
-                          <MoreVertical className="w-4 h-4 text-white" />
-                        </button>
-
-                        {/* Dropdown menu */}
-                        {menuOpen && (
-                          <div
-                            className="absolute right-0 top-8 w-36 rounded-lg border shadow-popover overflow-hidden z-20"
-                            style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}
-                          >
-                            <button
-                              onClick={(e) => { e.preventDefault(); setEditingBook(book); setOpenMenuId(null); }}
-                              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-[var(--border)] transition-colors"
-                              style={{ color: 'var(--text-primary)' }}
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                              Edit book
-                            </button>
-                            <button
-                              onClick={(e) => { e.preventDefault(); handleDelete(book); }}
-                              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-red-50 transition-colors text-red-500"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              Delete book
-                            </button>
-                          </div>
+                      {/* Genre & Default badges */}
+                      <div className="absolute top-2 left-2 flex flex-col gap-1">
+                        {book.genre && (
+                          <span className="px-2 py-0.5 rounded text-xs font-medium"
+                            style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff' }}>
+                            {book.genre}
+                          </span>
+                        )}
+                        {book.is_default && (
+                          <span className="px-2 py-0.5 rounded text-xs font-medium"
+                            style={{ backgroundColor: 'rgba(255,215,0,0.8)', color: '#000' }}>
+                            Default
+                          </span>
                         )}
                       </div>
+
+                      {/* ⋮ Menu button — appears on hover (only for owner) */}
+                      {book.uploaded_by === userId && (
+                        <div className="absolute top-2 right-2">
+                          <button
+                            onClick={(e) => { e.preventDefault(); setOpenMenuId(menuOpen ? null : book.id); }}
+                            className="w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
+                          >
+                            <MoreVertical className="w-4 h-4 text-white" />
+                          </button>
+
+                          {/* Dropdown menu */}
+                          {menuOpen && (
+                            <div
+                              className="absolute right-0 top-8 w-36 rounded-lg border shadow-popover overflow-hidden z-20"
+                              style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}
+                            >
+                              <button
+                                onClick={(e) => { e.preventDefault(); setEditingBook(book); setOpenMenuId(null); }}
+                                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-[var(--border)] transition-colors"
+                                style={{ color: 'var(--text-primary)' }}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                                Edit book
+                              </button>
+                              <button
+                                onClick={(e) => { e.preventDefault(); handleDelete(book); }}
+                                className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-red-50 transition-colors text-red-500"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Delete book
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Info */}

@@ -27,6 +27,7 @@ export interface Book {
   description: string | null;
   total_chapters: number | null;
   uploaded_by: string; // profile id (admin)
+  is_default: boolean;
   created_at: string;
 }
 

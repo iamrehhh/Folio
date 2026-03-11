@@ -66,6 +66,7 @@ CREATE TABLE public.books (
   description TEXT,
   total_chapters INTEGER,
   uploaded_by UUID NOT NULL REFERENCES public.profiles(id),
+  is_default BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -170,8 +171,8 @@ ALTER TABLE public.reading_sessions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
--- Books: authenticated can only select their own; only uploader can insert/update/delete
-CREATE POLICY "books_select_own" ON public.books FOR SELECT USING (auth.uid() = uploaded_by);
+-- Books: authenticated can only select their own or default ones; only uploader can insert/update/delete
+CREATE POLICY "books_select_own" ON public.books FOR SELECT USING (auth.uid() = uploaded_by OR is_default = true);
 CREATE POLICY "books_insert_own" ON public.books FOR INSERT WITH CHECK (auth.uid() = uploaded_by);
 CREATE POLICY "books_update_own" ON public.books FOR UPDATE USING (auth.uid() = uploaded_by);
 CREATE POLICY "books_delete_own" ON public.books FOR DELETE USING (auth.uid() = uploaded_by);

@@ -16,11 +16,11 @@ export default async function LibraryPage() {
     .eq('id', user.id)
     .single();
 
-  // Fetch all books
+  // Fetch all books where user is uploader or book is default
   const { data: books } = await supabase
     .from('books')
     .select('*')
-    .eq('uploaded_by', user.id)
+    .or(`uploaded_by.eq.${user.id},is_default.eq.true`)
     .order('created_at', { ascending: false });
 
   // Fetch this user's reading progress for all books
