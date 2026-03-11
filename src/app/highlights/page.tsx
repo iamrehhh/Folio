@@ -31,7 +31,7 @@ export default async function HighlightsPage() {
   const uniqueBooks = Array.from(
     new Map(
       (bookRows ?? [])
-        .map((b) => b.book as { id: string; title: string } | null)
+        .map((b) => b.book as unknown as { id: string; title: string } | null)
         .filter(Boolean)
         .map((b) => [b!.id, b!])
     ).values()

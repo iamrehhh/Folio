@@ -122,7 +122,7 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
         </div>
       ) : (
         <div className="space-y-8">
-          {[...grouped.entries()].map(([bookTitle, chapters]) => {
+          {Array.from(grouped.entries()).map(([bookTitle, chapters]) => {
             const book = books.find((b) => b.title === bookTitle);
             return (
               <div key={bookTitle}>
@@ -146,7 +146,7 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
                 </div>
 
                 {/* Chapters */}
-                {[...chapters.entries()].map(([chapterTitle, chHighlights]) => (
+                {Array.from(chapters.entries()).map(([chapterTitle, chHighlights]) => (
                   <div key={chapterTitle} className="mb-6">
                     <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>
                       {chapterTitle}

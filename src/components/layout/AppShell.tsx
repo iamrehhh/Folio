@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import {
-  Home, BookOpen, Highlighter, BookMarked, LogOut, User
+  Home, BookOpen, Highlighter, BookMarked, LogOut, User, HelpCircle
 } from 'lucide-react';
+import GuideModal from './GuideModal';
 import { cn } from '@/lib/utils';
 import type { Profile } from '@/types';
 
@@ -26,6 +28,7 @@ export default function AppShell({ children, user }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const [showGuide, setShowGuide] = useState(false);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -97,6 +100,14 @@ export default function AppShell({ children, user }: AppShellProps) {
               </div>
             )}
             <button
+              onClick={() => setShowGuide(true)}
+              className="flex items-center justify-center p-1.5 rounded-full transition-colors hover:bg-[var(--border)]"
+              style={{ color: 'var(--text-secondary)' }}
+              title="Guide & Information"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
+            <button
               onClick={handleSignOut}
               className="flex items-center gap-1 px-2 py-1.5 rounded text-sm transition-colors hover:bg-[var(--border)]"
               style={{ color: 'var(--text-secondary)' }}
@@ -110,6 +121,9 @@ export default function AppShell({ children, user }: AppShellProps) {
 
       {/* Page content */}
       <main className="flex-1">{children}</main>
+
+      {/* Guide Modal */}
+      {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
     </div>
   );
 }
