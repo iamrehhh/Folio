@@ -9,7 +9,7 @@ interface Props {
   onClose: () => void;
 }
 
-const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Self-Help', 'Fantasy', 'Mystery', 'Other'];
+const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Self-Help', 'Fantasy', 'Mystery', 'Romance', 'Other'];
 
 export default function BookUploadModal({ onClose }: Props) {
   const router = useRouter();

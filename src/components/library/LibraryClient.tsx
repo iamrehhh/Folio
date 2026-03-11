@@ -24,7 +24,7 @@ interface Props {
   userId: string;
 }
 
-const GENRES = ['All', 'Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Self-Help', 'Fantasy', 'Mystery', 'Other'];
+const GENRES = ['All', 'Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Self-Help', 'Fantasy', 'Mystery', 'Romance', 'Other'];
 
 export default function LibraryClient({ books: initialBooks, progressMap, userId }: Props) {
   const router = useRouter();
