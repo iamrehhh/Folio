@@ -88,6 +88,14 @@ export default function AppShell({ children, user }: AppShellProps) {
 
           {/* User menu (Right aligned, flex-1 to pull from center) */}
           <div className="flex-1 flex items-center justify-end gap-2">
+            <button
+              onClick={() => setShowGuide(true)}
+              className="flex items-center justify-center p-1.5 rounded-full transition-colors hover:bg-[var(--border)]"
+              style={{ color: 'var(--text-secondary)' }}
+              title="Guide & Information"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </button>
             {user?.avatar_url ? (
               <img
                 src={user.avatar_url}
@@ -99,14 +107,6 @@ export default function AppShell({ children, user }: AppShellProps) {
                 <User className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
               </div>
             )}
-            <button
-              onClick={() => setShowGuide(true)}
-              className="flex items-center justify-center p-1.5 rounded-full transition-colors hover:bg-[var(--border)]"
-              style={{ color: 'var(--text-secondary)' }}
-              title="Guide & Information"
-            >
-              <HelpCircle className="w-5 h-5" />
-            </button>
             <button
               onClick={handleSignOut}
               className="flex items-center gap-1 px-2 py-1.5 rounded text-sm transition-colors hover:bg-[var(--border)]"
