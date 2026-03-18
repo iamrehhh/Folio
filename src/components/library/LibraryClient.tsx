@@ -10,6 +10,7 @@ import BookEditModal from './BookEditModal';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 type FilterTab = 'all' | 'unread' | 'reading' | 'completed';
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
@@ -27,53 +28,28 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [confirmBook, setConfirmBook] = useState<Book | null>(null);
 
-  // ── Supabase Realtime subscription ──────────────────────────
+  // Realtime subscription
   useEffect(() => {
     const supabase = createClient();
-
     const channel = supabase
       .channel('library-books')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'books' },
-        (payload) => {
-          const newBook = payload.new as Book;
-          // Show if it's our own book or a default book
-          if (newBook.uploaded_by === userId || newBook.is_default) {
-            setBooks(prev => {
-              if (prev.some(b => b.id === newBook.id)) return prev;
-              // Default books go first
-              if (newBook.is_default) return [newBook, ...prev];
-              return [newBook, ...prev];
-            });
-            if (newBook.uploaded_by !== userId) {
-              toast(`📚 New book added: "${newBook.title}"`, { duration: 3000 });
-            }
-          }
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'books' }, (payload) => {
+        const newBook = payload.new as Book;
+        if (newBook.uploaded_by === userId || (newBook as any).is_default) {
+          setBooks(prev => prev.some(b => b.id === newBook.id) ? prev : [newBook, ...prev]);
+          if (newBook.uploaded_by !== userId) toast(`📚 New book: "${newBook.title}"`, { duration: 3000 });
         }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'books' },
-        (payload) => {
-          const deletedId = payload.old.id;
-          setBooks(prev => prev.filter(b => b.id !== deletedId));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'books' },
-        (payload) => {
-          const updated = payload.new as Book;
-          setBooks(prev => prev.map(b => b.id === updated.id ? updated : b));
-        }
-      )
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'books' }, (payload) => {
+        setBooks(prev => prev.filter(b => b.id !== payload.old.id));
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'books' }, (payload) => {
+        setBooks(prev => prev.map(b => b.id === (payload.new as Book).id ? payload.new as Book : b));
+      })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
   const filtered = useMemo(() => books.filter((book) => {
@@ -90,15 +66,22 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
   }), [books, progressMap, activeTab, selectedGenre, searchQuery]);
 
   async function handleDelete(book: Book) {
-    if (!confirm(`Delete "${book.title}"? This cannot be undone.`)) return;
+    setConfirmBook(book);
+    setOpenMenuId(null);
+  }
+
+  async function confirmDelete() {
+    if (!confirmBook) return;
     try {
-      const res = await fetch(`/api/books/${book.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/books/${confirmBook.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
-      // Realtime will handle removing from state — but do it locally too for instant feedback
-      setBooks(prev => prev.filter(b => b.id !== book.id));
-      setOpenMenuId(null);
-      toast.success(`"${book.title}" deleted`);
-    } catch { toast.error('Failed to delete book'); }
+      setBooks(prev => prev.filter(b => b.id !== confirmBook.id));
+      toast.success(`"${confirmBook.title}" deleted`);
+    } catch { 
+      toast.error('Failed to delete book');
+    } finally {
+      setConfirmBook(null);
+    }
   }
 
   const tabs: { id: FilterTab; label: string }[] = [
@@ -160,9 +143,12 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
 
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
+
         {/* Top bar */}
         <div className="px-4 md:px-8 py-3 border-b flex flex-wrap items-center gap-3"
           style={{ borderColor: 'var(--border)' }}>
+
+          {/* Search */}
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
               style={{ color: 'var(--text-secondary)' }} />
@@ -172,6 +158,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
               style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
           </div>
 
+          {/* Filter tabs — scrollable on mobile */}
           <div className="flex items-center gap-1 overflow-x-auto">
             {tabs.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
@@ -186,16 +173,17 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
+            {/* Genre filter button — mobile only */}
             <button onClick={() => setShowMobileFilters(true)}
               className="md:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm"
-              style={{
-                borderColor: 'var(--border)',
+              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)',
                 backgroundColor: selectedGenre !== 'All' ? '#8B691420' : undefined,
-                color: selectedGenre !== 'All' ? '#8B6914' : 'var(--text-secondary)',
-              }}>
+                color: selectedGenre !== 'All' ? '#8B6914' : 'var(--text-secondary)' } as any}>
               <SlidersHorizontal className="w-4 h-4" />
               {selectedGenre !== 'All' ? selectedGenre : 'Genre'}
             </button>
+
+            {/* Add Book */}
             <button onClick={() => setShowUploadModal(true)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 whitespace-nowrap"
               style={{ backgroundColor: '#8B6914' }}>
@@ -217,7 +205,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-5 md:gap-8">
               {filtered.map(book => {
                 const pct = Math.round(progressMap.get(book.id)?.progress_percent ?? 0);
                 const isUnread = pct === 0;
@@ -228,26 +216,21 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
                   <div key={book.id}
                     className="group flex flex-col rounded-xl border overflow-hidden transition-all duration-200 hover:shadow-soft-lg"
                     style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
-                    <div className="w-full aspect-[3/4] bg-[#E5E0D8] flex items-center justify-center overflow-hidden relative">
+
+                    {/* Cover */}
+                    <div className="w-full aspect-[2/3] bg-[#E5E0D8] flex items-center justify-center overflow-hidden relative">
                       {book.cover_url
                         ? <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover object-top" />
                         : <BookOpen className="w-8 h-8 opacity-25" style={{ color: 'var(--text-secondary)' }} />
                       }
-                      <div className="absolute top-2 left-2 flex flex-col gap-1">
-                        {book.genre && (
-                          <span className="px-2 py-0.5 rounded text-xs font-medium"
-                            style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff' }}>
-                            {book.genre}
-                          </span>
-                        )}
-                        {(book as any).is_default && book.uploaded_by !== userId && (
-                          <span className="px-2 py-0.5 rounded text-xs font-medium"
-                            style={{ backgroundColor: 'rgba(139,105,20,0.85)', color: '#fff' }}>
-                            ✦ Curated
-                          </span>
-                        )}
-                      </div>
+                      {book.genre && (
+                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-medium"
+                          style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff' }}>
+                          {book.genre}
+                        </span>
+                      )}
 
+                      {/* ⋮ menu */}
                       {book.uploaded_by === userId && (
                         <div className="absolute top-2 right-2">
                           <button
@@ -276,13 +259,14 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
                       )}
                     </div>
 
-                    <div className="flex flex-col flex-1 p-3 md:p-4">
-                      <h3 className="font-medium text-xs md:text-sm leading-snug"
+                    {/* Info */}
+                    <div className="flex flex-col flex-1 p-4 md:p-5">
+                      <h3 className="font-medium text-sm md:text-base leading-snug"
                         style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}
                         title={book.title}>
                         {truncate(book.title, 35)}
                       </h3>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                         {truncate(book.author, 25)}
                       </p>
                       {!isUnread && (
@@ -298,7 +282,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
                       )}
                       <div className="mt-auto pt-2">
                         <Link href={`/read/${book.id}`}
-                          className="block w-full text-center py-2 rounded text-xs md:text-sm font-medium text-white transition-opacity hover:opacity-90"
+                          className="block w-full text-center py-2.5 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
                           style={{ backgroundColor: '#8B6914' }}>
                           {isUnread ? 'Start' : isCompleted ? 'Again' : 'Continue'}
                         </Link>
@@ -313,17 +297,18 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
       </div>
 
       {openMenuId && <div className="fixed inset-0 z-[5]" onClick={() => setOpenMenuId(null)} />}
-      {showUploadModal && <BookUploadModal onClose={() => setShowUploadModal(false)} />}
-      {editingBook && (
-        <BookEditModal
-          book={editingBook}
-          onClose={() => setEditingBook(null)}
-          onSaved={updated => {
-            setBooks(prev => prev.map(b => b.id === updated.id ? updated : b));
-            setEditingBook(null);
-          }}
+
+      {confirmBook && (
+        <ConfirmDialog
+          title="Delete Book"
+          message={`"${confirmBook.title}" will be permanently deleted and removed from all users' libraries.`}
+          confirmLabel="Delete"
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmBook(null)}
         />
       )}
+      {showUploadModal && <BookUploadModal onClose={() => { setShowUploadModal(false); router.refresh(); }} />}
+      {editingBook && <BookEditModal book={editingBook} onClose={() => setEditingBook(null)} onSaved={updated => { setBooks(prev => prev.map(b => b.id === updated.id ? updated : b)); setEditingBook(null); }} />}
     </div>
   );
 }

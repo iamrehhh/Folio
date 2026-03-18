@@ -212,7 +212,7 @@ export default function ReaderClient({
           doc.body.style.cssText = `
             width: 100% !important;
             margin: 0 !important;
-            padding: 3rem 5rem !important;
+            padding: 1.5rem 4rem 3rem 4rem !important;
             box-sizing: border-box !important;
             overflow-x: hidden !important;
             word-wrap: break-word !important;
@@ -392,10 +392,22 @@ export default function ReaderClient({
           height: 100% !important;
           overflow-y: auto !important;
           overflow-x: hidden !important;
+          scrollbar-width: thin !important;
+          scrollbar-color: rgba(139,105,20,0.3) transparent !important;
         }
-        #epub-viewer .epub-container::-webkit-scrollbar { width: 6px; }
+        /* Webkit scrollbar — thin, right edge, only visible on hover/scroll */
+        #epub-viewer .epub-container::-webkit-scrollbar {
+          width: 5px !important;
+        }
+        #epub-viewer .epub-container::-webkit-scrollbar-track {
+          background: transparent !important;
+        }
         #epub-viewer .epub-container::-webkit-scrollbar-thumb {
-          background: #C4BDB4; border-radius: 3px;
+          background: rgba(139,105,20,0.3) !important;
+          border-radius: 3px !important;
+        }
+        #epub-viewer .epub-container::-webkit-scrollbar-thumb:hover {
+          background: rgba(139,105,20,0.6) !important;
         }
       `}</style>
 
@@ -423,7 +435,7 @@ export default function ReaderClient({
               ? 'fixed md:relative md:flex-none inset-y-0 left-0 z-30 md:z-auto w-56'
               : 'hidden md:block md:w-0'
           )}
-          style={isChapterSidebarOpen ? { top: '3.5rem' } : undefined}
+          style={isChapterSidebarOpen && typeof window !== 'undefined' && window.innerWidth < 768 ? { top: '3rem' } : undefined}
         >
           <ChapterSidebar
             chapters={chapters}
@@ -440,7 +452,7 @@ export default function ReaderClient({
 
         {/* Reading column — wider, centered with transition */}
         <div
-          className="flex-1 overflow-hidden transition-all duration-300 ease-in-out"
+          className="reading-column flex-1 overflow-hidden transition-all duration-300 ease-in-out relative"
           style={{ backgroundColor: themeBg }}
         >
           <div
@@ -488,7 +500,7 @@ export default function ReaderClient({
             <div
               ref={viewerRef}
               id="epub-viewer"
-              className="w-full h-full overflow-hidden"
+              style={{ width: '100%', height: '100%', overflow: 'hidden' }}
             />
           </div>
         </div>
