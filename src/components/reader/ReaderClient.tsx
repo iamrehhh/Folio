@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useReaderStore } from '@/lib/store';
+import { cn, highlightColorHex } from '@/lib/utils';
 import ReaderTopBar from './ReaderTopBar';
 import ChapterSidebar from './ChapterSidebar';
 import SelectionToolbar from './SelectionToolbar';
@@ -84,15 +85,59 @@ export default function ReaderClient({
 
       const nav = epubBook.navigation;
       const toc = nav?.toc ?? [];
-      const chapterList: ChapterInfo[] = toc.map((item: any, i: number) => {
-        const spineItem = epubBook.spine.get(item.href);
-        return {
-          index: i,
-          title: item.label?.trim() ?? `Chapter ${i + 1}`,
-          href: item.href,
-          spinePos: spineItem ? spineItem.index : -1,
-        };
-      });
+
+      // Flatten nested TOC recursively — handles Part > Chapter hierarchies
+      function flattenToc(items: any[], depth = 0): { label: string; href: string; depth: number }[] {
+        const result: { label: string; href: string; depth: number }[] = [];
+        for (const item of items) {
+          result.push({ label: item.label?.trim() ?? '', href: item.href ?? '', depth });
+          if (Array.isArray(item.subitems) && item.subitems.length > 0) {
+            result.push(...flattenToc(item.subitems, depth + 1));
+          }
+        }
+        return result;
+      }
+
+      const isValidLabel = (label: string) =>
+        label.length > 0 &&
+        !/^text\d+$/i.test(label) &&
+        !/^item\d+$/i.test(label) &&
+        !/^chapter_?\d+\.x?html?$/i.test(label);
+
+      let chapterList: ChapterInfo[] = [];
+      const flatToc = flattenToc(toc);
+
+      if (flatToc.length > 0 && flatToc.some(item => isValidLabel(item.label))) {
+        chapterList = flatToc.map((item, i) => {
+          const spineItem = epubBook.spine.get(item.href);
+          const title = item.depth > 0
+            ? '\u00A0\u00A0'.repeat(item.depth) + item.label
+            : item.label;
+          return {
+            index: i,
+            title: title || `Chapter ${i + 1}`,
+            href: item.href,
+            depth: item.depth,
+            spinePos: spineItem ? spineItem.index : -1,
+          };
+        });
+      } else {
+        const spineItems: any[] = [];
+        epubBook.spine.each((item: any) => spineItems.push(item));
+        chapterList = spineItems.map((item: any, i: number) => {
+          const href = item.href ?? item.url ?? '';
+          const filename = href.split('/').pop()?.replace(/\.x?html?$/i, '') ?? '';
+          const readable = filename.replace(/[-_]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()).trim();
+          return {
+            index: i,
+            title: readable || `Chapter ${i + 1}`,
+            href: item.href ?? '',
+            depth: 0,
+            spinePos: item.index ?? i,
+          };
+        });
+      }
+
       setChapters(chapterList);
 
       // Display with timeout fallback for stubborn EPUB3 books
@@ -251,7 +296,7 @@ export default function ReaderClient({
         try {
           rendition.annotations.highlight(
             h.cfi_range, {}, undefined, 'hl',
-            { fill: highlightHex(h.color), 'fill-opacity': '0.35' }
+            { fill: highlightColorHex(h.color), 'fill-opacity': '0.35' }
           );
         } catch { /* ignore */ }
       }
@@ -317,7 +362,7 @@ export default function ReaderClient({
       if (!res.ok) throw new Error(data.error);
       renditionRef.current?.annotations.highlight(
         cfiRange, {}, undefined, 'hl',
-        { fill: highlightHex(color), 'fill-opacity': '0.35' }
+        { fill: highlightColorHex(color), 'fill-opacity': '0.35' }
       );
       setHighlights((prev) => [...prev, data.highlight]);
       setSelectionToolbar(null);
@@ -361,15 +406,37 @@ export default function ReaderClient({
         onQuiz={() => setShowQuiz(true)}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Mobile backdrop */}
         {isChapterSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/30 z-20 md:hidden"
+            onClick={toggleChapterSidebar}
+          />
+        )}
+
+        {/* Sidebar — overlay on mobile, inline on desktop */}
+        <div
+          className={cn(
+            'overflow-hidden transition-all duration-300 ease-in-out',
+            isChapterSidebarOpen
+              ? 'fixed md:relative md:flex-none inset-y-0 left-0 z-30 md:z-auto w-56'
+              : 'hidden md:block md:w-0'
+          )}
+          style={isChapterSidebarOpen ? { top: '3.5rem' } : undefined}
+        >
           <ChapterSidebar
             chapters={chapters}
             currentIndex={currentChapterIndex}
-            onSelect={goToChapter}
+            onSelect={(ch) => {
+              goToChapter(ch);
+              if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                toggleChapterSidebar();
+              }
+            }}
             onQuiz={() => setShowQuiz(true)}
           />
-        )}
+        </div>
 
         {/* Reading column — wider, centered with transition */}
         <div
@@ -426,14 +493,20 @@ export default function ReaderClient({
           </div>
         </div>
 
-        {isAIPanelOpen && (
-          <AIPanel
-            bookTitle={book.title}
-            chapterText={chapterText}
-            chapterTitle={chapters[currentChapterIndex]?.title ?? ''}
-            onClose={() => useReaderStore.getState().toggleAIPanel()}
-          />
-        )}
+        {/* AI Panel with smooth transition */}
+        <div
+          className="flex-none overflow-hidden transition-all duration-300 ease-in-out h-full"
+          style={{ width: isAIPanelOpen ? '20rem' : '0' }}
+        >
+          {isAIPanelOpen && (
+            <AIPanel
+              bookTitle={book.title}
+              chapterText={chapterText}
+              chapterTitle={chapters[currentChapterIndex]?.title ?? ''}
+              onClose={() => useReaderStore.getState().toggleAIPanel()}
+            />
+          )}
+        </div>
       </div>
 
       {!isAIPanelOpen && (
@@ -501,7 +574,6 @@ function applyTheme(rendition: any, theme: string, fontSize: number, lineHeight:
 
   rendition.themes.default({
     '*': { 'box-sizing': 'border-box' },
-    '*:hover': { 'color': 'inherit !important', 'background-color': 'transparent !important' },
     'html': { 'overflow-x': 'hidden' },
     'body': {
       background: bg,
@@ -534,6 +606,3 @@ function applyTheme(rendition: any, theme: string, fontSize: number, lineHeight:
   });
 }
 
-function highlightHex(color: string): string {
-  return ({ yellow: '#FFE066', blue: '#93C5FD', green: '#86EFAC', pink: '#F9A8D4' } as any)[color] ?? '#FFE066';
-}

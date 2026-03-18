@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, Loader2, Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { useReaderStore } from '@/lib/store';
 import type { AIMessage } from '@/types';
 
@@ -73,11 +74,11 @@ export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose 
 
   return (
     <aside
-      className="w-80 flex-none border-l flex flex-col animate-slide-in-right"
+      className="w-80 h-full flex-none border-l flex flex-col animate-slide-in-right"
       style={{ backgroundColor: bg, borderColor: border }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: border }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor: border }}>
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4" style={{ color: '#8B6914' }} />
           <span className="text-sm font-medium" style={{ color: textPrimary }}>AI Assistant</span>
@@ -88,64 +89,75 @@ export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose 
       </div>
 
       {/* Chapter context */}
-      <div className="px-4 py-2 border-b" style={{ borderColor: border }}>
+      <div className="px-4 py-2 border-b shrink-0" style={{ borderColor: border }}>
         <p className="text-xs" style={{ color: textSecondary }}>
           Context: <span style={{ color: textPrimary }}>{chapterTitle || bookTitle}</span>
         </p>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        {aiMessages.length === 0 ? (
-          <div className="space-y-2">
-            <p className="text-xs font-medium" style={{ color: textSecondary }}>Suggested prompts</p>
-            {QUICK_PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                onClick={() => sendMessage(prompt)}
-                className="w-full text-left px-3 py-2 rounded-lg text-sm border transition-colors hover:bg-black/5"
-                style={{ borderColor: border, color: textPrimary }}
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
-        ) : (
-          aiMessages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className="max-w-[85%] px-3 py-2 rounded-xl text-sm leading-relaxed"
-                style={
-                  msg.role === 'user'
-                    ? { backgroundColor: '#8B6914', color: '#fff', borderRadius: '12px 12px 2px 12px' }
-                    : { backgroundColor: inputBg, color: textPrimary, border: `1px solid ${border}`, borderRadius: '12px 12px 12px 2px' }
-                }
-              >
-                {msg.content}
-              </div>
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div className="min-h-full flex flex-col">
+          {aiMessages.length === 0 ? (
+            /* Prompts pushed to bottom via mt-auto */
+            <div className="mt-auto space-y-2">
+              <p className="text-xs font-medium" style={{ color: textSecondary }}>Suggested prompts</p>
+              {QUICK_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => sendMessage(prompt)}
+                  className="w-full text-left px-3 py-2 rounded-lg text-sm border transition-colors hover:bg-black/5"
+                  style={{ borderColor: border, color: textPrimary }}
+                >
+                  {prompt}
+                </button>
+              ))}
             </div>
-          ))
-        )}
+          ) : (
+            <div className="space-y-4">
+              {aiMessages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className="max-w-[85%] px-3 py-2 rounded-xl text-sm leading-relaxed"
+                    style={
+                      msg.role === 'user'
+                        ? { backgroundColor: '#8B6914', color: '#fff', borderRadius: '12px 12px 2px 12px' }
+                        : { backgroundColor: inputBg, color: textPrimary, border: `1px solid ${border}`, borderRadius: '12px 12px 12px 2px' }
+                    }
+                  >
+                    {msg.role === 'assistant' ? (
+                      <div className="ai-prose">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      msg.content
+                    )}
+                  </div>
+                </div>
+              ))}
 
-        {isLoading && (
-          <div className="flex justify-start">
-            <div
-              className="px-3 py-2.5 rounded-xl border"
-              style={{ backgroundColor: inputBg, borderColor: border }}
-            >
-              <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#8B6914' }} />
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div
+                    className="px-3 py-2.5 rounded-xl border"
+                    style={{ backgroundColor: inputBg, borderColor: border }}
+                  >
+                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#8B6914' }} />
+                  </div>
+                </div>
+              )}
+
+              <div ref={bottomRef} />
             </div>
-          </div>
-        )}
-
-        <div ref={bottomRef} />
+          )}
+        </div>
       </div>
 
       {/* Input */}
-      <div className="p-3 border-t" style={{ borderColor: border }}>
+      <div className="p-3 border-t shrink-0" style={{ borderColor: border }}>
         <div className="flex gap-2">
           <input
             type="text"

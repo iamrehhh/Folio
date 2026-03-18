@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Google Fonts ─────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
-
 /* ─── CSS Variables / Design Tokens ─────────── */
 :root {
   /* Light theme (default) */
@@ -132,10 +129,16 @@ body {
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.animate-slide-in-right  { animation: slideInRight 0.25s ease-out; }
-.animate-slide-out-right { animation: slideOutRight 0.2s ease-in forwards; }
-.animate-fade-in         { animation: fadeIn 0.2s ease-out; }
-.animate-float-up        { animation: floatUp 0.2s ease-out; }
+@keyframes pageEnter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-slide-in-right  { animation: slideInRight 0.25s ease-out; will-change: transform, opacity; }
+.animate-slide-out-right { animation: slideOutRight 0.2s ease-in forwards; will-change: transform, opacity; }
+.animate-fade-in         { animation: fadeIn 0.2s ease-out; will-change: opacity, transform; }
+.animate-float-up        { animation: floatUp 0.2s ease-out; will-change: opacity, transform; }
+.animate-page-enter      { animation: pageEnter 0.3s ease-out; }
 
 /* ─── Reading Progress Bar ─────────────────────── */
 .progress-bar {
@@ -153,4 +156,77 @@ body {
 /* ─── Word Popover ──────────────────────────────── */
 .word-popover {
   animation: floatUp 0.2s ease-out;
+}
+
+/* ─── Focus Ring ────────────────────────────────── */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(139, 105, 20, 0.25);
+  border-color: var(--accent) !important;
+}
+
+/* ─── AI Prose (markdown output) ────────────── */
+.ai-prose {
+  font-size: 0.8125rem;
+  line-height: 1.65;
+}
+
+.ai-prose p {
+  margin-bottom: 0.6em;
+}
+
+.ai-prose p:last-child {
+  margin-bottom: 0;
+}
+
+.ai-prose h3,
+.ai-prose h4 {
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-top: 0.8em;
+  margin-bottom: 0.35em;
+}
+
+.ai-prose h3:first-child,
+.ai-prose h4:first-child {
+  margin-top: 0;
+}
+
+.ai-prose strong {
+  font-weight: 600;
+}
+
+.ai-prose ul,
+.ai-prose ol {
+  padding-left: 1.2em;
+  margin-bottom: 0.6em;
+}
+
+.ai-prose li {
+  margin-bottom: 0.25em;
+}
+
+.ai-prose ul li {
+  list-style-type: disc;
+}
+
+.ai-prose ol li {
+  list-style-type: decimal;
+}
+
+.ai-prose code {
+  font-size: 0.8em;
+  padding: 0.15em 0.35em;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.06);
+}
+
+.ai-prose blockquote {
+  border-left: 2px solid var(--accent, #8B6914);
+  padding-left: 0.75em;
+  margin: 0.5em 0;
+  opacity: 0.85;
+  font-style: italic;
 }

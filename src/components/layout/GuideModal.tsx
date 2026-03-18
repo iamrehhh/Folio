@@ -11,13 +11,13 @@ export default function GuideModal({ onClose }: Props) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" 
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" 
         onClick={onClose} 
       />
 
       {/* Modal */}
       <div
-        className="relative z-10 w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden"
+        className="relative z-10 w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl overflow-hidden animate-float-up"
         style={{
           backgroundColor: 'var(--bg, #FAF8F4)',
           borderColor: 'var(--border, #E5E0D8)',

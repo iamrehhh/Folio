@@ -49,6 +49,7 @@ export default function ChapterQuiz({
       setPhase('question');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to generate quiz');
+      setPhase('question'); // Exit loading phase so error UI shows instead of spinner
     }
   }
 
