@@ -4,10 +4,15 @@ import { useState, useRef } from 'react';
 import { X, Upload, BookOpen, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 interface Props { onClose: () => void; }
 
-const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Self-Help', 'Fantasy', 'Mystery', 'Romance', 'Other'];
+const GENRES = ['Fiction','Non-Fiction','Science','History','Biography','Self-Help','Fantasy','Mystery','Romance','Other'];
+
+function sanitize(name: string) {
+  return name.replace(/[^a-zA-Z0-9.-]/g, '_');
+}
 
 export default function BookUploadModal({ onClose }: Props) {
   const router = useRouter();
@@ -20,6 +25,7 @@ export default function BookUploadModal({ onClose }: Props) {
   const [author,      setAuthor]      = useState('');
   const [genre,       setGenre]       = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState('');
   const [done,        setDone]        = useState(false);
 
   async function handleSubmit() {
@@ -28,25 +34,70 @@ export default function BookUploadModal({ onClose }: Props) {
       return;
     }
     setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('epub',   epubFile);
-      if (coverFile) formData.append('cover', coverFile);
-      formData.append('title',  title);
-      formData.append('author', author);
-      if (genre) formData.append('genre', genre);
 
-      const res  = await fetch('/api/books', { method: 'POST', body: formData });
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const timestamp = Date.now();
+
+      // ── Step 1: Upload EPUB directly to Supabase Storage ──
+      setUploadStage('Uploading EPUB…');
+      const epubPath = `${user.id}/${timestamp}-${sanitize(epubFile.name)}`;
+      const { error: epubError } = await supabase.storage
+        .from('books')
+        .upload(epubPath, epubFile, {
+          contentType: 'application/epub+zip',
+          upsert: false,
+        });
+      if (epubError) throw new Error(`EPUB upload failed: ${epubError.message}`);
+
+      // ── Step 2: Upload cover directly to Supabase Storage ──
+      let coverUrl: string | null = null;
+      let coverPath: string | null = null;
+
+      if (coverFile) {
+        setUploadStage('Uploading cover…');
+        coverPath = `${user.id}/${timestamp}-${sanitize(coverFile.name)}`;
+        const { error: coverError } = await supabase.storage
+          .from('covers')
+          .upload(coverPath, coverFile, {
+            contentType: coverFile.type,
+            upsert: false,
+          });
+        if (!coverError) {
+          const { data: urlData } = supabase.storage
+            .from('covers')
+            .getPublicUrl(coverPath);
+          coverUrl = urlData.publicUrl;
+        }
+      }
+
+      // ── Step 3: Save metadata to DB via API (tiny request — just strings) ──
+      setUploadStage('Saving to library…');
+      const res = await fetch('/api/books', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          author,
+          genre:     genre     || null,
+          epubPath,
+          coverUrl,
+          coverPath,
+        }),
+      });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Upload failed');
+      if (!res.ok) throw new Error(data.error ?? 'Failed to save book');
 
       setDone(true);
       toast.success(`"${title}" added to your library!`);
-      router.refresh();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
       setIsUploading(false);
+      setUploadStage('');
     }
   }
 
@@ -84,21 +135,18 @@ export default function BookUploadModal({ onClose }: Props) {
         style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b"
-          style={{ borderColor: 'var(--border)' }}>
-          <h2 className="font-semibold"
-            style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+          <h2 className="font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
             Add Book to Library
           </h2>
           {!isUploading && (
-            <button onClick={onClose}
-              className="p-1 rounded hover:bg-[var(--border)] transition-colors">
+            <button onClick={onClose} className="p-1 rounded hover:bg-[var(--border)] transition-colors">
               <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
             </button>
           )}
         </div>
 
-        {/* Uploading spinner */}
+        {/* Uploading state */}
         {isUploading && (
           <div className="px-6 py-10 flex flex-col items-center gap-3">
             <div className="w-10 h-10 rounded-full flex items-center justify-center animate-pulse"
@@ -106,13 +154,15 @@ export default function BookUploadModal({ onClose }: Props) {
               <Upload className="w-5 h-5" style={{ color: '#8B6914' }} />
             </div>
             <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
-              Uploading to library…
+              {uploadStage || 'Uploading…'}
             </p>
-            <div className="w-48 h-1 rounded-full overflow-hidden mt-1"
-              style={{ backgroundColor: 'var(--border)' }}>
+            <div className="w-48 h-1 rounded-full overflow-hidden mt-1" style={{ backgroundColor: 'var(--border)' }}>
               <div className="h-full rounded-full animate-pulse"
                 style={{ width: '80%', backgroundColor: '#8B6914' }} />
             </div>
+            <p className="text-xs text-center" style={{ color: 'var(--text-secondary)' }}>
+              Uploading directly to storage — no file size limits
+            </p>
           </div>
         )}
 
@@ -120,10 +170,9 @@ export default function BookUploadModal({ onClose }: Props) {
         {!isUploading && (
           <>
             <div className="px-6 py-5 space-y-4">
-              {/* EPUB upload */}
+              {/* EPUB */}
               <div>
-                <label className="block text-sm font-medium mb-1.5"
-                  style={{ color: 'var(--text-primary)' }}>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
                   EPUB File <span style={{ color: '#8B6914' }}>*</span>
                 </label>
                 <button onClick={() => epubRef.current?.click()}
@@ -142,27 +191,25 @@ export default function BookUploadModal({ onClose }: Props) {
                   )}
                 </button>
                 <input ref={epubRef} type="file" accept=".epub" className="hidden"
-                  onChange={(e) => setEpubFile(e.target.files?.[0] ?? null)} />
+                  onChange={e => setEpubFile(e.target.files?.[0] ?? null)} />
               </div>
 
               {/* Title + Author */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1"
-                    style={{ color: 'var(--text-primary)' }}>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                     Title <span style={{ color: '#8B6914' }}>*</span>
                   </label>
-                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+                  <input type="text" value={title} onChange={e => setTitle(e.target.value)}
                     placeholder="Book title"
                     className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                     style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1"
-                    style={{ color: 'var(--text-primary)' }}>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                     Author <span style={{ color: '#8B6914' }}>*</span>
                   </label>
-                  <input type="text" value={author} onChange={(e) => setAuthor(e.target.value)}
+                  <input type="text" value={author} onChange={e => setAuthor(e.target.value)}
                     placeholder="Author name"
                     className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                     style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
@@ -171,20 +218,18 @@ export default function BookUploadModal({ onClose }: Props) {
 
               {/* Genre */}
               <div>
-                <label className="block text-sm font-medium mb-1"
-                  style={{ color: 'var(--text-primary)' }}>Genre</label>
-                <select value={genre} onChange={(e) => setGenre(e.target.value)}
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Genre</label>
+                <select value={genre} onChange={e => setGenre(e.target.value)}
                   className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                   style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
                   <option value="">Select genre…</option>
-                  {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
+                  {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
 
               {/* Cover */}
               <div>
-                <label className="block text-sm font-medium mb-1"
-                  style={{ color: 'var(--text-primary)' }}>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                   Cover Image (optional)
                 </label>
                 <button onClick={() => coverRef.current?.click()}
@@ -194,13 +239,12 @@ export default function BookUploadModal({ onClose }: Props) {
                   {coverFile ? coverFile.name : 'Upload cover image'}
                 </button>
                 <input ref={coverRef} type="file" accept="image/*" className="hidden"
-                  onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)} />
+                  onChange={e => setCoverFile(e.target.files?.[0] ?? null)} />
               </div>
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t flex gap-3 justify-end"
-              style={{ borderColor: 'var(--border)' }}>
+            <div className="px-6 py-4 border-t flex gap-3 justify-end" style={{ borderColor: 'var(--border)' }}>
               <button onClick={onClose}
                 className="px-4 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--bg)]"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
