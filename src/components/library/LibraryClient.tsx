@@ -176,9 +176,11 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
             {/* Genre filter button — mobile only */}
             <button onClick={() => setShowMobileFilters(true)}
               className="md:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm"
-              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)',
+              style={{
+                borderColor: 'var(--border)',
                 backgroundColor: selectedGenre !== 'All' ? '#8B691420' : undefined,
-                color: selectedGenre !== 'All' ? '#8B6914' : 'var(--text-secondary)' } as any}>
+                color: selectedGenre !== 'All' ? '#8B6914' : 'var(--text-secondary)',
+              }}>
               <SlidersHorizontal className="w-4 h-4" />
               {selectedGenre !== 'All' ? selectedGenre : 'Genre'}
             </button>
