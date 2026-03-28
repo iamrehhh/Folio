@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, SlidersHorizontal, Trophy, Book } from 'lucide-react';
+import { ChevronLeft, SlidersHorizontal, Trophy, Book, Timer, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useReaderStore } from '@/lib/store';
 import type { Book as BookType, ReadingTheme } from '@/types';
@@ -11,6 +11,7 @@ interface Props {
   book: BookType;
   chapterTitle: string;
   progressPercent: number;
+  sessionSeconds: number;
   onQuiz: () => void;
 }
 
@@ -20,8 +21,18 @@ const THEMES: { id: ReadingTheme; label: string; bg: string }[] = [
   { id: 'dark',  label: 'Dark',  bg: '#1A1A1A' },
 ];
 
-export default function ReaderTopBar({ book, chapterTitle, progressPercent, onQuiz }: Props) {
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+export default function ReaderTopBar({ book, chapterTitle, progressPercent, sessionSeconds, onQuiz }: Props) {
   const [showFontControls, setShowFontControls] = useState(false);
+  const [timerVisible, setTimerVisible] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('folio-timer-visible') !== 'false';
+  });
   const fontControlsRef = useRef<HTMLDivElement>(null);
   const { theme, fontSize, lineHeight, setTheme, setFontSize, setLineHeight, toggleChapterSidebar } = useReaderStore();
 
@@ -35,6 +46,14 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, onQu
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showFontControls]);
 
+  function toggleTimer() {
+    setTimerVisible(v => {
+      const next = !v;
+      localStorage.setItem('folio-timer-visible', String(next));
+      return next;
+    });
+  }
+
   const textColor   = theme === 'dark' ? '#E8E6E0' : '#1C1C1E';
   const borderColor = theme === 'dark' ? '#333' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
   const bgColor     = theme === 'dark' ? '#242424' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
@@ -42,7 +61,7 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, onQu
 
   return (
     <div className="flex-none border-b z-20" style={{ backgroundColor: bgColor, borderColor }}>
-      <div className="h-12 flex items-center px-2 md:px-4 gap-1 md:gap-3">
+      <div className="h-12 flex items-center px-2 md:px-4 gap-1 md:gap-2">
 
         {/* Back */}
         <Link href="/library" className="flex-none p-2 rounded hover:bg-black/5 transition-colors" title="Back to Library">
@@ -68,9 +87,33 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, onQu
           )}
         </div>
 
-        {/* Progress — hidden on very small screens */}
+        {/* Timer — hidden on mobile, toggleable */}
+        <div className="hidden sm:flex flex-none items-center gap-1">
+          {timerVisible && (
+            <div className="flex items-center gap-1 px-2 py-1 rounded-md"
+              style={{ backgroundColor: 'rgba(139,105,20,0.08)' }}>
+              <Timer className="w-3 h-3" style={{ color: '#8B6914' }} />
+              <span className="text-xs font-mono tabular-nums" style={{ color: '#8B6914' }}>
+                {formatTime(sessionSeconds)}
+              </span>
+            </div>
+          )}
+          {/* Hide/show timer toggle */}
+          <button
+            onClick={toggleTimer}
+            className="p-1.5 rounded hover:bg-black/5 transition-colors"
+            title={timerVisible ? 'Hide timer' : 'Show timer'}
+          >
+            {timerVisible
+              ? <EyeOff className="w-3.5 h-3.5" style={{ color: mutedColor }} />
+              : <Timer className="w-3.5 h-3.5" style={{ color: mutedColor }} />
+            }
+          </button>
+        </div>
+
+        {/* Progress */}
         <div className="hidden sm:flex flex-none items-center gap-2">
-          <div className="w-16 md:w-20 h-1 rounded-full overflow-hidden" style={{ backgroundColor: borderColor }}>
+          <div className="w-14 md:w-20 h-1 rounded-full overflow-hidden" style={{ backgroundColor: borderColor }}>
             <div className="h-full rounded-full transition-all"
               style={{ width: `${progressPercent}%`, backgroundColor: '#8B6914' }} />
           </div>
@@ -92,8 +135,6 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, onQu
           {showFontControls && (
             <div className="absolute right-0 top-full mt-2 w-64 rounded-xl border p-4 shadow-popover z-50"
               style={{ backgroundColor: bgColor, borderColor }}>
-
-              {/* Theme */}
               <div className="mb-4">
                 <p className="text-xs font-medium mb-2" style={{ color: mutedColor }}>Theme</p>
                 <div className="flex gap-2">
@@ -111,8 +152,6 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, onQu
                   ))}
                 </div>
               </div>
-
-              {/* Font size */}
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-medium" style={{ color: mutedColor }}>Font Size</p>
@@ -122,8 +161,6 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, onQu
                   onChange={e => setFontSize(Number(e.target.value))}
                   className="w-full accent-[#8B6914]" />
               </div>
-
-              {/* Line height */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-medium" style={{ color: mutedColor }}>Line Height</p>
@@ -138,7 +175,7 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, onQu
         </div>
       </div>
 
-      {/* Mobile progress bar — full width strip at bottom of topbar */}
+      {/* Mobile progress strip */}
       <div className="sm:hidden h-0.5 w-full" style={{ backgroundColor: borderColor }}>
         <div className="h-full transition-all" style={{ width: `${progressPercent}%`, backgroundColor: '#8B6914' }} />
       </div>

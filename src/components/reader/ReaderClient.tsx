@@ -10,6 +10,7 @@ import WordPopover from './WordPopover';
 import AIPanel from './AIPanel';
 import ChapterQuiz from './ChapterQuiz';
 import type { Book, ReadingProgress, Highlight, Profile, ChapterInfo } from '@/types';
+import CompletionScreen from './CompletionScreen';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -32,6 +33,12 @@ export default function ReaderClient({
   const [highlights, setHighlights] = useState<Highlight[]>(initialHighlights);
   const [chapterText, setChapterText] = useState('');
   const [showQuiz, setShowQuiz] = useState(false);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [completionShownFor, setCompletionShownFor] = useState<string | null>(null);
+  const [sessionSeconds, setSessionSeconds] = useState(0);
+  const sessionSecondsRef = useRef(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const sessionStartRef = useRef<number>(Date.now());
   const [loadError, setLoadError] = useState(false);
 
   const [selectionToolbar, setSelectionToolbar] = useState<{
@@ -248,6 +255,12 @@ export default function ReaderClient({
         const chapterTitle = chapterList[tocIdx]?.title ?? '';
         setProgress(tocIdx, cfi, percent);
 
+        // Show completion screen when book is finished
+        if (percent >= 100 && completionShownFor !== book.id) {
+          setCompletionShownFor(book.id);
+          setTimeout(() => setShowCompletion(true), 800);
+        }
+
         try {
           const section = epubBook.spine.get(location.start.href);
           if (section) {
@@ -374,6 +387,65 @@ export default function ReaderClient({
 
   const progressPercent = useReaderStore((s) => s.progressPercent);
 
+  // ── Reading timer ────────────────────────────────────────────
+  useEffect(() => {
+    function startTimer() {
+      if (timerRef.current) return;
+      timerRef.current = setInterval(() => {
+        sessionSecondsRef.current += 1;
+        setSessionSeconds(s => s + 1);
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+
+    async function saveSession() {
+      const dur = sessionSecondsRef.current;
+      if (dur < 5) return;
+      try {
+        await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bookId: book.id, durationSeconds: dur }),
+        });
+      } catch { /* ignore */ }
+    }
+
+    // Start immediately
+    startTimer();
+
+    // Pause when tab hidden, resume when visible
+    function onVisibilityChange() {
+      if (document.hidden) pauseTimer();
+      else startTimer();
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    // Save session on page unload
+    function onUnload() {
+      pauseTimer();
+      saveSession();
+    }
+    window.addEventListener('beforeunload', onUnload);
+
+    // Auto-save every 60s in case of crash
+    const autoSave = setInterval(saveSession, 60000);
+
+    return () => {
+      pauseTimer();
+      saveSession();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('beforeunload', onUnload);
+      clearInterval(autoSave);
+    };
+  }, [book.id]);
+
+
   return (
     <div
       className="flex flex-col h-screen overflow-hidden"
@@ -415,6 +487,7 @@ export default function ReaderClient({
         book={book}
         chapterTitle={chapters[currentChapterIndex]?.title ?? ''}
         progressPercent={progressPercent}
+        sessionSeconds={sessionSeconds}
         onQuiz={() => setShowQuiz(true)}
       />
 
@@ -574,6 +647,13 @@ export default function ReaderClient({
           chapterText={chapterText}
           onClose={() => setShowQuiz(false)}
           userId={userId}
+        />
+      )}
+      {/* Book completion celebration */}
+      {showCompletion && (
+        <CompletionScreen
+          book={book}
+          onContinueReading={() => setShowCompletion(false)}
         />
       )}
     </div>
