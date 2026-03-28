@@ -4,6 +4,8 @@ import AppShell from '@/components/layout/AppShell';
 import LibraryClient from '@/components/library/LibraryClient';
 import type { Book } from '@/types';
 
+const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
+
 export default async function LibraryPage() {
   const supabase = createClient();
 
@@ -13,16 +15,15 @@ export default async function LibraryPage() {
   const { data: profile } = await supabase
     .from('profiles').select('*').eq('id', user.id).single();
 
-  // Fetch user's own books + all default books (uploaded by admin)
-  // Using OR filter: uploaded_by = current user OR is_default = true
+  const isAdmin = user.email === ADMIN_EMAIL;
+
   const { data: books } = await supabase
     .from('books')
     .select('*')
     .or(`uploaded_by.eq.${user.id},is_default.eq.true`)
-    .order('is_default', { ascending: false }) // default books first
+    .order('is_default', { ascending: false })
     .order('created_at', { ascending: false });
 
-  // Reading progress for this user
   const { data: progress } = await supabase
     .from('reading_progress')
     .select('book_id, progress_percent, last_read_at, chapter_title')
@@ -38,6 +39,7 @@ export default async function LibraryPage() {
         books={(books as Book[]) ?? []}
         progressMap={progressMap}
         userId={user.id}
+        isAdmin={isAdmin}
       />
     </AppShell>
   );

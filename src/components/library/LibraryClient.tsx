@@ -14,11 +14,11 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 type FilterTab = 'all' | 'unread' | 'reading' | 'completed';
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
-interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; userId: string; }
+interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; userId: string; isAdmin: boolean; }
 
 const GENRES = ['All','Fiction','Non-Fiction','Science','History','Biography','Self-Help','Fantasy','Mystery','Romance','Other'];
 
-export default function LibraryClient({ books: initialBooks, progressMap, userId }: Props) {
+export default function LibraryClient({ books: initialBooks, progressMap, userId, isAdmin }: Props) {
   const router = useRouter();
   const [books, setBooks] = useState(initialBooks);
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,6 +28,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showUploadBlocked, setShowUploadBlocked] = useState(false);
   const [confirmBook, setConfirmBook] = useState<Book | null>(null);
 
   // Realtime subscription
@@ -186,13 +187,25 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
             </button>
 
             {/* Add Book */}
-            <button onClick={() => setShowUploadModal(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 whitespace-nowrap"
-              style={{ backgroundColor: '#8B6914' }}>
-              <Upload className="w-4 h-4" />
-              <span className="hidden sm:inline">Add Book</span>
-              <span className="sm:hidden">Add</span>
-            </button>
+            <>
+              {isAdmin ? (
+                <button onClick={() => setShowUploadModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 whitespace-nowrap"
+                  style={{ backgroundColor: '#8B6914' }}>
+                  <Upload className="w-4 h-4" />
+                  <span className="hidden sm:inline">Add Book</span>
+                  <span className="sm:hidden">Add</span>
+                </button>
+              ) : (
+                <button onClick={() => setShowUploadBlocked(true)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap border transition-colors hover:bg-[var(--border)]"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+                  <Upload className="w-4 h-4" />
+                  <span className="hidden sm:inline">Add Book</span>
+                  <span className="sm:hidden">Add</span>
+                </button>
+              )}
+            </>
           </div>
         </div>
 
@@ -309,7 +322,38 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
           onCancel={() => setConfirmBook(null)}
         />
       )}
-      {showUploadModal && <BookUploadModal onClose={() => { setShowUploadModal(false); router.refresh(); }} />}
+      {showUploadModal && isAdmin && <BookUploadModal onClose={() => { setShowUploadModal(false); router.refresh(); }} />}
+
+      {showUploadBlocked && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowUploadBlocked(false)} />
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border shadow-popover p-6 text-center"
+            style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4"
+              style={{ backgroundColor: '#8B691415' }}>
+              <Upload className="w-5 h-5" style={{ color: '#8B6914' }} />
+            </div>
+            <h3 className="font-semibold text-base mb-2"
+              style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>
+              Uploads Disabled
+            </h3>
+            <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-secondary)' }}>
+              Only the admin can upload books to Folio. All books are curated and made available to everyone.
+              To request a book, kindly contact the admin.
+            </p>
+            <a href="mailto:abdulrehanoffical@gmail.com"
+              className="inline-block w-full py-2.5 rounded-xl text-sm font-medium text-white mb-3 transition-opacity hover:opacity-90"
+              style={{ backgroundColor: '#8B6914' }}>
+              Contact Admin
+            </a>
+            <button onClick={() => setShowUploadBlocked(false)}
+              className="w-full py-2.5 rounded-xl text-sm font-medium border transition-colors hover:bg-[var(--border)]"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
       {editingBook && <BookEditModal book={editingBook} onClose={() => setEditingBook(null)} onSaved={updated => { setBooks(prev => prev.map(b => b.id === updated.id ? updated : b)); setEditingBook(null); }} />}
     </div>
   );
