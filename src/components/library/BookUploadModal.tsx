@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 
 interface Props { onClose: () => void; }
 
-const GENRES = ['Fiction','Non-Fiction','Science','History','Biography','Self-Help','Fantasy','Mystery','Romance','Other'];
+const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
 
 function sanitize(name: string) {
   return name.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -16,17 +16,17 @@ function sanitize(name: string) {
 
 export default function BookUploadModal({ onClose }: Props) {
   const router = useRouter();
-  const epubRef  = useRef<HTMLInputElement>(null);
+  const epubRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
 
-  const [epubFile,    setEpubFile]    = useState<File | null>(null);
-  const [coverFile,   setCoverFile]   = useState<File | null>(null);
-  const [title,       setTitle]       = useState('');
-  const [author,      setAuthor]      = useState('');
-  const [genre,       setGenre]       = useState('');
+  const [epubFile, setEpubFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [title, setTitle] = useState('');
+  const [author, setAuthor] = useState('');
+  const [genre, setGenre] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStage, setUploadStage] = useState('');
-  const [done,        setDone]        = useState(false);
+  const [done, setDone] = useState(false);
 
   async function handleSubmit() {
     if (!epubFile || !title || !author) {
@@ -82,7 +82,7 @@ export default function BookUploadModal({ onClose }: Props) {
         body: JSON.stringify({
           title,
           author,
-          genre:     genre     || null,
+          genre: genre || null,
           epubPath,
           coverUrl,
           coverPath,

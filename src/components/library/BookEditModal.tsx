@@ -5,7 +5,7 @@ import { X, Upload, BookOpen } from 'lucide-react';
 import type { Book } from '@/types';
 import toast from 'react-hot-toast';
 
-const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Self-Help', 'Fantasy', 'Mystery', 'Romance', 'Other'];
+const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
 
 interface Props {
   book: Book;
@@ -14,9 +14,9 @@ interface Props {
 }
 
 export default function BookEditModal({ book, onClose, onSaved }: Props) {
-  const [title, setTitle]   = useState(book.title);
+  const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
-  const [genre, setGenre]   = useState(book.genre ?? 'Fiction');
+  const [genre, setGenre] = useState(book.genre ?? 'Fiction');
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(book.cover_url ?? null);
   const [saving, setSaving] = useState(false);

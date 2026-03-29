@@ -16,7 +16,7 @@ type FilterTab = 'all' | 'unread' | 'reading' | 'completed';
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
 interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; userId: string; isAdmin: boolean; }
 
-const GENRES = ['All','Fiction','Non-Fiction','Science','History','Biography','Self-Help','Fantasy','Mystery','Romance','Other'];
+const GENRES = ['All', 'Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
 
 export default function LibraryClient({ books: initialBooks, progressMap, userId, isAdmin }: Props) {
   const router = useRouter();
@@ -78,7 +78,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
       if (!res.ok) throw new Error();
       setBooks(prev => prev.filter(b => b.id !== confirmBook.id));
       toast.success(`"${confirmBook.title}" deleted`);
-    } catch { 
+    } catch {
       toast.error('Failed to delete book');
     } finally {
       setConfirmBook(null);
