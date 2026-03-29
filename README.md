@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/icon.svg" width="64" height="64" alt="Folio" />
+<img src="icon.svg" width="64" height="64" alt="Folio" />
 
 # Folio
 
