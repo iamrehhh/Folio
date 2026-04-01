@@ -33,6 +33,7 @@ export default function ReaderClient({
   const [highlights, setHighlights] = useState<Highlight[]>(initialHighlights);
   const [chapterText, setChapterText] = useState('');
   const [showQuiz, setShowQuiz] = useState(false);
+  const currentChapterIndexRef = useRef(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [completionShownFor, setCompletionShownFor] = useState<string | null>(null);
   const [sessionSeconds, setSessionSeconds] = useState(0);
@@ -151,7 +152,15 @@ export default function ReaderClient({
       let displayOk = false;
       await Promise.race([
         (initialProgress?.cfi
-          ? rendition.display(initialProgress.cfi)
+          ? rendition.display(initialProgress.cfi).then(async () => {
+              // After display, scroll to exact CFI position
+              displayOk = true;
+              setTimeout(() => {
+                try {
+                  renditionRef.current?.display(initialProgress.cfi!);
+                } catch { /* ignore */ }
+              }, 300);
+            })
           : rendition.display()
         ).then(() => { displayOk = true; }),
         new Promise<void>((_, reject) =>
@@ -233,6 +242,57 @@ export default function ReaderClient({
             setWordPopover(null);
           }
         });
+
+        // ── Save scroll position while reading ──────────────────
+        // epub.js scrolled-doc mode doesn't fire 'relocated' on scroll
+        // so we track scroll position ourselves and save CFI periodically
+        let scrollSaveTimer: ReturnType<typeof setTimeout> | null = null;
+        const scrollable = doc.querySelector('.epub-container') ?? contents.window;
+
+        function onScroll() {
+          if (scrollSaveTimer) clearTimeout(scrollSaveTimer);
+          scrollSaveTimer = setTimeout(async () => {
+            if (!mounted || !renditionRef.current) return;
+            try {
+              // Get the element currently visible at the top of viewport
+              const scrollTop = (doc.documentElement?.scrollTop ?? doc.body?.scrollTop ?? 0);
+              const viewHeight = contents.window.innerHeight ?? 600;
+              const midY = scrollTop + viewHeight * 0.3;
+
+              // Find element at that position
+              const el = doc.elementFromPoint(
+                contents.window.innerWidth / 2,
+                viewHeight * 0.3
+              ) as Element | null;
+
+              if (el) {
+                // Generate CFI from this element
+                const cfi = renditionRef.current.epubcfi?.fromElement?.(el, contents.sectionIndex)
+                  ?? renditionRef.current.currentLocation?.()?.start?.cfi;
+
+                if (cfi) {
+                  // Save to DB (debounced — only after 1.5s of no scrolling)
+                  fetch('/api/books/progress', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      bookId: book.id,
+                      cfi,
+                      chapterIndex: currentChapterIndexRef.current ?? 0,
+                      chapterTitle: '',
+                      progressPercent: Math.round(
+                        (epubBook.locations.percentageFromCfi?.(cfi) ?? 0) * 100
+                      ),
+                    }),
+                  }).catch(() => {});
+                }
+              }
+            } catch { /* ignore */ }
+          }, 1500);
+        }
+
+        contents.window.addEventListener('scroll', onScroll, { passive: true });
+        doc.addEventListener('scroll', onScroll, { passive: true });
       });
 
       rendition.on('relocated', async (location: any) => {
@@ -254,6 +314,7 @@ export default function ReaderClient({
         );
         const chapterTitle = chapterList[tocIdx]?.title ?? '';
         setProgress(tocIdx, cfi, percent);
+        currentChapterIndexRef.current = tocIdx;
 
         // Show completion screen when book is finished
         if (percent >= 100 && completionShownFor !== book.id) {
@@ -356,8 +417,55 @@ export default function ReaderClient({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [toggleChapterSidebar, toggleAIPanel]);
 
-  function goToChapter(chapter: ChapterInfo) {
-    renditionRef.current?.display(chapter.href);
+  async function goToChapter(chapter: ChapterInfo) {
+    if (!renditionRef.current || !bookRef.current) return;
+
+    const hrefBase = chapter.href.split('#')[0];
+
+    try {
+      // First display the chapter
+      await renditionRef.current.display(hrefBase);
+
+      // Only auto-advance for leaf chapters (not section headers like "Part I", "DEFCON 5")
+      // Section headers have subitems in the TOC — leaf chapters do not
+      const chapterDepth = (chapter as any).depth ?? 0;
+      const hasChildren = chapters.some((c, ci) => {
+        const idx = chapters.indexOf(chapter);
+        return ci > idx && (c as any).depth > chapterDepth;
+      });
+      // Only auto-advance if it's a leaf chapter (no children follow it at deeper depth)
+      const nextChapter = chapters[chapters.indexOf(chapter) + 1];
+      const isSection = nextChapter && ((nextChapter as any).depth ?? 0) > chapterDepth;
+
+      if (!isSection) {
+        setTimeout(async () => {
+          if (!renditionRef.current || !bookRef.current) return;
+          try {
+            const iframe = document.querySelector('#epub-viewer iframe') as HTMLIFrameElement;
+            if (!iframe?.contentDocument) return;
+            const body = iframe.contentDocument.body;
+            if (!body) return;
+            const text = (body.innerText ?? '').replace(/\s+/g, '').trim();
+            // Only advance if truly empty (< 30 chars)
+            if (text.length < 30) {
+              const spineItems: any[] = [];
+              bookRef.current!.spine.each((item: any) => spineItems.push(item));
+              const currentIdx = spineItems.findIndex(
+                item => item.href && (item.href.endsWith(hrefBase) || item.href === hrefBase
+                  || hrefBase.endsWith(item.href))
+              );
+              if (currentIdx >= 0 && currentIdx + 1 < spineItems.length) {
+                await renditionRef.current.display(spineItems[currentIdx + 1].href);
+              }
+            }
+          } catch { /* ignore */ }
+        }, 600);
+      }
+
+    } catch {
+      // Fallback
+      try { await renditionRef.current.display(chapter.href); } catch { /* ignore */ }
+    }
   }
 
   async function saveHighlight(cfiRange: string, text: string, color: string, note?: string) {

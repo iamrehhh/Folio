@@ -18,7 +18,7 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: 'Folio — Your Personal Library',
+  title: 'Folio | Your Personal Library',
   description: 'A beautiful, distraction-free reading experience',
 };
 
