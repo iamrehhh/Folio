@@ -299,7 +299,6 @@ export default function QuizClient({ type }: Props) {
                   placeholder="___________"
                   className="inline-block mx-1 px-2 py-0.5 rounded border-b-2 outline-none text-sm font-medium w-36 text-center"
                   style={{
-                    borderBottom: `2px solid ${accent}`,
                     backgroundColor: '#8B691408',
                     color: 'var(--text-primary)',
                     border: 'none',
