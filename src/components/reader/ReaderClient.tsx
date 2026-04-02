@@ -64,7 +64,7 @@ export default function ReaderClient({
   } = useReaderStore();
 
   const themeBg = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A' }[theme];
-  const themeText = { light: '#1C1C1E', sepia: '#1C1C1E', dark: '#E8E6E0' }[theme];
+  const themeText = { light: '#1C1C1E', sepia: '#1C1C1E', dark: '#D4C5A0' }[theme];
 
   useEffect(() => {
     if (!viewerRef.current) return;
@@ -256,12 +256,63 @@ export default function ReaderClient({
             word-wrap: break-word !important;
           `;
         }
-        // Dismiss popovers on click inside iframe
-        doc.addEventListener('click', () => {
+        // Detect clicks on highlighted marks directly — more reliable than markClicked event
+        doc.addEventListener('click', (e: MouseEvent) => {
+          const target = e.target as HTMLElement;
+          
+          // Check if clicked element or any ancestor is a highlight mark
+          let el: HTMLElement | null = target;
+          let clickedCfi: string | null = null;
+          
+          while (el && el !== doc.body) {
+            // epub.js adds data-epubcfi or class 'epubjs-hl' to highlight marks
+            const cfi = el.getAttribute('data-epubcfi') 
+              ?? el.getAttribute('data-cfi')
+              ?? (el.classList.contains('epubjs-hl') ? el.getAttribute('title') : null);
+            
+            if (cfi) { clickedCfi = cfi; break; }
+            
+            // Also check fill color — epub.js renders highlights as SVG rects or spans
+            const fill = el.getAttribute('fill') ?? el.style?.backgroundColor ?? '';
+            const isHighlightColor = ['#FFE066','#93C5FD','#86EFAC','#F87171'].some(c => 
+              fill.includes(c.slice(1))
+            );
+            
+            if (isHighlightColor || el.tagName === 'g' || el.tagName === 'rect') {
+              // Find the CFI by matching against known highlights
+              // Use mouse position to find which highlight was clicked
+              const iframeRect = contents.document.defaultView?.frameElement?.getBoundingClientRect();
+              const absX = (iframeRect?.left ?? 0) + e.clientX;
+              const absY = (iframeRect?.top ?? 0) + e.clientY;
+              
+              // Check if any known highlight CFI range contains this position
+              // We'll use the position to show the toolbar
+              const sel = contents.window.getSelection();
+              if (!sel || sel.isCollapsed) {
+                setSelectionToolbar(null);
+                setWordPopover(null);
+              }
+              break;
+            }
+            el = el.parentElement;
+          }
+
+          if (clickedCfi) {
+            e.stopPropagation();
+            const iframeRect = contents.document.defaultView?.frameElement?.getBoundingClientRect();
+            const absX = (iframeRect?.left ?? 0) + e.clientX;
+            const absY = (iframeRect?.top ?? 0) + e.clientY;
+            setHighlightToolbar({ x: absX, y: absY, cfiRange: clickedCfi });
+            setSelectionToolbar(null);
+            setWordPopover(null);
+            return;
+          }
+
           const sel = contents.window.getSelection();
           if (!sel || sel.isCollapsed) {
             setSelectionToolbar(null);
             setWordPopover(null);
+            setHighlightToolbar(null);
           }
         });
 
@@ -548,23 +599,32 @@ export default function ReaderClient({
   }
 
   async function deleteHighlight(cfiRange: string) {
-    try {
-      // Find highlight by CFI
-      const highlight = highlights.find(h => h.cfi_range === cfiRange);
-      if (!highlight) return;
+    // Find highlight — try exact match first, then partial
+    const highlight = highlights.find(h => h.cfi_range === cfiRange)
+      ?? highlights.find(h => 
+          (h.cfi_range && cfiRange && (h.cfi_range.includes(cfiRange) || cfiRange.includes(h.cfi_range)))
+        );
 
-      const res = await fetch(`/api/highlights/${highlight.id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error();
+    // Remove from rendition IMMEDIATELY — no waiting for DB
+    try { renditionRef.current?.annotations.remove(cfiRange, 'highlight'); } catch { /* ignore */ }
+    if (highlight?.cfi_range && highlight.cfi_range !== cfiRange) {
+      try { renditionRef.current?.annotations.remove(highlight.cfi_range, 'highlight'); } catch { /* ignore */ }
+    }
 
-      // Remove from epub rendition
-      renditionRef.current?.annotations.remove(cfiRange, 'highlight');
+    // Update UI state immediately
+    setHighlightToolbar(null);
+    if (highlight) {
+      setHighlights(prev => prev.filter(h => h.id !== highlight.id));
+      if ('highlightsRef' in ({ highlightsRef } as any)) {
+        // @ts-ignore
+        highlightsRef.current = highlightsRef.current?.filter((h: any) => h.id !== highlight.id);
+      }
+    }
+    toast.success('Highlight removed');
 
-      setHighlights(prev => prev.filter(h => h.cfi_range !== cfiRange));
-      highlightsRef.current = highlightsRef.current.filter(h => h.cfi_range !== cfiRange);
-      setHighlightToolbar(null);
-      toast.success('Highlight removed');
-    } catch {
-      toast.error('Failed to remove highlight');
+    // Delete from DB in background — UI already updated
+    if (highlight) {
+      fetch(`/api/highlights/${highlight.id}`, { method: 'DELETE' }).catch(() => {});
     }
   }
 
@@ -855,7 +915,7 @@ export default function ReaderClient({
 
 function applyTheme(rendition: any, theme: string, fontSize: number, lineHeight: number) {
   const bg   = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A' }[theme] ?? '#FAF8F4';
-  const text = theme === 'dark' ? '#E8E6E0' : '#1C1C1E';
+  const text = theme === 'dark' ? '#D4C5A0' : '#1C1C1E';
 
   rendition.themes.default({
     '*': { 'box-sizing': 'border-box' },

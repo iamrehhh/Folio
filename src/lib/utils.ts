@@ -25,7 +25,8 @@ export function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 19) return 'Good evening';
+  return 'Good night';
 }
 
 // Estimated reading time from word count (avg 250 wpm)
@@ -64,7 +65,7 @@ export function highlightColorHex(color: string): string {
     yellow: '#FFE066',
     blue: '#93C5FD',
     green: '#86EFAC',
-    pink: '#F9A8D4',
+    pink: '#F87171',
   };
   return map[color] ?? '#FFE066';
 }

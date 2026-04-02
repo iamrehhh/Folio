@@ -54,7 +54,7 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
     });
   }
 
-  const textColor   = theme === 'dark' ? '#E8E6E0' : '#1C1C1E';
+  const textColor   = theme === 'dark' ? '#D4C5A0' : '#1C1C1E';
   const borderColor = theme === 'dark' ? '#333' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
   const bgColor     = theme === 'dark' ? '#242424' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
   const mutedColor  = theme === 'dark' ? '#A0998C' : '#6B6860';
@@ -144,7 +144,7 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
                         theme === t.id ? 'border-[#8B6914]' : '')}
                       style={{
                         backgroundColor: t.bg,
-                        color: t.id === 'dark' ? '#E8E6E0' : '#1C1C1E',
+                        color: t.id === 'dark' ? '#D4C5A0' : '#1C1C1E',
                         borderColor: theme === t.id ? '#8B6914' : borderColor,
                       }}>
                       {t.label}

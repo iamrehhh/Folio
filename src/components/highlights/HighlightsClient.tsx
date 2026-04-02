@@ -61,7 +61,7 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
     { id: 'yellow', label: 'Yellow', hex: '#FFE066' },
     { id: 'blue',   label: 'Blue',   hex: '#93C5FD' },
     { id: 'green',  label: 'Green',  hex: '#86EFAC' },
-    { id: 'pink',   label: 'Pink',   hex: '#F9A8D4' },
+    { id: 'pink',   label: 'Red',    hex: '#F87171' },
   ];
 
   return (
@@ -161,7 +161,7 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
                           {/* Color indicator */}
                           <div
                             className="flex-none w-1 rounded-full self-stretch"
-                            style={{ backgroundColor: { yellow: '#FFE066', blue: '#93C5FD', green: '#86EFAC', pink: '#F9A8D4' }[h.color] }}
+                            style={{ backgroundColor: { yellow: '#FFE066', blue: '#93C5FD', green: '#86EFAC', pink: '#F87171' }[h.color] }}
                           />
 
                           <div className="flex-1 min-w-0">

@@ -18,7 +18,7 @@ const COLORS: { id: HighlightColor; hex: string }[] = [
   { id: 'yellow', hex: '#FFE066' },
   { id: 'blue',   hex: '#93C5FD' },
   { id: 'green',  hex: '#86EFAC' },
-  { id: 'pink',   hex: '#F9A8D4' },
+  { id: 'pink',   hex: '#F87171' },
 ];
 
 export default function SelectionToolbar({ x, y, text, onHighlight, onAskAI, onClose }: Props) {
