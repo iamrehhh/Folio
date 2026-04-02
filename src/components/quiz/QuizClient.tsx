@@ -41,6 +41,8 @@ export default function QuizClient({ type }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [currentWordIdx, setCurrentWordIdx] = useState(0);
   const [alreadyCompleted, setAlreadyCompleted] = useState(false);
+  const [customTheme, setCustomTheme] = useState('');
+  const [isGeneratingPassage, setIsGeneratingPassage] = useState(false);
 
   const label = type === 'vocabulary' ? 'Vocabulary' : 'Idioms';
   const accent = '#8B6914';
@@ -97,7 +99,29 @@ export default function QuizClient({ type }: Props) {
   }
 
   async function handleNextToRead() {
-    setStage('read');
+    if (customTheme.trim() && quizSet && results) {
+      setIsGeneratingPassage(true);
+      try {
+        const res = await fetch('/api/quiz-sets/custom-passage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quizSetId: quizSet.id, theme: customTheme.trim(), type }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.customPassage) {
+            setResults({ ...results, customPassage: data.customPassage });
+          }
+        }
+      } catch (err) {
+        console.error('Failed to generate custom passage silently falling back', err);
+      } finally {
+        setIsGeneratingPassage(false);
+        setStage('read');
+      }
+    } else {
+      setStage('read');
+    }
   }
 
   async function handleFinish() {
@@ -110,14 +134,21 @@ export default function QuizClient({ type }: Props) {
     setStage('done');
   }
 
-  // Parse passage with bold markdown
+  // Parse passage with bold markdown and newlines
   function renderPassage(text: string) {
-    const parts = text.split(/\*\*([^*]+)\*\*/g);
-    return parts.map((part, i) =>
-      i % 2 === 1
-        ? <strong key={i} style={{ color: accent }}>{part}</strong>
-        : <span key={i}>{part}</span>
-    );
+    const paragraphs = text.split('\n').filter(p => p.trim() !== '');
+    return paragraphs.map((para, pIdx) => {
+      const parts = para.split(/\*\*([^*]+)\*\*/g);
+      return (
+        <p key={pIdx} className="text-base leading-8 mb-5 last:mb-0" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+          {parts.map((part, i) =>
+            i % 2 === 1
+              ? <strong key={`${pIdx}-${i}`} style={{ color: accent }}>{part}</strong>
+              : <span key={`${pIdx}-${i}`}>{part}</span>
+          )}
+        </p>
+      );
+    });
   }
 
   // ── Loading ──
@@ -363,12 +394,29 @@ export default function QuizClient({ type }: Props) {
         ))}
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-col sm:flex-row justify-end items-end sm:items-center gap-3">
+        <input 
+          type="text" 
+          placeholder="Topic (e.g. Harry Potter, Tech)" 
+          value={customTheme}
+          onChange={(e) => setCustomTheme(e.target.value.substring(0, 50))}
+          className="w-full sm:w-64 px-4 py-3 rounded-xl text-sm border focus:outline-none"
+          style={{ 
+            backgroundColor: 'var(--bg-card,#fff)', 
+            borderColor: 'var(--border)', 
+            color: 'var(--text-primary)' 
+          }}
+          disabled={isGeneratingPassage}
+        />
         <button onClick={handleNextToRead}
-          className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: accent }}>
-          Next — Read the Passage
-          <ChevronRight className="w-4 h-4" />
+          disabled={isGeneratingPassage}
+          className="flex items-center gap-2 px-8 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: accent, whiteSpace: 'nowrap' }}>
+          {isGeneratingPassage ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Writing…</>
+          ) : (
+            <>Next — Read the Passage <ChevronRight className="w-4 h-4" /></>
+          )}
         </button>
       </div>
     </div>
@@ -392,9 +440,7 @@ export default function QuizClient({ type }: Props) {
 
       <div className="rounded-2xl border p-8 mb-8"
         style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
-        <p className="text-base leading-8" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
-          {renderPassage(quizSet.passage)}
-        </p>
+        {renderPassage(results?.customPassage || quizSet.passage)}
       </div>
 
       <div className="flex justify-end">

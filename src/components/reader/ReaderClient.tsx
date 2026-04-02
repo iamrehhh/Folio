@@ -159,14 +159,14 @@ export default function ReaderClient({
       await Promise.race([
         (initialProgress?.cfi
           ? rendition.display(initialProgress.cfi).then(async () => {
-              // After display, scroll to exact CFI position
-              displayOk = true;
-              setTimeout(() => {
-                try {
-                  renditionRef.current?.display(initialProgress.cfi!);
-                } catch { /* ignore */ }
-              }, 300);
-            })
+            // After display, scroll to exact CFI position
+            displayOk = true;
+            setTimeout(() => {
+              try {
+                renditionRef.current?.display(initialProgress.cfi!);
+              } catch { /* ignore */ }
+            }, 300);
+          })
           : rendition.display()
         ).then(() => { displayOk = true; }),
         new Promise<void>((_, reject) =>
@@ -259,41 +259,33 @@ export default function ReaderClient({
         // Detect clicks on highlighted marks directly — more reliable than markClicked event
         doc.addEventListener('click', (e: MouseEvent) => {
           const target = e.target as HTMLElement;
-          
+
           // Check if clicked element or any ancestor is a highlight mark
-          let el: HTMLElement | null = target;
+          let el: Element | null = target;
           let clickedCfi: string | null = null;
-          
+
           while (el && el !== doc.body) {
             // epub.js adds data-epubcfi or class 'epubjs-hl' to highlight marks
-            const cfi = el.getAttribute('data-epubcfi') 
+            const cfi = el.getAttribute('data-epubcfi')
               ?? el.getAttribute('data-cfi')
-              ?? (el.classList.contains('epubjs-hl') ? el.getAttribute('title') : null);
-            
+              ?? (el.classList?.contains('epubjs-hl') ? el.getAttribute('title') : null);
+
             if (cfi) { clickedCfi = cfi; break; }
-            
-            // Also check fill color — epub.js renders highlights as SVG rects or spans
-            const fill = el.getAttribute('fill') ?? el.style?.backgroundColor ?? '';
-            const isHighlightColor = ['#FFE066','#93C5FD','#86EFAC','#F87171'].some(c => 
+
+            // If we are on an SVG rect/g that is clearly a highlight but lacks the attribute, just return
+            // to let markClicked handle it, preventing the hide-toolbar fallback.
+            const fill = el.getAttribute('fill') ?? (el as HTMLElement).style?.backgroundColor ?? '';
+            const isHighlightColor = ['#FFE066', '#93C5FD', '#86EFAC', '#F87171'].some(c =>
               fill.includes(c.slice(1))
             );
-            
-            if (isHighlightColor || el.tagName === 'g' || el.tagName === 'rect') {
-              // Find the CFI by matching against known highlights
-              // Use mouse position to find which highlight was clicked
-              const iframeRect = contents.document.defaultView?.frameElement?.getBoundingClientRect();
-              const absX = (iframeRect?.left ?? 0) + e.clientX;
-              const absY = (iframeRect?.top ?? 0) + e.clientY;
-              
-              // Check if any known highlight CFI range contains this position
-              // We'll use the position to show the toolbar
-              const sel = contents.window.getSelection();
-              if (!sel || sel.isCollapsed) {
-                setSelectionToolbar(null);
-                setWordPopover(null);
+            if (isHighlightColor || el.tagName.toLowerCase() === 'g' || el.tagName.toLowerCase() === 'rect') {
+              // If it's the rect itself, it might not have the attribute, so we check parent.
+              // But if even the parent `g` doesn't have it, we should let `markClicked` event handle it.
+              if (el.parentElement === doc.body || !el.parentElement) {
+                return;
               }
-              break;
             }
+
             el = el.parentElement;
           }
 
@@ -357,7 +349,7 @@ export default function ReaderClient({
                         (epubBook.locations.percentageFromCfi?.(cfi) ?? 0) * 100
                       ),
                     }),
-                  }).catch(() => {});
+                  }).catch(() => { });
                 }
               }
             } catch { /* ignore */ }
@@ -372,7 +364,7 @@ export default function ReaderClient({
         if (!mounted) return;
         const cfi = location.start.cfi;
         const spineIdx = location.start.index ?? 0;
-        
+
         // Find matching TOC index by comparing spinePos to current spine index
         let tocIdx = 0;
         for (let i = 0; i < chapterList.length; i++) {
@@ -381,7 +373,7 @@ export default function ReaderClient({
             tocIdx = i;
           }
         }
-        
+
         // Use saved percent if locations not ready yet (avoids 0% flash on load/resize)
         let percent: number;
         if (locationsReadyRef.current) {
@@ -417,7 +409,7 @@ export default function ReaderClient({
             bookId: book.id, cfi, chapterIndex: tocIdx,
             chapterTitle, progressPercent: percent,
           }),
-        }).catch(() => {});
+        }).catch(() => { });
       });
 
       rendition.on('selected', (cfiRange: string, contents: any) => {
@@ -512,7 +504,7 @@ export default function ReaderClient({
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'ArrowRight' || e.key === ']') renditionRef.current?.next();
-      if (e.key === 'ArrowLeft'  || e.key === '[') renditionRef.current?.prev();
+      if (e.key === 'ArrowLeft' || e.key === '[') renditionRef.current?.prev();
       if (e.ctrlKey && e.key === 'b') { e.preventDefault(); toggleChapterSidebar(); }
       if (e.ctrlKey && e.key === 'i') { e.preventDefault(); toggleAIPanel(); }
       if (e.key === 'Escape') { setSelectionToolbar(null); setWordPopover(null); }
@@ -601,9 +593,9 @@ export default function ReaderClient({
   async function deleteHighlight(cfiRange: string) {
     // Find highlight — try exact match first, then partial
     const highlight = highlights.find(h => h.cfi_range === cfiRange)
-      ?? highlights.find(h => 
-          (h.cfi_range && cfiRange && (h.cfi_range.includes(cfiRange) || cfiRange.includes(h.cfi_range)))
-        );
+      ?? highlights.find(h =>
+        (h.cfi_range && cfiRange && (h.cfi_range.includes(cfiRange) || cfiRange.includes(h.cfi_range)))
+      );
 
     // Remove from rendition IMMEDIATELY — no waiting for DB
     try { renditionRef.current?.annotations.remove(cfiRange, 'highlight'); } catch { /* ignore */ }
@@ -624,7 +616,7 @@ export default function ReaderClient({
 
     // Delete from DB in background — UI already updated
     if (highlight) {
-      fetch(`/api/highlights/${highlight.id}`, { method: 'DELETE' }).catch(() => {});
+      fetch(`/api/highlights/${highlight.id}`, { method: 'DELETE' }).catch(() => { });
     }
   }
 
@@ -914,15 +906,17 @@ export default function ReaderClient({
 }
 
 function applyTheme(rendition: any, theme: string, fontSize: number, lineHeight: number) {
-  const bg   = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A' }[theme] ?? '#FAF8F4';
+  const bg = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A' }[theme] ?? '#FAF8F4';
   const text = theme === 'dark' ? '#D4C5A0' : '#1C1C1E';
 
-  rendition.themes.default({
+  const themeName = `${theme}-${fontSize}-${lineHeight.toString().replace('.', '_')}`;
+
+  const rules = {
     '*': { 'box-sizing': 'border-box' },
     'html': { 'overflow-x': 'hidden' },
     'body': {
-      background: bg,
-      color: text,
+      background: `${bg} !important`,
+      color: `${text} !important`,
       'font-family': "'Lora', Georgia, serif",
       'font-size': `${fontSize}px`,
       'line-height': String(lineHeight),
@@ -938,16 +932,19 @@ function applyTheme(rendition: any, theme: string, fontSize: number, lineHeight:
       'font-size': `${fontSize}px !important`,
       'line-height': `${lineHeight} !important`,
     },
-    'p':   { margin: '0 0 1.2em 0 !important', 'overflow-wrap': 'break-word' },
-    'h1':  { 'font-size': '1.6em !important',  'font-weight': 'bold !important', margin: '1.5em 0 0.75em !important', color: `${text} !important` },
-    'h2':  { 'font-size': '1.35em !important', 'font-weight': 'bold !important', margin: '1.5em 0 0.75em !important', color: `${text} !important` },
-    'h3':  { 'font-size': '1.15em !important', 'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important',  color: `${text} !important` },
-    'h4':  { 'font-size': '1.05em !important', 'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important',  color: `${text} !important` },
-    'h5':  { 'font-size': '1.0em !important',  'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important',  color: `${text} !important` },
-    'h6':  { 'font-size': '1.0em !important',  'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important',  color: `${text} !important` },
-    'a':   { color: '#8B6914', 'text-decoration': 'none' },
+    'p': { margin: '0 0 1.2em 0 !important', 'overflow-wrap': 'break-word' },
+    'h1': { 'font-size': '1.6em !important', 'font-weight': 'bold !important', margin: '1.5em 0 0.75em !important', color: `${text} !important` },
+    'h2': { 'font-size': '1.35em !important', 'font-weight': 'bold !important', margin: '1.5em 0 0.75em !important', color: `${text} !important` },
+    'h3': { 'font-size': '1.15em !important', 'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important', color: `${text} !important` },
+    'h4': { 'font-size': '1.05em !important', 'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important', color: `${text} !important` },
+    'h5': { 'font-size': '1.0em !important', 'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important', color: `${text} !important` },
+    'h6': { 'font-size': '1.0em !important', 'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important', color: `${text} !important` },
+    'a': { color: '#8B6914', 'text-decoration': 'none' },
     'a:hover': { color: '#8B6914 !important', 'text-decoration': 'underline !important', 'background-color': 'transparent !important' },
     'img': { 'max-width': '100% !important', height: 'auto !important' },
-  });
+  };
+
+  rendition.themes.register(themeName, rules);
+  rendition.themes.select(themeName);
 }
 

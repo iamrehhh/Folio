@@ -8,42 +8,77 @@ function ProgressBar() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const bar     = document.getElementById('folio-progress-bar');
+    const bar = document.getElementById('folio-progress-bar');
     const spinner = document.getElementById('folio-progress-spinner');
     if (!bar || !spinner) return;
 
-    // Reset
-    bar.style.transition = 'none';
-    bar.style.width = '0%';
-    bar.style.opacity = '1';
-    spinner.style.opacity = '1';
+    let timer: NodeJS.Timeout;
 
-    // Animate to 70%
-    const t1 = setTimeout(() => {
-      bar.style.transition = 'width 0.5s ease';
-      bar.style.width = '70%';
-    }, 10);
+    // When pathname changes (page fully loaded), sweep to 100% and fade out
+    function finish() {
+      if (timer) clearInterval(timer);
+      bar!.style.transition = 'width 0.35s ease-out';
+      bar!.style.width = '100%';
+      spinner!.style.opacity = '0';
 
-    // Complete
-    const t2 = setTimeout(() => {
-      bar.style.transition = 'width 0.25s ease';
-      bar.style.width = '100%';
-      spinner.style.opacity = '0';
-      // Fade out bar
-      const t3 = setTimeout(() => {
-        bar.style.transition = 'opacity 0.25s ease';
-        bar.style.opacity = '0';
-        const t4 = setTimeout(() => {
-          bar.style.width = '0%';
-          bar.style.transition = 'none';
-          bar.style.opacity = '1';
-        }, 250);
-        return () => clearTimeout(t4);
-      }, 150);
-      return () => clearTimeout(t3);
-    }, 120);
+      setTimeout(() => {
+        bar!.style.transition = 'opacity 0.3s ease';
+        bar!.style.opacity = '0';
+        setTimeout(() => {
+          bar!.style.transition = 'none';
+          bar!.style.width = '0%';
+        }, 300);
+      }, 350);
+    }
 
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    // Call finish on mount/route change
+    finish();
+
+    // Listen for link clicks to START realistic progress bar
+    const handleClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest('a');
+      if (!anchor || !anchor.href) return;
+
+      try {
+        const currentUrl = new URL(window.location.href);
+        const targetUrl = new URL(anchor.href);
+
+        // Ignore external links, new tabs, modifier keys, or same-page anchors
+        if (targetUrl.origin !== currentUrl.origin) return;
+        if (anchor.target === '_blank') return;
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+        if (targetUrl.pathname === currentUrl.pathname && targetUrl.search === currentUrl.search) return;
+
+        // Reset and commence realistic trickle
+        if (timer) clearInterval(timer);
+        bar!.style.transition = 'none';
+        bar!.style.opacity = '1';
+        bar!.style.width = '0%';
+        spinner!.style.opacity = '1';
+
+        // Force reflow
+        void bar!.offsetWidth;
+
+        bar!.style.transition = 'width 0.5s ease';
+        bar!.style.width = '15%';
+
+        let currentWidth = 15;
+        timer = setInterval(() => {
+          // Asymptotically approach 90%
+          currentWidth += (90 - currentWidth) * 0.05;
+          if (bar) bar.style.width = `${currentWidth}%`;
+        }, 300);
+      } catch {
+        // invalid URL format, ignore
+      }
+    };
+
+    document.addEventListener('click', handleClick);
+
+    return () => {
+      document.removeEventListener('click', handleClick);
+      if (timer) clearInterval(timer);
+    };
   }, [pathname, searchParams]);
 
   return null;

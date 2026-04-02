@@ -14,35 +14,44 @@ export default async function HomePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-
-  const { data: currentlyReading } = await supabase
-    .from('reading_progress').select('*, book:books(*)')
-    .eq('user_id', user.id).lt('progress_percent', 100)
-    .order('last_read_at', { ascending: false }).limit(1).single();
-
-  const { data: recentHighlights } = await supabase
-    .from('highlights').select('*, book:books(title)')
-    .eq('user_id', user.id).order('created_at', { ascending: false }).limit(3);
-
-  const { data: recentVocab } = await supabase
-    .from('vocab_words').select('*, book:books(title)')
-    .eq('user_id', user.id).order('created_at', { ascending: false }).limit(5);
-
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const startOfYear  = new Date(now.getFullYear(), 0, 1).toISOString();
 
-  const { count: completedThisMonth } = await supabase.from('reading_progress')
-    .select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('progress_percent', 100).gte('last_read_at', startOfMonth);
-  const { count: completedThisYear } = await supabase.from('reading_progress')
-    .select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('progress_percent', 100).gte('last_read_at', startOfYear);
-  const { count: completedAllTime } = await supabase.from('reading_progress')
-    .select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('progress_percent', 100);
-
-  const { data: sessions } = await supabase.from('reading_sessions')
-    .select('started_at, duration_seconds').eq('user_id', user.id)
-    .order('started_at', { ascending: false }).limit(60);
+  const [
+    { data: profile },
+    { data: currentlyReading },
+    { data: recentHighlights },
+    { data: recentVocab },
+    { count: completedThisMonth },
+    { count: completedThisYear },
+    { count: completedAllTime },
+    { data: sessions }
+  ] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    
+    supabase.from('reading_progress').select('*, book:books(*)')
+      .eq('user_id', user.id).lt('progress_percent', 100)
+      .order('last_read_at', { ascending: false }).limit(1).maybeSingle(),
+      
+    supabase.from('highlights').select('*, book:books(title)')
+      .eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
+      
+    supabase.from('vocab_words').select('*, book:books(title)')
+      .eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
+      
+    supabase.from('reading_progress').select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id).eq('progress_percent', 100).gte('last_read_at', startOfMonth),
+      
+    supabase.from('reading_progress').select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id).eq('progress_percent', 100).gte('last_read_at', startOfYear),
+      
+    supabase.from('reading_progress').select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id).eq('progress_percent', 100),
+      
+    supabase.from('reading_sessions').select('started_at, duration_seconds')
+      .eq('user_id', user.id).order('started_at', { ascending: false }).limit(60)
+  ]);
 
   let streakDays = 0;
   if (sessions?.length) {

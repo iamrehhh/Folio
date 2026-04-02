@@ -202,13 +202,11 @@ The passage must naturally incorporate ALL of the following ${type === 'idiom' ?
 
 Requirements:
 - Exactly 200 words (±15 words)
-- The passage must feel like genuine, high-quality prose — not a textbook exercise
-- Each word/idiom must arise organically from the narrative, NOT feel shoehorned in
-- Make the passage interesting and enjoyable to read — vivid imagery, strong voice, narrative tension
-- Bold each target word/idiom using **word** markdown when it appears
+- Keep the writing clear, simple, and naturally engaging (approx. 8th-grade reading level)
+- Use 3 to 4 distinct paragraphs, separated by blank lines
+- Each word/idiom must arise organically from the narrative
+- CRITICAL: You MUST bold each of the 5 target words/idioms using **word** markdown. Even if you conjugate the word (e.g., plurals, past tense), you MUST wrap that conjugated form in ** like **proclivities** or **enervated**. Do not skip any!
 - The passage should standalone as a satisfying mini-story or reflection
-
-QUALITY BAR: The passage should be something a reader genuinely enjoys, not just tolerates. Strong verbs, precise details, emotional resonance.
 
 Return ONLY the passage text with markdown bolding. No titles, no labels, no extra text.`;
 }
@@ -245,4 +243,23 @@ Return ONLY valid JSON:
   "totalScore": 4,
   "overallFeedback": "Excellent work! You clearly understood the nuances of most words."
 }`;
+}
+
+export function buildCustomPassagePrompt(words: string[], type: 'vocabulary' | 'idiom', theme: string): string {
+  const wordList = words.join(', ');
+
+  return `You are an accomplished writer and English language educator creating a reading passage for IPMAT/JIPMAT students.
+
+Write a vivid, engaging 200-word passage themed entirely around: **"${theme}"**.
+
+The passage must naturally incorporate ALL of the following ${type === 'idiom' ? 'idioms' : 'words'}: ${wordList}
+
+Requirements:
+- Exactly 200 words (±15 words)
+- The subject matter MUST strictly follow the requested theme: "${theme}"
+- Keep the writing clear, simple, and naturally engaging (approx. 8th-grade reading level)
+- Use 3 to 4 distinct paragraphs, separated by blank lines
+- Each word/idiom must arise organically from the narrative
+- CRITICAL: You MUST bold each of the 5 target words/idioms using **word** markdown. Even if you conjugate the word (e.g., plurals, past tense), you MUST wrap that conjugated form in ** like **proclivities** or **enervated**. Do not skip any!
+- Only return the passage text with markdown bolding. No titles, no labels, no extra text.`;
 }
