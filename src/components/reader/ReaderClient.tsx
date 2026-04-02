@@ -10,6 +10,7 @@ import WordPopover from './WordPopover';
 import AIPanel from './AIPanel';
 import ChapterQuiz from './ChapterQuiz';
 import type { Book, ReadingProgress, Highlight, Profile, ChapterInfo } from '@/types';
+import HighlightToolbar from './HighlightToolbar';
 import CompletionScreen from './CompletionScreen';
 import toast from 'react-hot-toast';
 
@@ -31,9 +32,14 @@ export default function ReaderClient({
   const [isLoading, setIsLoading] = useState(true);
   const [chapters, setChapters] = useState<ChapterInfo[]>([]);
   const [highlights, setHighlights] = useState<Highlight[]>(initialHighlights);
+  const highlightsRef = useRef<Highlight[]>(initialHighlights);
   const [chapterText, setChapterText] = useState('');
   const [showQuiz, setShowQuiz] = useState(false);
+  const [highlightToolbar, setHighlightToolbar] = useState<{
+    x: number; y: number; cfiRange: string;
+  } | null>(null);
   const currentChapterIndexRef = useRef(0);
+  const locationsReadyRef = useRef(false);
   const [showCompletion, setShowCompletion] = useState(false);
   const [completionShownFor, setCompletionShownFor] = useState<string | null>(null);
   const [sessionSeconds, setSessionSeconds] = useState(0);
@@ -212,9 +218,25 @@ export default function ReaderClient({
       setIsLoading(false);
 
       // Generate locations in background AFTER rendering (non-blocking)
+      // Once ready, update the progress % using the saved CFI
       setTimeout(() => {
         if (!mounted) return;
-        epubBook.locations.generate(1000).catch(() => {});
+        epubBook.locations.generate(1000).then(() => {
+          if (!mounted) return;
+          locationsReadyRef.current = true;
+          // Now recalculate percent with accurate locations
+          const currentCfi = initialProgress?.cfi;
+          if (currentCfi) {
+            const accuratePercent = Math.round(
+              (epubBook.locations.percentageFromCfi?.(currentCfi) ?? 0) * 100
+            );
+            if (accuratePercent > 0) {
+              setProgress(currentChapterIndexRef.current, currentCfi, accuratePercent);
+            }
+          }
+        }).catch(() => {
+          locationsReadyRef.current = true; // mark ready even on error
+        });
       }, 500);
 
       // Fix iframe and body sizing after each render
@@ -309,9 +331,16 @@ export default function ReaderClient({
           }
         }
         
-        const percent = Math.round(
-          (epubBook.locations.percentageFromCfi?.(cfi) ?? 0) * 100
-        );
+        // Use saved percent if locations not ready yet (avoids 0% flash on load/resize)
+        let percent: number;
+        if (locationsReadyRef.current) {
+          percent = Math.round(
+            (epubBook.locations.percentageFromCfi?.(cfi) ?? 0) * 100
+          );
+        } else {
+          // Fallback to previously saved percent until locations generate
+          percent = initialProgress?.progress_percent ?? 0;
+        }
         const chapterTitle = chapterList[tocIdx]?.title ?? '';
         setProgress(tocIdx, cfi, percent);
         currentChapterIndexRef.current = tocIdx;
@@ -363,6 +392,30 @@ export default function ReaderClient({
         } else {
           setSelectionToolbar({ x, y, text, cfiRange });
           setWordPopover(null);
+        }
+      });
+
+      // Track mouse position from iframe for highlight click positioning
+      let lastMouseX = 0;
+      let lastMouseY = 0;
+      rendition.hooks.content.register((contents: any) => {
+        const doc = contents.document;
+        const win = contents.window;
+        doc.addEventListener('click', (e: MouseEvent) => {
+          const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
+          const iframeRect = iframe?.getBoundingClientRect();
+          lastMouseX = (iframeRect?.left ?? 0) + e.clientX;
+          lastMouseY = (iframeRect?.top ?? 0) + e.clientY;
+        }, true); // capture phase to get coords before selection handling
+      });
+
+      // Listen for highlight clicks via epub.js markClicked event
+      rendition.on('markClicked', (cfiRange: string, _data: any) => {
+        // Only show toolbar if this is one of our highlights
+        const isOurHighlight = initialHighlights.some(h => h.cfi_range === cfiRange) ||
+          highlightsRef.current.some(h => h.cfi_range === cfiRange);
+        if (isOurHighlight) {
+          setHighlightToolbar({ x: lastMouseX, y: lastMouseY, cfiRange });
         }
       });
 
@@ -485,11 +538,33 @@ export default function ReaderClient({
         cfiRange, {}, undefined, 'hl',
         { fill: highlightColorHex(color), 'fill-opacity': '0.35' }
       );
+      highlightsRef.current = [...highlightsRef.current, data.highlight];
       setHighlights((prev) => [...prev, data.highlight]);
       setSelectionToolbar(null);
       toast.success('Highlight saved');
     } catch {
       toast.error('Failed to save highlight');
+    }
+  }
+
+  async function deleteHighlight(cfiRange: string) {
+    try {
+      // Find highlight by CFI
+      const highlight = highlights.find(h => h.cfi_range === cfiRange);
+      if (!highlight) return;
+
+      const res = await fetch(`/api/highlights/${highlight.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+
+      // Remove from epub rendition
+      renditionRef.current?.annotations.remove(cfiRange, 'highlight');
+
+      setHighlights(prev => prev.filter(h => h.cfi_range !== cfiRange));
+      highlightsRef.current = highlightsRef.current.filter(h => h.cfi_range !== cfiRange);
+      setHighlightToolbar(null);
+      toast.success('Highlight removed');
+    } catch {
+      toast.error('Failed to remove highlight');
     }
   }
 
@@ -559,7 +634,7 @@ export default function ReaderClient({
       className="flex flex-col h-screen overflow-hidden"
       data-theme={theme}
       style={{ backgroundColor: themeBg, color: themeText }}
-      onClick={() => { setSelectionToolbar(null); setWordPopover(null); }}
+      onClick={() => { setSelectionToolbar(null); setWordPopover(null); setHighlightToolbar(null); }}
     >
       <style>{`
         #epub-viewer iframe {
@@ -757,6 +832,16 @@ export default function ReaderClient({
           userId={userId}
         />
       )}
+      {/* Highlight delete toolbar */}
+      {highlightToolbar && (
+        <HighlightToolbar
+          x={highlightToolbar.x}
+          y={highlightToolbar.y}
+          onDelete={() => deleteHighlight(highlightToolbar.cfiRange)}
+          onClose={() => setHighlightToolbar(null)}
+        />
+      )}
+
       {/* Book completion celebration */}
       {showCompletion && (
         <CompletionScreen
