@@ -1,13 +1,10 @@
 import OpenAI from 'openai';
 
-// Singleton — reused across API route calls in the same serverless instance
 let openaiClient: OpenAI | null = null;
 
 export function getOpenAI(): OpenAI {
   if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY!,
-    });
+    openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
   }
   return openaiClient;
 }
@@ -16,10 +13,7 @@ export const AI_MODEL = 'gpt-4o-mini';
 
 // ─── Prompt templates ───────────────────────────────────────────
 
-export function buildContextualDefinitionPrompt(
-  word: string,
-  paragraph: string
-): string {
+export function buildContextualDefinitionPrompt(word: string, paragraph: string): string {
   return `You are an expert reading assistant.
 
 The reader tapped on the word "${word}" in the following passage:
@@ -33,10 +27,7 @@ CRITICAL RULES:
 - DO NOT start with phrases like "In this context...", "The word refers to...", or "\"${word}\" means...". Just start the explanation directly.`;
 }
 
-export function buildChapterQuizPrompt(
-  chapterTitle: string,
-  chapterText: string
-): string {
+export function buildChapterQuizPrompt(chapterTitle: string, chapterText: string): string {
   return `You are a reading comprehension quiz generator.
 
 Generate exactly 10 multiple-choice questions based on the following chapter.
@@ -84,7 +75,9 @@ FORMATTING RULES (very important):
 // ─── Quiz Prompt Templates ──────────────────────────────────────
 
 export function buildVocabSetPrompt(usedWords: string[]): string {
-  const avoidList = usedWords.length > 0 ? `\nDo NOT use any of these recently used words: ${usedWords.join(', ')}` : '';
+  const avoidList = usedWords.length > 0
+    ? `\nDo NOT use any of these recently used words: ${usedWords.join(', ')}`
+    : '';
   return `You are an expert English vocabulary teacher preparing students for IPMAT and JIPMAT entrance exams.
 
 Generate exactly 5 advanced English vocabulary words appropriate for IPMAT/JIPMAT level.
@@ -113,7 +106,9 @@ Return ONLY valid JSON, no markdown, no explanation:
 }
 
 export function buildIdiomSetPrompt(usedIdioms: string[]): string {
-  const avoidList = usedIdioms.length > 0 ? `\nDo NOT use any of these recently used idioms: ${usedIdioms.join(', ')}` : '';
+  const avoidList = usedIdioms.length > 0
+    ? `\nDo NOT use any of these recently used idioms: ${usedIdioms.join(', ')}`
+    : '';
   return `You are an expert English language teacher preparing students for IPMAT and JIPMAT entrance exams.
 
 Generate exactly 5 English idioms appropriate for IPMAT/JIPMAT level.
@@ -142,10 +137,15 @@ Return ONLY valid JSON, no markdown, no explanation:
 }
 
 export function buildFillBlanksPrompt(words: string[], type: 'vocabulary' | 'idiom'): string {
-  const wordList = words.join(', ');
+  // Shuffle the word order before sending to AI so questions aren't in word order
+  const shuffled = [...words].sort(() => Math.random() - 0.5);
+  const wordList = shuffled.join(', ');
+
   return `You are an English language exam question creator for IPMAT/JIPMAT level students.
 
 Create exactly 5 fill-in-the-blank sentences using these ${type === 'idiom' ? 'idioms' : 'words'}: ${wordList}
+
+CRITICAL: The questions must NOT follow the same order as the word list above. Scramble the order freely.
 
 Each sentence must:
 - Use exactly one word/idiom from the list
@@ -168,47 +168,69 @@ Return ONLY valid JSON:
 Rules:
 - Each word must be used exactly once
 - The blank should be shown as __________
-- acceptedForms should include all grammatically valid forms of the answer`;
+- acceptedForms should include all grammatically valid forms of the answer
+- Questions must appear in a RANDOM order — do not match the input word order`;
 }
+
+// Interesting genres with vivid descriptions to guide AI writing quality
+const PASSAGE_GENRES = [
+  { genre: 'scientific discovery', setting: 'a research lab or field expedition making a breakthrough' },
+  { genre: 'fantasy adventure', setting: 'a vivid magical world with compelling characters' },
+  { genre: 'political thriller', setting: 'a tense diplomatic crisis or election scandal' },
+  { genre: 'historical fiction', setting: 'a pivotal moment in history seen through a character\'s eyes' },
+  { genre: 'romance', setting: 'two characters navigating a complex emotional relationship' },
+  { genre: 'philosophical reflection', setting: 'a thinker grappling with a profound life question' },
+  { genre: 'business drama', setting: 'a high-stakes corporate negotiation or startup journey' },
+  { genre: 'mystery', setting: 'a detective or sleuth uncovering a surprising secret' },
+  { genre: 'sports narrative', setting: 'an athlete facing a defining moment of pressure or triumph' },
+  { genre: 'social satire', setting: 'modern society\'s quirks and contradictions observed sharply' },
+  { genre: 'travel writing', setting: 'a vivid encounter with an unfamiliar culture or landscape' },
+  { genre: 'coming-of-age', setting: 'a young person facing a formative challenge or realisation' },
+];
 
 export function buildPassagePrompt(words: string[], type: 'vocabulary' | 'idiom'): string {
   const wordList = words.join(', ');
-  const genres = ['mystery', 'historical fiction', 'science and technology', 'business and economics', 'social commentary', 'adventure', 'philosophical reflection'];
-  const genre = genres[Math.floor(Math.random() * genres.length)];
-  
-  return `You are a skilled writer creating an educational reading passage for IPMAT/JIPMAT students.
+  // Pick a random genre each time
+  const pick = PASSAGE_GENRES[Math.floor(Math.random() * PASSAGE_GENRES.length)];
 
-Write a compelling 200-word passage in the genre of "${genre}" that naturally incorporates ALL of the following ${type === 'idiom' ? 'idioms' : 'words'}: ${wordList}
+  return `You are an accomplished writer and English language educator creating a reading passage for IPMAT/JIPMAT students.
+
+Write a vivid, engaging 200-word passage in the genre of **${pick.genre}**.
+Setting/tone: ${pick.setting}.
+
+The passage must naturally incorporate ALL of the following ${type === 'idiom' ? 'idioms' : 'words'}: ${wordList}
 
 Requirements:
-- Exactly 200 words (±10 words)
-- Genre: ${genre}
-- Each word/idiom must be used naturally, not forced
-- Bold each of the target words/idioms using **word** markdown
-- The passage should be engaging, well-written, and feel like genuine prose
-- Appropriate for competitive exam reading comprehension level
+- Exactly 200 words (±15 words)
+- The passage must feel like genuine, high-quality prose — not a textbook exercise
+- Each word/idiom must arise organically from the narrative, NOT feel shoehorned in
+- Make the passage interesting and enjoyable to read — vivid imagery, strong voice, narrative tension
+- Bold each target word/idiom using **word** markdown when it appears
+- The passage should standalone as a satisfying mini-story or reflection
 
-Return ONLY the passage text with markdown bolding, no other text.`;
+QUALITY BAR: The passage should be something a reader genuinely enjoys, not just tolerates. Strong verbs, precise details, emotional resonance.
+
+Return ONLY the passage text with markdown bolding. No titles, no labels, no extra text.`;
 }
 
 export function buildAnswerCheckPrompt(
-  questions: Array<{sentence: string; answer: string; acceptedForms: string[]; targetWord: string}>,
+  questions: Array<{ sentence: string; answer: string; acceptedForms: string[]; targetWord: string }>,
   userAnswers: string[],
   words: string[]
 ): string {
-  const qa = questions.map((q, i) => 
-    `Q${i+1}: "${q.sentence}"\nCorrect: "${q.answer}" (accepted: ${q.acceptedForms.join(', ')})\nUser answered: "${userAnswers[i] ?? ''}"`
+  const qa = questions.map((q, i) =>
+    `Q${i + 1}: "${q.sentence}"\nCorrect: "${q.answer}" (accepted forms: ${q.acceptedForms.join(', ')})\nUser answered: "${userAnswers[i] ?? ''}"`
   ).join('\n\n');
 
   return `You are an English language examiner checking fill-in-the-blank answers for IPMAT/JIPMAT students.
 
-Word bank used: ${words.join(', ')}
+Word bank: ${words.join(', ')}
 
 ${qa}
 
-For each question, evaluate the user's answer and provide:
-1. Whether it's correct (exact match or accepted grammatical form)
-2. Brief, encouraging feedback (1 sentence)
+For each question evaluate:
+1. Is the answer correct? (accept exact match OR any valid grammatical form like -ed, -ing, -s)
+2. Give brief, encouraging feedback (1 sentence max)
 
 Return ONLY valid JSON:
 {
@@ -217,7 +239,7 @@ Return ONLY valid JSON:
       "questionIndex": 0,
       "correct": true,
       "userAnswer": "inexorable",
-      "feedback": "Perfect! 'Inexorable' correctly describes the unstoppable nature of the storm."
+      "feedback": "Perfect! 'Inexorable' perfectly captures the unstoppable nature of the storm."
     }
   ],
   "totalScore": 4,

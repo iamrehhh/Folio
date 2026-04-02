@@ -79,6 +79,8 @@ export async function GET(req: NextRequest) {
 
     const fillText = fillRes.choices[0]?.message?.content ?? '{}';
     const fillData = JSON.parse(fillText.replace(/```json|```/g, '').trim());
+    // Shuffle questions so order never matches word order
+    fillData.questions = fillData.questions.sort(() => Math.random() - 0.5);
 
     // Generate reading passage
     const passagePrompt = buildPassagePrompt(wordList, type);
