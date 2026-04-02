@@ -227,8 +227,9 @@ Word bank: ${words.join(', ')}
 ${qa}
 
 For each question evaluate:
-1. Is the answer correct? (accept exact match OR any valid grammatical form like -ed, -ing, -s)
-2. Give brief, encouraging feedback (1 sentence max)
+1. Is the user's answer correct?
+   CRITICAL RULE: The answer MUST be the exact target word or a valid grammatical derivation of it (e.g., -ed, -ing, -s). If the user enters a number, random symbols, gibberish, an entirely different word, or a synonym NOT in the word bank, you MUST mark "correct": false. Be extremely strict.
+2. Give brief, encouraging (or gently corrective if wrong) feedback (1 sentence max)
 
 Return ONLY valid JSON:
 {

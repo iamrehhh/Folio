@@ -232,7 +232,7 @@ export default function QuizClient({ type }: Props) {
               </li>
               <li className="flex gap-2">
                 <span className="text-sm font-semibold shrink-0" style={{ color: 'var(--text-primary)' }}>Formal Example:</span>
-                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}
+                <span className="text-sm" style={{ color: 'var(--text-primary)' }}
                   dangerouslySetInnerHTML={{
                     __html: item.formalExample.replace(
                       new RegExp(item.word, 'gi'),
@@ -242,7 +242,7 @@ export default function QuizClient({ type }: Props) {
               </li>
               <li className="flex gap-2">
                 <span className="text-sm font-semibold shrink-0" style={{ color: 'var(--text-primary)' }}>Conversational Example:</span>
-                <span className="text-sm" style={{ color: 'var(--text-secondary)' }}
+                <span className="text-sm" style={{ color: 'var(--text-primary)' }}
                   dangerouslySetInnerHTML={{
                     __html: item.conversationalExample.replace(
                       new RegExp(item.word, 'gi'),
