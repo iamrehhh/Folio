@@ -22,7 +22,7 @@ export default function ChapterSidebar({ chapters, currentIndex, onSelect, onQui
   return (
     <aside
       className="w-56 flex-none border-r flex flex-col"
-      style={{ backgroundColor: bgColor, borderColor, height: '100%', minHeight: 0, marginTop: 0 }}
+      style={{ backgroundColor: bgColor, borderColor, height: '100%', minHeight: 0, marginTop: 0, transition: 'background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease' }}
     >
       {/* Header */}
       <div className="px-4 py-2.5 border-b flex-none" style={{ borderColor }}>

@@ -42,14 +42,12 @@ export const useReaderStore = create<ReaderState>()(
       toggleAIPanel: () =>
         set((s) => ({
           isAIPanelOpen: !s.isAIPanelOpen,
-          // Close highlights panel when opening AI
           isHighlightsPanelOpen: s.isAIPanelOpen ? s.isHighlightsPanelOpen : false,
         })),
 
       toggleHighlightsPanel: () =>
         set((s) => ({
           isHighlightsPanelOpen: !s.isHighlightsPanelOpen,
-          // Close AI panel when opening highlights
           isAIPanelOpen: s.isHighlightsPanelOpen ? s.isAIPanelOpen : false,
         })),
 
@@ -73,6 +71,11 @@ export const useReaderStore = create<ReaderState>()(
         lineHeight: state.lineHeight,
         isChapterSidebarOpen: state.isChapterSidebarOpen,
       }),
+      // FIX: onRehydrateStorage lets us know when the store is done loading from localStorage
+      onRehydrateStorage: () => (state) => {
+        // This is called after hydration completes — the store will have the correct theme
+        // The ReaderClient listens via useReaderStore.persist.onFinishHydration
+      },
     }
   )
 );

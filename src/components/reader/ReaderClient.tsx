@@ -48,6 +48,9 @@ export default function ReaderClient({
   const sessionStartRef = useRef<number>(Date.now());
   const [loadError, setLoadError] = useState(false);
 
+  // FIX 1: Track store hydration to avoid white flash on theme refresh
+  const [storeHydrated, setStoreHydrated] = useState(false);
+
   const [selectionToolbar, setSelectionToolbar] = useState<{
     x: number; y: number; text: string; cfiRange: string;
   } | null>(null);
@@ -63,11 +66,40 @@ export default function ReaderClient({
     toggleChapterSidebar, toggleAIPanel,
   } = useReaderStore();
 
+  // FIX 1: Wait for Zustand persisted store to rehydrate before rendering
+  // This prevents the white flash when theme is sepia/dark
+  useEffect(() => {
+    // useReaderStore.persist is available because we use persist middleware
+    const unsub = useReaderStore.persist?.onFinishHydration?.(() => {
+      setStoreHydrated(true);
+    });
+    // Also check if already hydrated (fast path)
+    if (useReaderStore.persist?.hasHydrated?.()) {
+      setStoreHydrated(true);
+    } else {
+      // Fallback: mark hydrated after a short tick even if API isn't available
+      const t = setTimeout(() => setStoreHydrated(true), 50);
+      return () => {
+        clearTimeout(t);
+        unsub?.();
+      };
+    }
+    return () => unsub?.();
+  }, []);
+
   const themeBg = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A' }[theme];
   const themeText = { light: '#1C1C1E', sepia: '#1C1C1E', dark: '#D4C5A0' }[theme];
 
+  // FIX 1: Use CSS variable fallback so the wrapper color matches theme immediately
+  // even before JS hydration, by reading from data-theme attribute on <html>
+  const resolvedBg = storeHydrated ? themeBg : 'var(--bg, #FAF8F4)';
+  const resolvedText = storeHydrated ? themeText : 'var(--text-primary, #1C1C1E)';
+
+  // FIX 2: Last known mouse position from inside the iframe (for highlight toolbar)
+  const lastIframeMouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
   useEffect(() => {
-    if (!viewerRef.current) return;
+    if (!storeHydrated || !viewerRef.current) return;
     let mounted = true;
 
     async function initEpub() {
@@ -100,7 +132,6 @@ export default function ReaderClient({
       const nav = epubBook.navigation;
       const toc = nav?.toc ?? [];
 
-      // Flatten nested TOC recursively — handles Part > Chapter hierarchies
       function flattenToc(items: any[], depth = 0): { label: string; href: string; depth: number }[] {
         const result: { label: string; href: string; depth: number }[] = [];
         for (const item of items) {
@@ -154,26 +185,23 @@ export default function ReaderClient({
 
       setChapters(chapterList);
 
-      // Display with timeout fallback for stubborn EPUB3 books
       let displayOk = false;
       await Promise.race([
         (initialProgress?.cfi
           ? rendition.display(initialProgress.cfi).then(async () => {
-            // After display, scroll to exact CFI position
-            displayOk = true;
-            setTimeout(() => {
-              try {
-                renditionRef.current?.display(initialProgress.cfi!);
-              } catch { /* ignore */ }
-            }, 300);
-          })
+              displayOk = true;
+              setTimeout(() => {
+                try {
+                  renditionRef.current?.display(initialProgress.cfi!);
+                } catch { /* ignore */ }
+              }, 300);
+            })
           : rendition.display()
         ).then(() => { displayOk = true; }),
         new Promise<void>((_, reject) =>
           setTimeout(() => reject(new Error('display timeout')), 8000)
         ),
       ]).catch(async (err) => {
-        // First attempt failed — retry with flow: 'scrolled'
         console.warn('[Reader] display failed, retrying:', err.message);
         if (!mounted || !viewerRef.current) return;
         renditionRef.current?.destroy?.();
@@ -217,14 +245,11 @@ export default function ReaderClient({
       }
       setIsLoading(false);
 
-      // Generate locations in background AFTER rendering (non-blocking)
-      // Once ready, update the progress % using the saved CFI
       setTimeout(() => {
         if (!mounted) return;
         epubBook.locations.generate(1000).then(() => {
           if (!mounted) return;
           locationsReadyRef.current = true;
-          // Now recalculate percent with accurate locations
           const currentCfi = initialProgress?.cfi;
           if (currentCfi) {
             const accuratePercent = Math.round(
@@ -235,11 +260,10 @@ export default function ReaderClient({
             }
           }
         }).catch(() => {
-          locationsReadyRef.current = true; // mark ready even on error
+          locationsReadyRef.current = true;
         });
       }, 500);
 
-      // Fix iframe and body sizing after each render
       rendition.hooks.content.register((contents: any) => {
         const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
         if (iframe) {
@@ -256,50 +280,95 @@ export default function ReaderClient({
             word-wrap: break-word !important;
           `;
         }
-        // Detect clicks on highlighted marks directly — more reliable than markClicked event
+
+        // FIX 2: Track mouse position inside iframe for accurate toolbar placement
+        doc.addEventListener('mousemove', (e: MouseEvent) => {
+          const iframeEl = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
+          const iframeRect = iframeEl?.getBoundingClientRect();
+          lastIframeMouseRef.current = {
+            x: (iframeRect?.left ?? 0) + e.clientX,
+            y: (iframeRect?.top ?? 0) + e.clientY,
+          };
+        }, { passive: true });
+
+        // FIX 2: Detect highlight clicks by checking SVG fill colors
+        // epub.js renders highlights as SVG <rect> elements with the highlight color as fill
         doc.addEventListener('click', (e: MouseEvent) => {
-          const target = e.target as HTMLElement;
+          const target = e.target as SVGElement | HTMLElement;
+          const iframeEl = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
+          const iframeRect = iframeEl?.getBoundingClientRect();
+          const absX = (iframeRect?.left ?? 0) + e.clientX;
+          const absY = (iframeRect?.top ?? 0) + e.clientY;
 
-          // Check if clicked element or any ancestor is a highlight mark
+          // Walk up the DOM tree looking for highlight marks
           let el: Element | null = target;
-          let clickedCfi: string | null = null;
-
           while (el && el !== doc.body) {
-            // epub.js adds data-epubcfi or class 'epubjs-hl' to highlight marks
-            const cfi = el.getAttribute('data-epubcfi')
-              ?? el.getAttribute('data-cfi')
-              ?? (el.classList?.contains('epubjs-hl') ? el.getAttribute('title') : null);
+            const tagName = el.tagName?.toLowerCase();
+            const fill = el.getAttribute('fill') ?? '';
+            const className = el.getAttribute('class') ?? '';
 
-            if (cfi) { clickedCfi = cfi; break; }
+            // epub.js highlight SVG rects have the fill color set directly
+            const highlightHexValues = ['FFE066', '93C5FD', '86EFAC', 'F87171'];
+            const isHighlightRect = (tagName === 'rect' || tagName === 'path') &&
+              highlightHexValues.some(hex => fill.toUpperCase().includes(hex.toUpperCase()));
 
-            // If we are on an SVG rect/g that is clearly a highlight but lacks the attribute, just return
-            // to let markClicked handle it, preventing the hide-toolbar fallback.
-            const fill = el.getAttribute('fill') ?? (el as HTMLElement).style?.backgroundColor ?? '';
-            const isHighlightColor = ['#FFE066', '#93C5FD', '#86EFAC', '#F87171'].some(c =>
-              fill.includes(c.slice(1))
+            // epub.js also wraps in a <g> with class 'epubjs-hl'  
+            const isHighlightGroup = tagName === 'g' && (
+              className.includes('epubjs-hl') ||
+              className.includes('highlight') ||
+              el.querySelector?.(`rect[fill]`) !== null
             );
-            if (isHighlightColor || el.tagName.toLowerCase() === 'g' || el.tagName.toLowerCase() === 'rect') {
-              // If it's the rect itself, it might not have the attribute, so we check parent.
-              // But if even the parent `g` doesn't have it, we should let `markClicked` event handle it.
-              if (el.parentElement === doc.body || !el.parentElement) {
+
+            if (isHighlightRect || isHighlightGroup) {
+              // Find which highlight this belongs to by checking CFI data
+              // Try to get CFI from the element or its parent SVG group
+              let cfi: string | null = null;
+
+              // epub.js stores CFI as title attribute or data attribute on the group
+              let groupEl: Element | null = el;
+              while (groupEl && groupEl !== doc.body) {
+                cfi = groupEl.getAttribute('data-epubcfi')
+                  ?? groupEl.getAttribute('title')
+                  ?? groupEl.getAttribute('data-cfi')
+                  ?? null;
+                if (cfi) break;
+                groupEl = groupEl.parentElement;
+              }
+
+              if (!cfi) {
+                // Fallback: find the closest highlight by mouse position
+                // Check all known highlight CFI ranges and use the first one
+                const currentHighlights = highlightsRef.current;
+                if (currentHighlights.length > 0) {
+                  // Use the most recently added/visible highlight as fallback
+                  // Try to find one whose SVG element contains the click point
+                  const svgGroups = doc.querySelectorAll('g[data-epubcfi], g[title]');
+                  for (const group of Array.from(svgGroups)) {
+                    const rect = group.getBoundingClientRect();
+                    if (rect && e.clientX >= rect.left && e.clientX <= rect.right &&
+                        e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                      cfi = group.getAttribute('data-epubcfi') ?? group.getAttribute('title');
+                      if (cfi) break;
+                    }
+                  }
+                }
+              }
+
+              if (cfi) {
+                e.stopPropagation();
+                setHighlightToolbar({ x: absX, y: absY, cfiRange: cfi });
+                setSelectionToolbar(null);
+                setWordPopover(null);
                 return;
               }
+              // Even if no CFI found, we know they clicked a highlight area
+              // so don't clear the toolbar
+              return;
             }
-
             el = el.parentElement;
           }
 
-          if (clickedCfi) {
-            e.stopPropagation();
-            const iframeRect = contents.document.defaultView?.frameElement?.getBoundingClientRect();
-            const absX = (iframeRect?.left ?? 0) + e.clientX;
-            const absY = (iframeRect?.top ?? 0) + e.clientY;
-            setHighlightToolbar({ x: absX, y: absY, cfiRange: clickedCfi });
-            setSelectionToolbar(null);
-            setWordPopover(null);
-            return;
-          }
-
+          // Not a highlight click — clear toolbar if selection is collapsed
           const sel = contents.window.getSelection();
           if (!sel || sel.isCollapsed) {
             setSelectionToolbar(null);
@@ -308,35 +377,25 @@ export default function ReaderClient({
           }
         });
 
-        // ── Save scroll position while reading ──────────────────
-        // epub.js scrolled-doc mode doesn't fire 'relocated' on scroll
-        // so we track scroll position ourselves and save CFI periodically
+        // Scroll position save
         let scrollSaveTimer: ReturnType<typeof setTimeout> | null = null;
-        const scrollable = doc.querySelector('.epub-container') ?? contents.window;
 
         function onScroll() {
           if (scrollSaveTimer) clearTimeout(scrollSaveTimer);
           scrollSaveTimer = setTimeout(async () => {
             if (!mounted || !renditionRef.current) return;
             try {
-              // Get the element currently visible at the top of viewport
-              const scrollTop = (doc.documentElement?.scrollTop ?? doc.body?.scrollTop ?? 0);
               const viewHeight = contents.window.innerHeight ?? 600;
-              const midY = scrollTop + viewHeight * 0.3;
-
-              // Find element at that position
               const el = doc.elementFromPoint(
                 contents.window.innerWidth / 2,
                 viewHeight * 0.3
               ) as Element | null;
 
               if (el) {
-                // Generate CFI from this element
                 const cfi = renditionRef.current.epubcfi?.fromElement?.(el, contents.sectionIndex)
                   ?? renditionRef.current.currentLocation?.()?.start?.cfi;
 
                 if (cfi) {
-                  // Save to DB (debounced — only after 1.5s of no scrolling)
                   fetch('/api/books/progress', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -349,7 +408,7 @@ export default function ReaderClient({
                         (epubBook.locations.percentageFromCfi?.(cfi) ?? 0) * 100
                       ),
                     }),
-                  }).catch(() => { });
+                  }).catch(() => {});
                 }
               }
             } catch { /* ignore */ }
@@ -364,8 +423,7 @@ export default function ReaderClient({
         if (!mounted) return;
         const cfi = location.start.cfi;
         const spineIdx = location.start.index ?? 0;
-
-        // Find matching TOC index by comparing spinePos to current spine index
+        
         let tocIdx = 0;
         for (let i = 0; i < chapterList.length; i++) {
           const pos = chapterList[i].spinePos;
@@ -373,22 +431,19 @@ export default function ReaderClient({
             tocIdx = i;
           }
         }
-
-        // Use saved percent if locations not ready yet (avoids 0% flash on load/resize)
+        
         let percent: number;
         if (locationsReadyRef.current) {
           percent = Math.round(
             (epubBook.locations.percentageFromCfi?.(cfi) ?? 0) * 100
           );
         } else {
-          // Fallback to previously saved percent until locations generate
           percent = initialProgress?.progress_percent ?? 0;
         }
         const chapterTitle = chapterList[tocIdx]?.title ?? '';
         setProgress(tocIdx, cfi, percent);
         currentChapterIndexRef.current = tocIdx;
 
-        // Show completion screen when book is finished
         if (percent >= 100 && completionShownFor !== book.id) {
           setCompletionShownFor(book.id);
           setTimeout(() => setShowCompletion(true), 800);
@@ -409,7 +464,7 @@ export default function ReaderClient({
             bookId: book.id, cfi, chapterIndex: tocIdx,
             chapterTitle, progressPercent: percent,
           }),
-        }).catch(() => { });
+        }).catch(() => {});
       });
 
       rendition.on('selected', (cfiRange: string, contents: any) => {
@@ -438,27 +493,14 @@ export default function ReaderClient({
         }
       });
 
-      // Track mouse position from iframe for highlight click positioning
-      let lastMouseX = 0;
-      let lastMouseY = 0;
-      rendition.hooks.content.register((contents: any) => {
-        const doc = contents.document;
-        const win = contents.window;
-        doc.addEventListener('click', (e: MouseEvent) => {
-          const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
-          const iframeRect = iframe?.getBoundingClientRect();
-          lastMouseX = (iframeRect?.left ?? 0) + e.clientX;
-          lastMouseY = (iframeRect?.top ?? 0) + e.clientY;
-        }, true); // capture phase to get coords before selection handling
-      });
-
-      // Listen for highlight clicks via epub.js markClicked event
+      // FIX 2: Also listen to markClicked for epub.js versions that support it reliably
       rendition.on('markClicked', (cfiRange: string, _data: any) => {
-        // Only show toolbar if this is one of our highlights
-        const isOurHighlight = initialHighlights.some(h => h.cfi_range === cfiRange) ||
-          highlightsRef.current.some(h => h.cfi_range === cfiRange);
+        const isOurHighlight = highlightsRef.current.some(h => h.cfi_range === cfiRange);
         if (isOurHighlight) {
-          setHighlightToolbar({ x: lastMouseX, y: lastMouseY, cfiRange });
+          const pos = lastIframeMouseRef.current;
+          setHighlightToolbar({ x: pos.x, y: pos.y, cfiRange });
+          setSelectionToolbar(null);
+          setWordPopover(null);
         }
       });
 
@@ -472,7 +514,6 @@ export default function ReaderClient({
       }
     }
 
-    // Safety net — if loading takes more than 16s, show error
     const loadingTimeout = setTimeout(() => {
       if (!mounted) return;
       setIsLoading(false);
@@ -493,7 +534,7 @@ export default function ReaderClient({
       bookRef.current?.destroy?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [epubUrl]);
+  }, [epubUrl, storeHydrated]);
 
   useEffect(() => {
     if (renditionRef.current) {
@@ -504,7 +545,7 @@ export default function ReaderClient({
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'ArrowRight' || e.key === ']') renditionRef.current?.next();
-      if (e.key === 'ArrowLeft' || e.key === '[') renditionRef.current?.prev();
+      if (e.key === 'ArrowLeft'  || e.key === '[') renditionRef.current?.prev();
       if (e.ctrlKey && e.key === 'b') { e.preventDefault(); toggleChapterSidebar(); }
       if (e.ctrlKey && e.key === 'i') { e.preventDefault(); toggleAIPanel(); }
       if (e.key === 'Escape') { setSelectionToolbar(null); setWordPopover(null); }
@@ -519,17 +560,9 @@ export default function ReaderClient({
     const hrefBase = chapter.href.split('#')[0];
 
     try {
-      // First display the chapter
       await renditionRef.current.display(hrefBase);
 
-      // Only auto-advance for leaf chapters (not section headers like "Part I", "DEFCON 5")
-      // Section headers have subitems in the TOC — leaf chapters do not
       const chapterDepth = (chapter as any).depth ?? 0;
-      const hasChildren = chapters.some((c, ci) => {
-        const idx = chapters.indexOf(chapter);
-        return ci > idx && (c as any).depth > chapterDepth;
-      });
-      // Only auto-advance if it's a leaf chapter (no children follow it at deeper depth)
       const nextChapter = chapters[chapters.indexOf(chapter) + 1];
       const isSection = nextChapter && ((nextChapter as any).depth ?? 0) > chapterDepth;
 
@@ -542,7 +575,6 @@ export default function ReaderClient({
             const body = iframe.contentDocument.body;
             if (!body) return;
             const text = (body.innerText ?? '').replace(/\s+/g, '').trim();
-            // Only advance if truly empty (< 30 chars)
             if (text.length < 30) {
               const spineItems: any[] = [];
               bookRef.current!.spine.each((item: any) => spineItems.push(item));
@@ -559,7 +591,6 @@ export default function ReaderClient({
       }
 
     } catch {
-      // Fallback
       try { await renditionRef.current.display(chapter.href); } catch { /* ignore */ }
     }
   }
@@ -591,38 +622,31 @@ export default function ReaderClient({
   }
 
   async function deleteHighlight(cfiRange: string) {
-    // Find highlight — try exact match first, then partial
     const highlight = highlights.find(h => h.cfi_range === cfiRange)
       ?? highlights.find(h =>
-        (h.cfi_range && cfiRange && (h.cfi_range.includes(cfiRange) || cfiRange.includes(h.cfi_range)))
-      );
+          (h.cfi_range && cfiRange && (h.cfi_range.includes(cfiRange) || cfiRange.includes(h.cfi_range)))
+        );
 
-    // Remove from rendition IMMEDIATELY — no waiting for DB
     try { renditionRef.current?.annotations.remove(cfiRange, 'highlight'); } catch { /* ignore */ }
     if (highlight?.cfi_range && highlight.cfi_range !== cfiRange) {
       try { renditionRef.current?.annotations.remove(highlight.cfi_range, 'highlight'); } catch { /* ignore */ }
     }
 
-    // Update UI state immediately
     setHighlightToolbar(null);
     if (highlight) {
       setHighlights(prev => prev.filter(h => h.id !== highlight.id));
-      if ('highlightsRef' in ({ highlightsRef } as any)) {
-        // @ts-ignore
-        highlightsRef.current = highlightsRef.current?.filter((h: any) => h.id !== highlight.id);
-      }
+      highlightsRef.current = highlightsRef.current.filter((h: any) => h.id !== highlight.id);
     }
     toast.success('Highlight removed');
 
-    // Delete from DB in background — UI already updated
     if (highlight) {
-      fetch(`/api/highlights/${highlight.id}`, { method: 'DELETE' }).catch(() => { });
+      fetch(`/api/highlights/${highlight.id}`, { method: 'DELETE' }).catch(() => {});
     }
   }
 
   const progressPercent = useReaderStore((s) => s.progressPercent);
 
-  // ── Reading timer ────────────────────────────────────────────
+  // Reading timer
   useEffect(() => {
     function startTimer() {
       if (timerRef.current) return;
@@ -651,24 +675,20 @@ export default function ReaderClient({
       } catch { /* ignore */ }
     }
 
-    // Start immediately
     startTimer();
 
-    // Pause when tab hidden, resume when visible
     function onVisibilityChange() {
       if (document.hidden) pauseTimer();
       else startTimer();
     }
     document.addEventListener('visibilitychange', onVisibilityChange);
 
-    // Save session on page unload
     function onUnload() {
       pauseTimer();
       saveSession();
     }
     window.addEventListener('beforeunload', onUnload);
 
-    // Auto-save every 60s in case of crash
     const autoSave = setInterval(saveSession, 60000);
 
     return () => {
@@ -680,12 +700,22 @@ export default function ReaderClient({
     };
   }, [book.id]);
 
+  // FIX 1: Don't render the reader wrapper until store is hydrated
+  // Show a theme-colored placeholder to prevent the white flash
+  if (!storeHydrated) {
+    return (
+      <div
+        className="flex flex-col h-screen overflow-hidden"
+        style={{ backgroundColor: 'var(--bg, #FAF8F4)' }}
+      />
+    );
+  }
 
   return (
     <div
       className="flex flex-col h-screen overflow-hidden"
       data-theme={theme}
-      style={{ backgroundColor: themeBg, color: themeText }}
+      style={{ backgroundColor: resolvedBg, color: resolvedText, transition: 'background-color 0.3s ease, color 0.3s ease' }}
       onClick={() => { setSelectionToolbar(null); setWordPopover(null); setHighlightToolbar(null); }}
     >
       <style>{`
@@ -702,7 +732,6 @@ export default function ReaderClient({
           scrollbar-width: thin !important;
           scrollbar-color: rgba(139,105,20,0.3) transparent !important;
         }
-        /* Webkit scrollbar — thin, right edge, only visible on hover/scroll */
         #epub-viewer .epub-container::-webkit-scrollbar {
           width: 5px !important;
         }
@@ -727,7 +756,6 @@ export default function ReaderClient({
       />
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Mobile backdrop */}
         {isChapterSidebarOpen && (
           <div
             className="fixed inset-0 bg-black/30 z-20 md:hidden"
@@ -735,7 +763,6 @@ export default function ReaderClient({
           />
         )}
 
-        {/* Sidebar — overlay on mobile, inline on desktop */}
         <div
           className={cn(
             'overflow-hidden transition-all duration-300 ease-in-out',
@@ -758,14 +785,11 @@ export default function ReaderClient({
           />
         </div>
 
-        {/* Reading column — wider, centered with transition */}
         <div
           className="reading-column flex-1 overflow-hidden transition-all duration-300 ease-in-out relative"
-          style={{ backgroundColor: themeBg }}
+          style={{ backgroundColor: resolvedBg, transition: 'background-color 0.3s ease' }}
         >
-          <div
-            className="w-full h-full relative max-w-[1050px] mx-auto"
-          >
+          <div className="w-full h-full relative max-w-[1050px] mx-auto">
             {isLoading && !loadError && (
               <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
                 <div
@@ -813,7 +837,6 @@ export default function ReaderClient({
           </div>
         </div>
 
-        {/* AI Panel with smooth transition */}
         <div
           className="flex-none overflow-hidden transition-all duration-300 ease-in-out h-full"
           style={{ width: isAIPanelOpen ? '20rem' : '0' }}
@@ -884,7 +907,7 @@ export default function ReaderClient({
           userId={userId}
         />
       )}
-      {/* Highlight delete toolbar */}
+
       {highlightToolbar && (
         <HighlightToolbar
           x={highlightToolbar.x}
@@ -894,7 +917,6 @@ export default function ReaderClient({
         />
       )}
 
-      {/* Book completion celebration */}
       {showCompletion && (
         <CompletionScreen
           book={book}
@@ -906,17 +928,39 @@ export default function ReaderClient({
 }
 
 function applyTheme(rendition: any, theme: string, fontSize: number, lineHeight: number) {
-  const bg = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A' }[theme] ?? '#FAF8F4';
+  const bg   = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A' }[theme] ?? '#FAF8F4';
   const text = theme === 'dark' ? '#D4C5A0' : '#1C1C1E';
 
-  const themeName = `${theme}-${fontSize}-${lineHeight.toString().replace('.', '_')}`;
+  const THEME_NAME = 'folio';
 
-  const rules = {
+  // Step 1: Immediately paint every existing iframe so the user never sees white.
+  // This runs BEFORE any stylesheet changes, so there's zero gap.
+  try {
+    const views = rendition.manager?.views?._views ?? rendition.manager?.views ?? [];
+    const viewList = Array.isArray(views) ? views : (typeof views.forEach === 'function' ? Array.from(views) : []);
+    for (const view of viewList) {
+      const doc = view?.document ?? view?.iframe?.contentDocument;
+      if (!doc) continue;
+      if (doc.documentElement) {
+        doc.documentElement.style.setProperty('background', bg, 'important');
+        doc.documentElement.style.setProperty('transition', 'background 0.3s ease, color 0.3s ease');
+      }
+      if (doc.body) {
+        doc.body.style.setProperty('background', bg, 'important');
+        doc.body.style.setProperty('color', text, 'important');
+        doc.body.style.setProperty('transition', 'background 0.3s ease, color 0.3s ease');
+      }
+    }
+  } catch { /* best-effort */ }
+
+  // Step 2: Register + select the single named theme. Using a fixed name
+  // ensures epub.js overwrites the previous rules instead of stacking.
+  const rules: Record<string, Record<string, string>> = {
     '*': { 'box-sizing': 'border-box' },
-    'html': { 'overflow-x': 'hidden' },
+    'html': { 'overflow-x': 'hidden', 'background': `${bg} !important`, 'transition': 'background 0.3s ease' },
     'body': {
-      background: `${bg} !important`,
-      color: `${text} !important`,
+      'background': `${bg} !important`,
+      'color': `${text} !important`,
       'font-family': "'Lora', Georgia, serif",
       'font-size': `${fontSize}px`,
       'line-height': String(lineHeight),
@@ -927,24 +971,25 @@ function applyTheme(rendition: any, theme: string, fontSize: number, lineHeight:
       'overflow-x': 'hidden',
       'word-wrap': 'break-word',
       'overflow-wrap': 'break-word',
+      'transition': 'background 0.3s ease, color 0.3s ease',
     },
     'p, span, div, li': {
       'font-size': `${fontSize}px !important`,
       'line-height': `${lineHeight} !important`,
+      'transition': 'color 0.3s ease',
     },
-    'p': { margin: '0 0 1.2em 0 !important', 'overflow-wrap': 'break-word' },
-    'h1': { 'font-size': '1.6em !important', 'font-weight': 'bold !important', margin: '1.5em 0 0.75em !important', color: `${text} !important` },
-    'h2': { 'font-size': '1.35em !important', 'font-weight': 'bold !important', margin: '1.5em 0 0.75em !important', color: `${text} !important` },
-    'h3': { 'font-size': '1.15em !important', 'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important', color: `${text} !important` },
-    'h4': { 'font-size': '1.05em !important', 'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important', color: `${text} !important` },
-    'h5': { 'font-size': '1.0em !important', 'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important', color: `${text} !important` },
-    'h6': { 'font-size': '1.0em !important', 'font-weight': 'bold !important', margin: '1.2em 0 0.6em !important', color: `${text} !important` },
-    'a': { color: '#8B6914', 'text-decoration': 'none' },
-    'a:hover': { color: '#8B6914 !important', 'text-decoration': 'underline !important', 'background-color': 'transparent !important' },
-    'img': { 'max-width': '100% !important', height: 'auto !important' },
+    'p':   { 'margin': '0 0 1.2em 0 !important', 'overflow-wrap': 'break-word' },
+    'h1':  { 'font-size': '1.6em !important',  'font-weight': 'bold !important', 'margin': '1.5em 0 0.75em !important', 'color': `${text} !important`, 'transition': 'color 0.3s ease' },
+    'h2':  { 'font-size': '1.35em !important', 'font-weight': 'bold !important', 'margin': '1.5em 0 0.75em !important', 'color': `${text} !important`, 'transition': 'color 0.3s ease' },
+    'h3':  { 'font-size': '1.15em !important', 'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important',  'color': `${text} !important`, 'transition': 'color 0.3s ease' },
+    'h4':  { 'font-size': '1.05em !important', 'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important',  'color': `${text} !important`, 'transition': 'color 0.3s ease' },
+    'h5':  { 'font-size': '1.0em !important',  'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important',  'color': `${text} !important`, 'transition': 'color 0.3s ease' },
+    'h6':  { 'font-size': '1.0em !important',  'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important',  'color': `${text} !important`, 'transition': 'color 0.3s ease' },
+    'a':   { 'color': '#8B6914', 'text-decoration': 'none' },
+    'a:hover': { 'color': '#8B6914 !important', 'text-decoration': 'underline !important', 'background-color': 'transparent !important' },
+    'img': { 'max-width': '100% !important', 'height': 'auto !important' },
   };
 
-  rendition.themes.register(themeName, rules);
-  rendition.themes.select(themeName);
+  rendition.themes.register(THEME_NAME, rules);
+  rendition.themes.select(THEME_NAME);
 }
-

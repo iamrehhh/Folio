@@ -29,12 +29,21 @@ function formatTime(seconds: number): string {
 
 export default function ReaderTopBar({ book, chapterTitle, progressPercent, sessionSeconds, onQuiz }: Props) {
   const [showFontControls, setShowFontControls] = useState(false);
-  const [timerVisible, setTimerVisible] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return localStorage.getItem('folio-timer-visible') !== 'false';
-  });
+  const [timerVisible, setTimerVisible] = useState(true);
   const fontControlsRef = useRef<HTMLDivElement>(null);
-  const { theme, fontSize, lineHeight, setTheme, setFontSize, setLineHeight, toggleChapterSidebar } = useReaderStore();
+  
+  const store = useReaderStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setTimerVisible(localStorage.getItem('folio-timer-visible') !== 'false');
+  }, []);
+
+  const theme = mounted ? store.theme : 'light';
+  const fontSize = mounted ? store.fontSize : 17;
+  const lineHeight = mounted ? store.lineHeight : 1.8;
+  const { setTheme, setFontSize, setLineHeight, toggleChapterSidebar } = store;
 
   useEffect(() => {
     if (!showFontControls) return;
@@ -60,7 +69,7 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
   const mutedColor  = theme === 'dark' ? '#A0998C' : '#6B6860';
 
   return (
-    <div className="flex-none border-b z-20" style={{ backgroundColor: bgColor, borderColor }}>
+    <div className="flex-none border-b z-20" style={{ backgroundColor: bgColor, borderColor, transition: 'background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease' }}>
       <div className="h-12 flex items-center px-2 md:px-4 gap-1 md:gap-2">
 
         {/* Back */}
