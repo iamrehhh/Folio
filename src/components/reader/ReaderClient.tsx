@@ -342,7 +342,7 @@ export default function ReaderClient({
                 if (currentHighlights.length > 0) {
                   // Use the most recently added/visible highlight as fallback
                   // Try to find one whose SVG element contains the click point
-                  const svgGroups = doc.querySelectorAll('g[data-epubcfi], g[title]');
+                  const svgGroups = doc.querySelectorAll('g[data-epubcfi], g[title]') as NodeListOf<Element>;
                   for (const group of Array.from(svgGroups)) {
                     const rect = group.getBoundingClientRect();
                     if (rect && e.clientX >= rect.left && e.clientX <= rect.right &&
