@@ -520,6 +520,38 @@ export default function ReaderClient({
       setLoadError(true);
     }, 16000);
 
+    let resizeTimer: NodeJS.Timeout;
+    function onWindowResize() {
+      if (!mounted || !renditionRef.current) return;
+      clearTimeout(resizeTimer);
+      
+      let currentCfi = renditionRef.current.currentLocation()?.start?.cfi;
+      try {
+        const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
+        if (iframe?.contentDocument && iframe.contentWindow) {
+          const wind = iframe.contentWindow;
+          const doc = iframe.contentDocument;
+          const viewHeight = wind.innerHeight ?? 600;
+          const el = doc.elementFromPoint(wind.innerWidth / 2, viewHeight * 0.3);
+          if (el) {
+            const sectionIndex = renditionRef.current.location?.start?.index ?? currentChapterIndexRef.current;
+            currentCfi = renditionRef.current.epubcfi?.fromElement?.(el, sectionIndex) ?? currentCfi;
+          }
+        }
+      } catch { /* ignore */ }
+
+      resizeTimer = setTimeout(() => {
+        if (!mounted || !renditionRef.current) return;
+        try {
+          renditionRef.current.resize();
+          if (currentCfi) {
+            renditionRef.current.display(currentCfi);
+          }
+        } catch(e) {}
+      }, 300);
+    }
+    window.addEventListener('resize', onWindowResize);
+
     initEpub()
       .catch((err) => {
         console.error('[Reader] initEpub error:', err);
@@ -530,6 +562,8 @@ export default function ReaderClient({
     return () => {
       mounted = false;
       clearTimeout(loadingTimeout);
+      clearTimeout(resizeTimer);
+      window.removeEventListener('resize', onWindowResize);
       renditionRef.current?.destroy?.();
       bookRef.current?.destroy?.();
     };
@@ -677,15 +711,54 @@ export default function ReaderClient({
 
     startTimer();
 
+    function saveProgressOnExit() {
+      if (!renditionRef.current || !book.id) return;
+      try {
+        let cfi = renditionRef.current.currentLocation()?.start?.cfi;
+        const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
+        if (iframe?.contentDocument && iframe.contentWindow) {
+          const wind = iframe.contentWindow;
+          const doc = iframe.contentDocument;
+          const viewHeight = wind.innerHeight ?? 600;
+          const el = doc.elementFromPoint(wind.innerWidth / 2, viewHeight * 0.3);
+          if (el) {
+            const sectionIndex = renditionRef.current.location?.start?.index ?? currentChapterIndexRef.current;
+            cfi = renditionRef.current.epubcfi?.fromElement?.(el, sectionIndex) ?? cfi;
+          }
+        }
+        
+        if (cfi) {
+          const percent = bookRef.current?.locations ? Math.round((bookRef.current.locations.percentageFromCfi?.(cfi) ?? 0) * 100) : useReaderStore.getState().progressPercent;
+          fetch('/api/books/progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bookId: book.id,
+              cfi,
+              chapterIndex: currentChapterIndexRef.current ?? 0,
+              chapterTitle: '', 
+              progressPercent: percent,
+            }),
+            keepalive: true
+          }).catch(() => {});
+        }
+      } catch { /* ignore */ }
+    }
+
     function onVisibilityChange() {
-      if (document.hidden) pauseTimer();
-      else startTimer();
+      if (document.hidden) {
+        pauseTimer();
+        saveProgressOnExit();
+      } else {
+        startTimer();
+      }
     }
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     function onUnload() {
       pauseTimer();
       saveSession();
+      saveProgressOnExit();
     }
     window.addEventListener('beforeunload', onUnload);
 
@@ -694,6 +767,7 @@ export default function ReaderClient({
     return () => {
       pauseTimer();
       saveSession();
+      saveProgressOnExit();
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('beforeunload', onUnload);
       clearInterval(autoSave);
