@@ -23,7 +23,7 @@ export default async function QuizPage() {
           </h1>
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{today}</p>
           <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
-            One vocabulary set and one idioms set per day — tuned to IPMAT & JIPMAT difficulty.
+            One vocabulary set and one idioms set per day.
           </p>
         </div>
 

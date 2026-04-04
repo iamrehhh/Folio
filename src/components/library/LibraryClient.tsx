@@ -341,7 +341,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
               Only the admin can upload books to Folio. All books are curated and made available to everyone.
               To request a book, kindly contact the admin.
             </p>
-            <a href="mailto:abdulrehanoffical@gmail.com"
+            <a href="mailto:mintbyte90@gmail.com"
               className="inline-block w-full py-2.5 rounded-xl text-sm font-medium text-white mb-3 transition-opacity hover:opacity-90"
               style={{ backgroundColor: '#8B6914' }}>
               Contact Admin

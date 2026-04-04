@@ -4,7 +4,7 @@ import AppShell from '@/components/layout/AppShell';
 import LibraryClient from '@/components/library/LibraryClient';
 import type { Book } from '@/types';
 
-const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
+const ADMIN_EMAIL = 'mintbyte90@gmail.com';
 
 export default async function LibraryPage() {
   const supabase = createClient();
