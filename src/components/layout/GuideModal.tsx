@@ -116,12 +116,12 @@ export default function GuideModal({ onClose }: Props) {
                 Creator Information
               </h3>
               <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                Folio is passionately designed and built by me, Abdul Rehan.
+                Folio is passionately designed and built by us, Team Folio.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex items-center gap-2 text-sm">
                   <UserCircle className="w-4 h-4" style={{ color: '#8B6914' }} />
-                  <span style={{ color: 'var(--text-primary)' }} className="font-medium">Abdul Rehan</span>
+                  <span style={{ color: 'var(--text-primary)' }} className="font-medium">Team Folio</span>
                 </div>
                 <div className="hidden sm:block text-gray-300">•</div>
                 <a
@@ -134,6 +134,12 @@ export default function GuideModal({ onClose }: Props) {
                 </a>
               </div>
             </div>
+          </section>
+          {/* Disclaimer */}
+          <section>
+            <p className="text-xs italic text-center mx-auto max-w-lg mt-4" style={{ color: 'var(--text-secondary)' }}>
+              The content present in this site has been submitted by users and the site is not responsible for the content uploaded.
+            </p>
           </section>
         </div>
 

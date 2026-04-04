@@ -104,6 +104,14 @@ export interface ReadingSession {
   duration_seconds: number | null;
 }
 
+export interface BookSchedule {
+  id: string;
+  user_id: string;
+  book_id: string;
+  scheduled_for: string; // DATE
+  created_at: string;
+}
+
 // ─────────────────────────────────────────────
 // API / UI types
 // ─────────────────────────────────────────────

@@ -2,9 +2,9 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X } from 'lucide-react';
+import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar } from 'lucide-react';
 import { cn, truncate } from '@/lib/utils';
-import type { Book } from '@/types';
+import type { Book, BookSchedule } from '@/types';
 import BookUploadModal from './BookUploadModal';
 import BookEditModal from './BookEditModal';
 import toast from 'react-hot-toast';
@@ -12,20 +12,22 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
-type FilterTab = 'all' | 'unread' | 'reading' | 'completed';
+type FilterTab = 'all' | 'unread' | 'reading' | 'completed' | 'scheduled';
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
-interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; userId: string; isAdmin: boolean; }
+interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; userId: string; isAdmin: boolean; }
 
 const GENRES = ['All', 'Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
 
-export default function LibraryClient({ books: initialBooks, progressMap, userId, isAdmin }: Props) {
+export default function LibraryClient({ books: initialBooks, progressMap, scheduleMap: initialScheduleMap, userId, isAdmin }: Props) {
   const router = useRouter();
   const [books, setBooks] = useState(initialBooks);
+  const [scheduleMap, setScheduleMap] = useState<Map<string, BookSchedule>>(initialScheduleMap ?? new Map());
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
+  const [schedulingBook, setSchedulingBook] = useState<Book | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showUploadBlocked, setShowUploadBlocked] = useState(false);
@@ -53,18 +55,47 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
     return () => { supabase.removeChannel(channel); };
   }, [userId]);
 
+  // Schedule notification toast
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    let notifiedCount = 0;
+    
+    books.forEach(book => {
+      const schedule = scheduleMap.get(book.id);
+      const isUnread = (progressMap.get(book.id)?.progress_percent ?? 0) === 0;
+      
+      if (schedule && schedule.scheduled_for === today && isUnread && notifiedCount < 2) {
+        setTimeout(() => {
+          toast((t) => (
+            <div className="flex flex-col gap-1">
+              <span className="font-semibold text-sm">Reminder!</span>
+              <span className="text-sm">Today is the day! Ready to start reading "{book.title}"?</span>
+            </div>
+          ), {
+            duration: 6000,
+            icon: '📅',
+            id: `schedule-toast-${book.id}` // Prevent duplicates if component remounts
+          });
+        }, notifiedCount * 1000); // stagger them slightly
+        notifiedCount++;
+      }
+    });
+  }, [books, scheduleMap, progressMap]);
+
   const filtered = useMemo(() => books.filter((book) => {
     const pct = progressMap.get(book.id)?.progress_percent ?? 0;
+    const isScheduled = scheduleMap.has(book.id);
     if (activeTab === 'unread' && pct > 0) return false;
     if (activeTab === 'reading' && (pct === 0 || pct >= 100)) return false;
     if (activeTab === 'completed' && pct < 100) return false;
+    if (activeTab === 'scheduled' && !isScheduled) return false;
     if (selectedGenre !== 'All' && book.genre !== selectedGenre) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return book.title.toLowerCase().includes(q) || book.author.toLowerCase().includes(q);
     }
     return true;
-  }), [books, progressMap, activeTab, selectedGenre, searchQuery]);
+  }), [books, progressMap, scheduleMap, activeTab, selectedGenre, searchQuery]);
 
   async function handleDelete(book: Book) {
     setConfirmBook(book);
@@ -89,6 +120,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
     { id: 'all', label: 'All' },
     { id: 'reading', label: 'In Progress' },
     { id: 'unread', label: 'Unread' },
+    { id: 'scheduled', label: 'Scheduled' },
     { id: 'completed', label: 'Completed' },
   ];
 
@@ -244,6 +276,14 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
                           {book.genre}
                         </span>
                       )}
+                      
+                      {scheduleMap.has(book.id) && (
+                        <span className="absolute bottom-2 left-2 px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5 shadow-sm"
+                          style={{ backgroundColor: '#8B6914', color: '#fff' }}>
+                          <Calendar className="w-3 h-3" />
+                          {new Date(scheduleMap.get(book.id)!.scheduled_for).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                        </span>
+                      )}
 
                       {/* ⋮ menu */}
                       {book.uploaded_by === userId && (
@@ -295,12 +335,20 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
                           </p>
                         </div>
                       )}
-                      <div className="mt-auto pt-2">
+                      <div className="mt-auto pt-2 flex gap-2">
                         <Link href={`/read/${book.id}`}
-                          className="block w-full text-center py-2.5 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
+                          className="flex-1 block text-center py-2.5 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
                           style={{ backgroundColor: '#8B6914' }}>
                           {isUnread ? 'Start' : isCompleted ? 'Again' : 'Continue'}
                         </Link>
+                        <button 
+                          onClick={() => setSchedulingBook(book)}
+                          className="w-10 h-10 flex items-center justify-center rounded-lg border transition-colors hover:bg-[var(--border)]"
+                          style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                          title="Schedule this book"
+                        >
+                          <Calendar className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -337,15 +385,9 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
               style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>
               Uploads Disabled
             </h3>
-            <p className="text-sm leading-relaxed mb-5" style={{ color: 'var(--text-secondary)' }}>
-              Only the admin can upload books to Folio. All books are curated and made available to everyone.
-              To request a book, kindly contact the admin.
+            <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--text-secondary)' }}>
+              Uploading new books is currently disabled on this platform.
             </p>
-            <a href="mailto:mintbyte90@gmail.com"
-              className="inline-block w-full py-2.5 rounded-xl text-sm font-medium text-white mb-3 transition-opacity hover:opacity-90"
-              style={{ backgroundColor: '#8B6914' }}>
-              Contact Admin
-            </a>
             <button onClick={() => setShowUploadBlocked(false)}
               className="w-full py-2.5 rounded-xl text-sm font-medium border transition-colors hover:bg-[var(--border)]"
               style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
@@ -354,6 +396,71 @@ export default function LibraryClient({ books: initialBooks, progressMap, userId
           </div>
         </div>
       )}
+      
+      {schedulingBook && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSchedulingBook(null)} />
+          <div className="relative z-10 w-full max-w-sm rounded-2xl border shadow-popover p-6"
+            style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
+            <h3 className="font-semibold text-lg mb-4 leading-snug" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+              Schedule <br/><span className="text-[#8B6914]">{truncate(schedulingBook.title, 35)}</span>
+            </h3>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const dateStr = (e.target as any).date.value;
+              if (!dateStr) return;
+              try {
+                const res = await fetch('/api/schedules', { method: 'POST', body: JSON.stringify({ book_id: schedulingBook.id, scheduled_for: dateStr }) });
+                if (res.ok) {
+                  const newSchedule = await res.json();
+                  const nextMap = new Map(scheduleMap);
+                  nextMap.set(schedulingBook.id, newSchedule);
+                  setScheduleMap(nextMap);
+                  toast.success('Book scheduled!');
+                  setSchedulingBook(null);
+                } else throw new Error();
+              } catch { toast.error('Failed to schedule book'); }
+            }}>
+              <label className="block text-sm mb-2 font-medium" style={{ color: 'var(--text-secondary)' }}>Select a date to start reading:</label>
+              <input type="date" name="date" required 
+                     defaultValue={scheduleMap.get(schedulingBook.id)?.scheduled_for || ''}
+                     className="w-full px-3 py-2 rounded-lg border mb-5 outline-none" 
+                     style={{ backgroundColor: 'transparent', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
+              
+              <div className="flex gap-3">
+                {scheduleMap.has(schedulingBook.id) && (
+                  <button type="button" onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/schedules?book_id=${schedulingBook.id}`, { method: 'DELETE' });
+                        if (!res.ok) throw new Error();
+                        const nextMap = new Map(scheduleMap);
+                        nextMap.delete(schedulingBook.id);
+                        setScheduleMap(nextMap);
+                        toast.success('Schedule removed');
+                        setSchedulingBook(null);
+                      } catch { toast.error('Failed to remove schedule'); }
+                  }}
+                    className="flex-1 py-2.5 rounded-lg text-sm border font-medium text-red-500 hover:bg-red-50 transition-colors"
+                    style={{ borderColor: 'var(--border)' }}>
+                    Remove
+                  </button>
+                )}
+                <button type="button" onClick={() => setSchedulingBook(null)}
+                  className={cn("flex-1 py-2.5 rounded-lg text-sm border font-medium transition-colors hover:bg-[var(--border)]", scheduleMap.has(schedulingBook.id) ? 'hidden' : 'block')}
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+                  Cancel
+                </button>
+                <button type="submit"
+                  className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 shadow-sm"
+                  style={{ backgroundColor: '#8B6914' }}>
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {editingBook && <BookEditModal book={editingBook} onClose={() => setEditingBook(null)} onSaved={updated => { setBooks(prev => prev.map(b => b.id === updated.id ? updated : b)); setEditingBook(null); }} />}
     </div>
   );

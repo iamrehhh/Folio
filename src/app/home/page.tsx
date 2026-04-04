@@ -7,7 +7,8 @@ import ReadingStatsPanel from '@/components/home/ReadingStatsPanel';
 import RecentHighlights from '@/components/home/RecentHighlights';
 import RecentVocab from '@/components/home/RecentVocab';
 import DailyQuote from '@/components/home/DailyQuote';
-import type { ReadingProgress, Highlight, VocabWord, ReadingStats } from '@/types';
+import UpcomingBookBanner from '@/components/home/UpcomingBookBanner';
+import type { ReadingProgress, Highlight, VocabWord, ReadingStats, BookSchedule, Book } from '@/types';
 
 export default async function HomePage() {
   const supabase = createClient();
@@ -26,7 +27,8 @@ export default async function HomePage() {
     { count: completedThisMonth },
     { count: completedThisYear },
     { count: completedAllTime },
-    { data: sessions }
+    { data: sessions },
+    { data: upcomingSchedule }
   ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     
@@ -50,7 +52,11 @@ export default async function HomePage() {
       .eq('user_id', user.id).eq('progress_percent', 100),
       
     supabase.from('reading_sessions').select('started_at, duration_seconds')
-      .eq('user_id', user.id).order('started_at', { ascending: false }).limit(60)
+      .eq('user_id', user.id).order('started_at', { ascending: false }).limit(60),
+      
+    supabase.from('book_schedules').select('*, book:books(*)')
+      .eq('user_id', user.id).gte('scheduled_for', new Date().toISOString().split('T')[0])
+      .order('scheduled_for', { ascending: true }).limit(1).maybeSingle()
   ]);
 
   let streakDays = 0;
@@ -90,6 +96,8 @@ export default async function HomePage() {
         </div>
 
         <DailyQuote />
+        
+        <UpcomingBookBanner schedule={upcomingSchedule as (BookSchedule & { book: Book }) | null} />
 
         {/* Main grid — stacks on mobile */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -103,6 +111,13 @@ export default async function HomePage() {
             <ReadingStatsPanel stats={stats} />
             <RecentVocab words={(recentVocab as VocabWord[]) ?? []} />
           </div>
+        </div>
+
+        {/* Global Liability Disclaimer */}
+        <div className="mt-12 text-center border-t pt-6" style={{ borderColor: 'var(--border)' }}>
+          <p className="text-xs italic mx-auto max-w-xl" style={{ color: 'var(--text-secondary)' }}>
+            The content present in this site has been submitted by users and the site is not responsible for the content uploaded.
+          </p>
         </div>
       </div>
     </AppShell>

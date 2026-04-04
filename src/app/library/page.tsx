@@ -4,7 +4,7 @@ import AppShell from '@/components/layout/AppShell';
 import LibraryClient from '@/components/library/LibraryClient';
 import type { Book } from '@/types';
 
-const ADMIN_EMAIL = 'mintbyte90@gmail.com';
+const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
 
 export default async function LibraryPage() {
   const supabase = createClient();
@@ -33,11 +33,21 @@ export default async function LibraryPage() {
     (progress ?? []).map(p => [p.book_id, p])
   );
 
+  const { data: schedules } = await supabase
+    .from('book_schedules')
+    .select('*')
+    .eq('user_id', user.id);
+
+  const scheduleMap = new Map(
+    (schedules ?? []).map(s => [s.book_id, s])
+  );
+
   return (
     <AppShell user={profile}>
       <LibraryClient
         books={(books as Book[]) ?? []}
         progressMap={progressMap}
+        scheduleMap={scheduleMap}
         userId={user.id}
         isAdmin={isAdmin}
       />

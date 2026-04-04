@@ -86,6 +86,18 @@ CREATE TABLE public.reading_progress (
 );
 
 -- ─────────────────────────────────────────────
+-- BOOK SCHEDULES
+-- ─────────────────────────────────────────────
+CREATE TABLE public.book_schedules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  book_id UUID NOT NULL REFERENCES public.books(id) ON DELETE CASCADE,
+  scheduled_for DATE NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, book_id)
+);
+
+-- ─────────────────────────────────────────────
 -- HIGHLIGHTS
 -- ─────────────────────────────────────────────
 CREATE TABLE public.highlights (
@@ -166,6 +178,7 @@ ALTER TABLE public.highlights ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vocab_words ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quiz_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reading_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.book_schedules ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: users can read/update their own
 CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
@@ -191,6 +204,9 @@ CREATE POLICY "quiz_own" ON public.quiz_results FOR ALL USING (auth.uid() = user
 
 -- Sessions: own only
 CREATE POLICY "sessions_own" ON public.reading_sessions FOR ALL USING (auth.uid() = user_id);
+
+-- Schedules: own only
+CREATE POLICY "schedules_own" ON public.book_schedules FOR ALL USING (auth.uid() = user_id);
 
 -- ─────────────────────────────────────────────
 -- STORAGE BUCKETS
