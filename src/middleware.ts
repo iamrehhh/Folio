@@ -49,10 +49,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(homeUrl);
   }
 
-  // Redirect root to /home or /login
-  if (pathname === '/') {
+  // If authenticated user goes to root, send to their home dashboard.
+  // Otherwise, let them see the magnificent landing page (required for Google Auth review)!
+  if (pathname === '/' && user) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = user ? '/home' : '/login';
+    redirectUrl.pathname = '/home';
     return NextResponse.redirect(redirectUrl);
   }
 
