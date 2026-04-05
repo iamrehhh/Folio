@@ -186,6 +186,7 @@ export interface ReaderState {
   theme: ReadingTheme;
   fontSize: number;
   lineHeight: number;
+  continuousReading: boolean;
 
   // Active interactions
   selectedText: string | null;
@@ -197,6 +198,7 @@ export interface ReaderState {
   setTheme: (theme: ReadingTheme) => void;
   setFontSize: (size: number) => void;
   setLineHeight: (lh: number) => void;
+  setContinuousReading: (c: boolean) => void;
   toggleChapterSidebar: () => void;
   toggleAIPanel: () => void;
   toggleHighlightsPanel: () => void;

@@ -43,7 +43,8 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
   const theme = mounted ? store.theme : 'light';
   const fontSize = mounted ? store.fontSize : 17;
   const lineHeight = mounted ? store.lineHeight : 1.8;
-  const { setTheme, setFontSize, setLineHeight, toggleChapterSidebar } = store;
+  const continuousReading = mounted ? store.continuousReading : false;
+  const { setTheme, setFontSize, setLineHeight, setContinuousReading, toggleChapterSidebar } = store;
 
   useEffect(() => {
     if (!showFontControls) return;
@@ -170,7 +171,7 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
                   onChange={e => setFontSize(Number(e.target.value))}
                   className="w-full accent-[#8B6914]" />
               </div>
-              <div>
+              <div className="mb-4">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-medium" style={{ color: mutedColor }}>Line Height</p>
                   <span className="text-xs" style={{ color: textColor }}>{lineHeight}</span>
@@ -178,6 +179,18 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
                 <input type="range" min={1.4} max={2.2} step={0.1} value={lineHeight}
                   onChange={e => setLineHeight(Number(e.target.value))}
                   className="w-full accent-[#8B6914]" />
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: borderColor }}>
+                <div>
+                  <p className="text-xs font-medium" style={{ color: textColor }}>Continuous Scrolling</p>
+                  <p className="text-[10px]" style={{ color: mutedColor }}>Auto-advance chapters</p>
+                </div>
+                <button 
+                  onClick={() => setContinuousReading(!continuousReading)}
+                  className={cn("w-10 h-6 rounded-full transition-colors relative", continuousReading ? 'bg-[#8B6914]' : 'bg-gray-300 dark:bg-gray-600')}
+                >
+                  <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white transition-transform", continuousReading ? 'translate-x-5' : 'translate-x-1')} />
+                </button>
               </div>
             </div>
           )}

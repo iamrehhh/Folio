@@ -47,6 +47,8 @@ export default function ReaderClient({
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const sessionStartRef = useRef<number>(Date.now());
   const [loadError, setLoadError] = useState(false);
+  const [showNextChapterOverlay, setShowNextChapterOverlay] = useState(false);
+  const isNavigatingRef = useRef(false);
 
   // FIX 1: Track store hydration to avoid white flash on theme refresh
   const [storeHydrated, setStoreHydrated] = useState(false);
@@ -60,7 +62,7 @@ export default function ReaderClient({
   } | null>(null);
 
   const {
-    theme, fontSize, lineHeight,
+    theme, fontSize, lineHeight, continuousReading,
     isChapterSidebarOpen, isAIPanelOpen,
     currentChapterIndex, setProgress,
     toggleChapterSidebar, toggleAIPanel,
@@ -377,11 +379,93 @@ export default function ReaderClient({
           }
         });
 
-        // Scroll position save
+        // ── Bottom-of-chapter advance detection ──
+        // Strategy: detect when user is at the very bottom of the epub-container.
+        // For continuous mode: wait 1s at bottom before auto-advancing (so user can read last line).
+        // For manual mode: show "Next Chapter" button immediately.
         let scrollSaveTimer: ReturnType<typeof setTimeout> | null = null;
+        let bottomAdvanceTimer: ReturnType<typeof setTimeout> | null = null;
+
+        function isAtChapterBottom(): boolean {
+          // Try epub-container first (main scroll element in scrolled-doc mode)
+          const container = viewerRef.current?.querySelector('.epub-container') as HTMLElement | null;
+          if (container) {
+            // If the content is smaller than the container, we're naturally at the bottom
+            if (container.scrollHeight <= container.clientHeight + 5) return true;
+            const gap = container.scrollHeight - container.scrollTop - container.clientHeight;
+            return gap < 40;
+          }
+          // Fallback: check iframe scroll
+          try {
+            const wind = contents.window;
+            const d = contents.document;
+            const sh = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
+            if (sh <= wind.innerHeight + 5) return true;
+            const gap = sh - wind.scrollY - wind.innerHeight;
+            return gap < 40;
+          } catch {}
+          return false;
+        }
+
+        function handleBottomCheck() {
+          if (isNavigatingRef.current) return;
+
+          if (isAtChapterBottom()) {
+            const state = useReaderStore.getState();
+            if (state.continuousReading) {
+              // Debounce: auto-advance after 2s of being at bottom
+              if (!bottomAdvanceTimer) {
+                bottomAdvanceTimer = setTimeout(() => {
+                  if (isAtChapterBottom() && !isNavigatingRef.current) {
+                    isNavigatingRef.current = true;
+                    renditionRef.current?.next();
+                    setShowNextChapterOverlay(false);
+                  }
+                  bottomAdvanceTimer = null;
+                }, 2000); // 2 second pause allows time to read short title pages
+              }
+            } else {
+              // Manual mode: show button immediately
+              setShowNextChapterOverlay(true);
+            }
+          } else {
+            // Scrolled away from bottom — cancel any pending advance
+            if (bottomAdvanceTimer) {
+              clearTimeout(bottomAdvanceTimer);
+              bottomAdvanceTimer = null;
+            }
+            // Only HIDE the button if user scrolled significantly away (200px+)
+            // This prevents the button from flickering on tiny scroll adjustments
+            let farFromBottom = false;
+            
+            const container = viewerRef.current?.querySelector('.epub-container') as HTMLElement | null;
+            if (container) {
+               if (container.scrollHeight > container.clientHeight + 50) {
+                 const gap = container.scrollHeight - container.scrollTop - container.clientHeight;
+                 farFromBottom = gap > 200;
+               }
+            } else {
+              try {
+                const wind = contents.window;
+                const d = contents.document;
+                const sh = Math.max(d.body.scrollHeight, d.documentElement.scrollHeight);
+                if (sh > wind.innerHeight + 50) {
+                  const gap = sh - wind.scrollY - wind.innerHeight;
+                  farFromBottom = gap > 200;
+                }
+              } catch {}
+            }
+
+            if (farFromBottom) {
+              setShowNextChapterOverlay(false);
+            }
+          }
+        }
 
         function onScroll() {
           if (scrollSaveTimer) clearTimeout(scrollSaveTimer);
+          handleBottomCheck();
+
           scrollSaveTimer = setTimeout(async () => {
             if (!mounted || !renditionRef.current) return;
             try {
@@ -415,12 +499,29 @@ export default function ReaderClient({
           }, 1500);
         }
 
+        // Attach to epub-container (the actual scrolling element)
+        const epubContainer = viewerRef.current?.querySelector('.epub-container') as HTMLElement | null;
+        if (epubContainer) {
+          epubContainer.addEventListener('scroll', onScroll, { passive: true });
+          epubContainer.addEventListener('wheel', (e: WheelEvent) => {
+            if (e.deltaY > 0) handleBottomCheck();
+          }, { passive: true });
+          epubContainer.addEventListener('touchend', () => {
+            handleBottomCheck();
+          }, { passive: true });
+        }
+        // Fallback: iframe scroll
         contents.window.addEventListener('scroll', onScroll, { passive: true });
         doc.addEventListener('scroll', onScroll, { passive: true });
+        doc.addEventListener('wheel', (e: WheelEvent) => {
+          if (e.deltaY > 0) handleBottomCheck();
+        }, { passive: true });
       });
 
       rendition.on('relocated', async (location: any) => {
         if (!mounted) return;
+        isNavigatingRef.current = false;
+        
         const cfi = location.start.cfi;
         const spineIdx = location.start.index ?? 0;
         
@@ -819,6 +920,10 @@ export default function ReaderClient({
         #epub-viewer .epub-container::-webkit-scrollbar-thumb:hover {
           background: rgba(139,105,20,0.6) !important;
         }
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(20px) translateX(-50%); }
+          to   { opacity: 1; transform: translateY(0) translateX(-50%); }
+        }
       `}</style>
 
       <ReaderTopBar
@@ -989,6 +1094,25 @@ export default function ReaderClient({
           onDelete={() => deleteHighlight(highlightToolbar.cfiRange)}
           onClose={() => setHighlightToolbar(null)}
         />
+      )}
+
+      {showNextChapterOverlay && !continuousReading && (
+        <div 
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
+          style={{ animation: 'fadeSlideUp 0.3s ease-out' }}
+        >
+          <button 
+            onClick={(e) => {
+               e.stopPropagation();
+               renditionRef.current?.next();
+               setShowNextChapterOverlay(false);
+            }}
+            className="px-6 py-3 rounded-full shadow-2xl text-white font-bold transition-transform hover:scale-110 active:scale-95 flex items-center gap-2"
+            style={{ backgroundImage: 'linear-gradient(to right, #8B6914, #6a4f0f)' }}
+          >
+            Next Chapter <span className="text-xl leading-none">➔</span>
+          </button>
+        </div>
       )}
 
       {showCompletion && (

@@ -21,6 +21,7 @@ export const useReaderStore = create<ReaderState>()(
       theme: 'light' as ReadingTheme,
       fontSize: 17,
       lineHeight: 1.8,
+      continuousReading: false,
 
       // Active interactions
       selectedText: null,
@@ -35,6 +36,8 @@ export const useReaderStore = create<ReaderState>()(
       setFontSize: (fontSize: number) => set({ fontSize }),
 
       setLineHeight: (lineHeight: number) => set({ lineHeight }),
+
+      setContinuousReading: (continuousReading: boolean) => set({ continuousReading }),
 
       toggleChapterSidebar: () =>
         set((s) => ({ isChapterSidebarOpen: !s.isChapterSidebarOpen })),
@@ -69,6 +72,7 @@ export const useReaderStore = create<ReaderState>()(
         theme: state.theme,
         fontSize: state.fontSize,
         lineHeight: state.lineHeight,
+        continuousReading: state.continuousReading,
         isChapterSidebarOpen: state.isChapterSidebarOpen,
       }),
       // FIX: onRehydrateStorage lets us know when the store is done loading from localStorage
