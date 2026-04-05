@@ -100,9 +100,7 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      // With email confirmations turned off in Supabase, 
-      // the user is instantaneously logged in upon signup!
-      router.push('/home');
+      setSuccess('Registration successful! Please check your email to verify your account.');
     }
     setIsLoading(false);
   }
