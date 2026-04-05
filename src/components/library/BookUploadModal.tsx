@@ -33,6 +33,12 @@ export default function BookUploadModal({ onClose }: Props) {
       toast.error('Please provide an EPUB file, title, and author.');
       return;
     }
+
+    if (epubFile.size > 7 * 1024 * 1024) {
+      toast.error('EPUB file exceeds the 7MB size limit.');
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -161,7 +167,7 @@ export default function BookUploadModal({ onClose }: Props) {
                 style={{ width: '80%', backgroundColor: '#8B6914' }} />
             </div>
             <p className="text-xs text-center" style={{ color: 'var(--text-secondary)' }}>
-              Uploading directly to storage — no file size limits
+              Uploading directly to storage — maximum 7MB file size
             </p>
           </div>
         )}
@@ -187,11 +193,19 @@ export default function BookUploadModal({ onClose }: Props) {
                       </span>
                     </>
                   ) : (
-                    <><Upload className="w-4 h-4" /> Click to upload .epub file</>
+                    <><Upload className="w-4 h-4" /> Click to upload .epub file (Max 7MB)</>
                   )}
                 </button>
                 <input ref={epubRef} type="file" accept=".epub" className="hidden"
-                  onChange={e => setEpubFile(e.target.files?.[0] ?? null)} />
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file && file.size > 7 * 1024 * 1024) {
+                      toast.error('File exceeds 7MB limit');
+                      setEpubFile(null);
+                    } else {
+                      setEpubFile(file ?? null);
+                    }
+                  }} />
               </div>
 
               {/* Title + Author */}
