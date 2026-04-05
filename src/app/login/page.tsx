@@ -100,9 +100,9 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      setSuccess('Registration successful! Please check your email to verify your account.');
-      // Optional: switch back to sign in view
-      // setIsRightPanelActive(false);
+      // With email confirmations turned off in Supabase, 
+      // the user is instantaneously logged in upon signup!
+      router.push('/home');
     }
     setIsLoading(false);
   }
