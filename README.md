@@ -44,6 +44,7 @@ Built for readers who want more than just a page-turner. Every book you read in 
 ### Daily Quiz — Vocabulary & Idioms
 - **Daily Vocabulary Set** — 5 advanced words each day tuned for IPMAT/JIPMAT level, with definitions, formal and conversational examples, and synonyms
 - **Daily Idioms Set** — 5 idioms per day in the same format, building idiomatic fluency
+- **Game Mode (Gamify)** — fully adaptive, infinitely generated MCQ quiz targeting your weak words (spaced repetition) with a global Top 5 Leaderboard
 - **Fill-in-the-blank quiz** — randomised questions with a word bank; accepts grammatically adjusted forms (-ed, -ing, -s)
 - **AI answer checking** — evaluates each answer and gives per-question feedback with an overall score
 - **Reading passage** — AI-generated 200-word passage in a varied genre (mystery, fantasy, romance, science, etc.) using all 5 words naturally

@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Book, FileText, Cpu, UserCircle, Mail } from 'lucide-react';
+import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -67,6 +67,22 @@ export default function GuideModal({ onClose }: Props) {
               <p>
                 While reading, you can highlight text, save vocabulary words, and interact with the AI assistant to ask questions, summarize chapters, or get explanations for complex concepts.
                 Your progress, highlights, and vocabulary are automatically saved and can be accessed from the sidebar.
+              </p>
+            </div>
+          </section>
+
+          {/* Quiz & Gamification */}
+          <section>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+              <Trophy className="w-5 h-5" style={{ color: '#8B6914' }} /> Quiz & Gamification
+            </h3>
+            <div className="space-y-3 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <p>
+                Head over to the <strong>Quiz</strong> section to test your knowledge. It offers three unique experiences:
+                a Daily <strong>Vocabulary set</strong>, a Daily <strong>Idioms set</strong>, and the interactive <strong>Game Mode</strong>.
+              </p>
+              <p>
+                The <strong>Game Mode</strong> is highly adaptive, evaluating your accuracy to generate personalized, spaced-repetition Multiple Choice tests on your weakest concepts. Climb the global <strong>Top 5 Leaderboard</strong> to see how you rank among other readers!
               </p>
             </div>
           </section>

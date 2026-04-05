@@ -13,6 +13,7 @@ export interface Profile {
   reading_theme: ReadingTheme;
   font_size: number; // 14–22
   line_height: number; // 1.4–2.2
+  gamify_score: number;
   created_at: string;
   updated_at: string;
 }
@@ -110,6 +111,16 @@ export interface BookSchedule {
   book_id: string;
   scheduled_for: string; // DATE
   created_at: string;
+}
+
+export interface GamifyMastery {
+  id: string;
+  user_id: string;
+  word: string;
+  type: 'vocab' | 'idiom';
+  times_seen: number;
+  correct_count: number;
+  last_seen_at: string;
 }
 
 // ─────────────────────────────────────────────

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
 import Link from 'next/link';
-import { BookMarked, Lightbulb } from 'lucide-react';
+import { BookMarked, Lightbulb, Gamepad2, Trophy } from 'lucide-react';
 
 export default async function QuizPage() {
   const supabase = createClient();
@@ -10,6 +10,12 @@ export default async function QuizPage() {
   if (!user) redirect('/login');
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+
+  const { data: leaderboard } = await supabase
+    .from('profiles')
+    .select('id, full_name, gamify_score')
+    .order('gamify_score', { ascending: false })
+    .limit(5);
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -65,6 +71,65 @@ export default async function QuizPage() {
               Start today's set →
             </div>
           </Link>
+        </div>
+
+        {/* Gamify Section */}
+        <div className="mt-12 flex flex-col md:flex-row gap-6">
+          {/* Main Gamify Card */}
+          <div className="flex-1">
+            <Link href="/quiz/gamify"
+              className="group block rounded-2xl border p-8 transition-all hover:shadow-soft-xl hover:-translate-y-1 relative overflow-hidden h-full"
+              style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
+              
+              {/* Vibrant Background Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#8B6914]/5 to-[#8B6914]/20 opacity-50 transition-opacity group-hover:opacity-100" />
+
+              <div className="relative z-10">
+                <div className="w-14 h-14 rounded-2xl mb-6 flex items-center justify-center bg-gradient-to-br from-[#8B6914] to-[#6a4f0f] text-white shadow-md">
+                  <Gamepad2 className="w-7 h-7" />
+                </div>
+                <h2 className="text-2xl font-bold mb-3"
+                  style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>
+                  Let's Gamify
+                </h2>
+                <p className="text-base" style={{ color: 'var(--text-secondary)' }}>
+                  Test your knowledge in our adaptive arena. Climb the leaderboard, master new words, and get real-time AI feedback on your weak spots.
+                </p>
+                <div className="mt-6 inline-flex items-center gap-2 font-bold px-5 py-2.5 rounded-xl bg-[#8B6914] text-white transition-transform group-hover:scale-105">
+                  Play Game Mode →
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Leaderboard */}
+          <div className="w-full md:w-72 rounded-2xl border p-6 flex flex-col"
+            style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-2 mb-5">
+              <Trophy className="w-5 h-5" style={{ color: '#8B6914' }} />
+              <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Top 5 Leaders</h3>
+            </div>
+            
+            <div className="flex flex-col gap-3 flex-1">
+              {leaderboard && leaderboard.length > 0 ? (
+                leaderboard.map((user, idx) => (
+                  <div key={user.id} className="flex justify-between items-center bg-[var(--bg-primary)] p-3 rounded-lg border border-[var(--border)]">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-sm font-bold opacity-50">#{idx + 1}</span>
+                      <span className="font-medium text-sm truncate w-24">
+                        {user.full_name || 'Anonymous'}
+                      </span>
+                    </div>
+                    <span className="text-sm font-bold font-mono" style={{ color: '#8B6914' }}>
+                      {user.gamify_score || 0}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm opacity-60 text-center py-4">No scores yet. Support the play!</div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </AppShell>

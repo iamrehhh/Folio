@@ -17,6 +17,7 @@ CREATE TABLE public.profiles (
   reading_theme TEXT NOT NULL DEFAULT 'light' CHECK (reading_theme IN ('light', 'sepia', 'dark')),
   font_size INTEGER NOT NULL DEFAULT 17 CHECK (font_size BETWEEN 14 AND 22),
   line_height NUMERIC(3,1) NOT NULL DEFAULT 1.8 CHECK (line_height BETWEEN 1.4 AND 2.2),
+  gamify_score INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -168,6 +169,22 @@ CREATE INDEX sessions_user_id ON public.reading_sessions(user_id);
 CREATE INDEX sessions_user_date ON public.reading_sessions(user_id, started_at);
 
 -- ─────────────────────────────────────────────
+-- GAMIFY MASTERY
+-- ─────────────────────────────────────────────
+CREATE TABLE public.gamify_mastery (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  word TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('vocab', 'idiom')),
+  times_seen INTEGER NOT NULL DEFAULT 0,
+  correct_count INTEGER NOT NULL DEFAULT 0,
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, word)
+);
+
+CREATE INDEX gamify_user_id ON public.gamify_mastery(user_id);
+
+-- ─────────────────────────────────────────────
 -- ROW LEVEL SECURITY
 -- ─────────────────────────────────────────────
 
@@ -179,6 +196,7 @@ ALTER TABLE public.vocab_words ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quiz_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reading_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.book_schedules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.gamify_mastery ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: users can read/update their own
 CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
@@ -207,6 +225,9 @@ CREATE POLICY "sessions_own" ON public.reading_sessions FOR ALL USING (auth.uid(
 
 -- Schedules: own only
 CREATE POLICY "schedules_own" ON public.book_schedules FOR ALL USING (auth.uid() = user_id);
+
+-- Gamify mastery: own only
+CREATE POLICY "gamify_mastery_own" ON public.gamify_mastery FOR ALL USING (auth.uid() = user_id);
 
 -- ─────────────────────────────────────────────
 -- STORAGE BUCKETS
