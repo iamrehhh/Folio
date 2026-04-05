@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { BookOpen, Highlighter, BookMarked, Sparkles, GraduationCap, BarChart2 } from 'lucide-react';
 
 export const metadata = {
-  title: 'Folio — Your Intelligent Reading Companion',
+  title: 'Folio | Your Intelligent Reading Companion',
   description:
     'Folio is a beautiful EPUB reader with AI assistance, vocabulary saving, highlights, reading quizzes, and detailed reading stats. Read smarter, not harder.',
 };
