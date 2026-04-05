@@ -200,6 +200,8 @@ ALTER TABLE public.gamify_mastery ENABLE ROW LEVEL SECURITY;
 
 -- Profiles: users can read/update their own
 CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
+-- Profiles: allow all authenticated users to read profiles for leaderboard
+CREATE POLICY "profiles_select_leaderboard" ON public.profiles FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Books: authenticated can only select their own or default ones; only uploader can insert/update/delete

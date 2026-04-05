@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
 import Link from 'next/link';
@@ -11,9 +11,12 @@ export default async function QuizPage() {
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
 
-  const { data: leaderboard } = await supabase
+  // Use admin client for leaderboard to bypass RLS (profiles RLS restricts SELECT to own row only)
+  const adminSupabase = createAdminClient();
+  const { data: leaderboard } = await adminSupabase
     .from('profiles')
     .select('id, full_name, gamify_score')
+    .gt('gamify_score', 0)
     .order('gamify_score', { ascending: false })
     .limit(5);
 
