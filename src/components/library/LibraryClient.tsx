@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar } from 'lucide-react';
+import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star } from 'lucide-react';
 import { cn, truncate } from '@/lib/utils';
 import type { Book, BookSchedule } from '@/types';
 import BookUploadModal from './BookUploadModal';
@@ -14,11 +14,11 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 type FilterTab = 'all' | 'unread' | 'reading' | 'completed' | 'scheduled';
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
-interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; userId: string; isAdmin: boolean; }
+interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; ratingsMap?: Map<string, number>; userId: string; isAdmin: boolean; }
 
 const GENRES = ['All', 'Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
 
-export default function LibraryClient({ books: initialBooks, progressMap, scheduleMap: initialScheduleMap, userId, isAdmin }: Props) {
+export default function LibraryClient({ books: initialBooks, progressMap, scheduleMap: initialScheduleMap, ratingsMap = new Map(), userId, isAdmin }: Props) {
   const router = useRouter();
   const [books, setBooks] = useState(initialBooks);
   const [scheduleMap, setScheduleMap] = useState<Map<string, BookSchedule>>(initialScheduleMap ?? new Map());
@@ -39,7 +39,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
       .channel('library-books')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'books' }, (payload) => {
         const newBook = payload.new as Book;
-        if (newBook.uploaded_by === userId || (newBook as any).is_default) {
+        if (newBook.uploaded_by === userId || newBook.visibility === 'public') {
           setBooks(prev => prev.some(b => b.id === newBook.id) ? prev : [newBook, ...prev]);
           if (newBook.uploaded_by !== userId) toast(`📚 New book: "${newBook.title}"`, { duration: 3000 });
         }
@@ -315,6 +315,13 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                       <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                         {truncate(book.author, 25)}
                       </p>
+                      {ratingsMap.has(book.id) && (
+                        <div className="flex items-center gap-0.5 mt-1.5 pt-0.5">
+                          {Array.from({ length: ratingsMap.get(book.id)! }).map((_, i) => (
+                            <Star key={i} className="w-3.5 h-3.5" style={{ color: '#8B6914', fill: '#8B6914' }} />
+                          ))}
+                        </div>
+                      )}
                       {!isUnread && (
                         <div className="mt-2">
                           <div className="w-full h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border)' }}>

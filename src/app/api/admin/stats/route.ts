@@ -25,7 +25,7 @@ export async function GET() {
     // 2. All books with uploader info
     const { data: books, error: booksError } = await admin
       .from('books')
-      .select('id, title, author, genre, uploaded_by, is_default, created_at, epub_path, cover_path')
+      .select('id, title, author, genre, uploaded_by, is_default, visibility, created_at, epub_path, cover_path')
       .order('created_at', { ascending: false });
 
     if (booksError) throw booksError;
@@ -65,7 +65,7 @@ export async function GET() {
     const userStats = (profiles ?? []).map(profile => {
       // Books uploaded by this user (excluding defaults)
       const userBooks = (books ?? []).filter(
-        b => b.uploaded_by === profile.id && !b.is_default
+        b => b.uploaded_by === profile.id && b.visibility === 'private'
       );
 
       // Reading progress
@@ -127,8 +127,9 @@ export async function GET() {
     // ── Site-wide aggregates ──
     const totalUsers = profiles?.length ?? 0;
     const usersWhoUploaded = userStats.filter(u => u.books_uploaded > 0).length;
-    const totalUserBooks = (books ?? []).filter(b => !b.is_default).length;
-    const totalDefaultBooks = (books ?? []).filter(b => b.is_default).length;
+    const totalUserBooks = (books ?? []).filter(b => b.visibility === 'private').length;
+    const totalDefaultBooks = (books ?? []).filter(b => b.visibility === 'public').length;
+    const totalAssignedBooks = (books ?? []).filter(b => b.visibility === 'assigned').length;
     const totalHighlights = highlights?.length ?? 0;
     const totalVocab = vocabWords?.length ?? 0;
     const totalQuizAttempts = quizAttempts?.length ?? 0;

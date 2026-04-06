@@ -16,7 +16,7 @@ export async function DELETE(
     // Use admin client to fetch — bypasses RLS so we always get the row
     const { data: book, error: fetchError } = await admin
       .from('books')
-      .select('file_path, cover_path, epub_path, uploaded_by, is_default')
+      .select('file_path, cover_path, epub_path, uploaded_by, is_default, visibility')
       .eq('id', bookId)
       .single();
 

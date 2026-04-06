@@ -4,8 +4,11 @@ import { useState, useEffect } from 'react';
 import {
   Users, BookOpen, Highlighter, BookMarked, Trophy,
   Activity, ChevronDown, ChevronUp, Loader2, AlertCircle,
-  Upload, Clock, BarChart2, Shield
+  Upload, Clock, BarChart2, Shield, Library
 } from 'lucide-react';
+import AdminBookManager from './AdminBookManager';
+import AdminNotificationsManager from './AdminNotificationsManager';
+import { Bell } from 'lucide-react';
 
 interface UserStat {
   id: string;
@@ -214,6 +217,8 @@ function Detail({ label, value }: { label: string; value: string | number }) {
 
 type SortKey = 'joined_at' | 'books_uploaded' | 'total_reading_minutes' | 'books_completed' | 'gamify_score' | 'highlight_count';
 
+type AdminTab = 'overview' | 'books' | 'users' | 'notifications';
+
 export default function AdminDashboard() {
   const [data, setData] = useState<AdminData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -222,6 +227,7 @@ export default function AdminDashboard() {
   const [sortKey, setSortKey] = useState<SortKey>('joined_at');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [filterUploaders, setFilterUploaders] = useState(false);
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
 
   useEffect(() => {
     fetch('/api/admin/stats')
@@ -298,10 +304,17 @@ export default function AdminDashboard() {
     </button>
   );
 
+  const TABS: { id: AdminTab; label: string; icon: React.ElementType }[] = [
+    { id: 'overview', label: 'Overview', icon: BarChart2 },
+    { id: 'books', label: 'Books', icon: Library },
+    { id: 'users', label: 'Users', icon: Users },
+    { id: 'notifications', label: 'Announcements', icon: Bell },
+  ];
+
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#8B691415' }}>
           <Shield className="w-5 h-5" style={{ color: '#8B6914' }} />
         </div>
@@ -315,74 +328,116 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Overview cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <StatCard icon={Users} label="Total Users" value={overview.total_users} />
-        <StatCard icon={Activity} label="Active (7d)" value={overview.active_users_last_7_days}
-          sub="unique readers this week" />
-        <StatCard icon={Upload} label="Users w/ Uploads" value={overview.users_who_uploaded}
-          sub={`${overview.total_user_books} personal books`} />
-        <StatCard icon={BookOpen} label="Default Books" value={overview.total_default_books}
-          sub="in shared library" />
-        <StatCard icon={Highlighter} label="Total Highlights" value={overview.total_highlights} />
-        <StatCard icon={BookMarked} label="Vocab Saved" value={overview.total_vocab_saved} />
-        <StatCard icon={Trophy} label="Quiz Attempts" value={overview.total_quiz_attempts}
-          sub="daily quiz completions" />
-        <StatCard icon={BarChart2} label="Total Books" value={overview.total_user_books + overview.total_default_books}
-          sub={`${overview.total_user_books} user + ${overview.total_default_books} default`} />
+      {/* Tab navigation */}
+      <div className="flex items-center gap-1 mb-8 border-b" style={{ borderColor: 'var(--border)' }}>
+        {TABS.map(tab => {
+          const active = activeTab === tab.id;
+          const TabIcon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className="flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative"
+              style={{ color: active ? '#8B6914' : 'var(--text-secondary)' }}
+            >
+              <TabIcon className="w-4 h-4" />
+              {tab.label}
+              {active && (
+                <span
+                  className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
+                  style={{ backgroundColor: '#8B6914' }}
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Users section */}
-      <div className="mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
-          Users ({filtered.length})
-        </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Search */}
-          <input
-            type="text"
-            placeholder="Search by name or email…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="px-3 py-1.5 text-sm rounded-lg border outline-none"
-            style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)', color: 'var(--text-primary)', minWidth: '200px' }}
-          />
-          {/* Filter uploaders */}
-          <button
-            onClick={() => setFilterUploaders(f => !f)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
-            style={filterUploaders
-              ? { backgroundColor: '#8B6914', color: '#fff', borderColor: '#8B6914' }
-              : { backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }
-            }
-          >
-            📤 Uploaders only
-          </button>
+      {/* ── Overview Tab ── */}
+      {activeTab === 'overview' && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatCard icon={Users} label="Total Users" value={overview.total_users} />
+          <StatCard icon={Activity} label="Active (7d)" value={overview.active_users_last_7_days}
+            sub="unique readers this week" />
+          <StatCard icon={Upload} label="Users w/ Uploads" value={overview.users_who_uploaded}
+            sub={`${overview.total_user_books} personal books`} />
+          <StatCard icon={BookOpen} label="Public Books" value={overview.total_default_books}
+            sub="in shared library" />
+          <StatCard icon={Highlighter} label="Total Highlights" value={overview.total_highlights} />
+          <StatCard icon={BookMarked} label="Vocab Saved" value={overview.total_vocab_saved} />
+          <StatCard icon={Trophy} label="Quiz Attempts" value={overview.total_quiz_attempts}
+            sub="daily quiz completions" />
+          <StatCard icon={BarChart2} label="Total Books" value={overview.total_user_books + overview.total_default_books}
+            sub={`${overview.total_user_books} user + ${overview.total_default_books} public`} />
         </div>
-      </div>
+      )}
 
-      {/* Sort controls */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <span className="text-xs self-center" style={{ color: 'var(--text-secondary)' }}>Sort by:</span>
-        <SortBtn k="joined_at" label="Join Date" />
-        <SortBtn k="books_uploaded" label="Uploads" />
-        <SortBtn k="total_reading_minutes" label="Reading Time" />
-        <SortBtn k="books_completed" label="Books Done" />
-        <SortBtn k="gamify_score" label="Quiz Score" />
-        <SortBtn k="highlight_count" label="Highlights" />
-      </div>
+      {/* ── Books Tab ── */}
+      {activeTab === 'books' && (
+        <AdminBookManager />
+      )}
 
-      {/* User rows */}
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <div className="text-center py-12 rounded-xl border" style={{ borderColor: 'var(--border)' }}>
-            <Users className="w-8 h-8 mx-auto mb-2 opacity-20" style={{ color: 'var(--text-secondary)' }} />
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No users match your filters.</p>
+      {/* ── Users Tab ── */}
+      {activeTab === 'users' && (
+        <>
+          {/* Users section */}
+          <div className="mb-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+              Users ({filtered.length})
+            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Search */}
+              <input
+                type="text"
+                placeholder="Search by name or email…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="px-3 py-1.5 text-sm rounded-lg border outline-none"
+                style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)', color: 'var(--text-primary)', minWidth: '200px' }}
+              />
+              {/* Filter uploaders */}
+              <button
+                onClick={() => setFilterUploaders(f => !f)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors"
+                style={filterUploaders
+                  ? { backgroundColor: '#8B6914', color: '#fff', borderColor: '#8B6914' }
+                  : { backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }
+                }
+              >
+                📤 Uploaders only
+              </button>
+            </div>
           </div>
-        ) : (
-          filtered.map(u => <UserRow key={u.id} user={u} />)
-        )}
-      </div>
+
+          {/* Sort controls */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="text-xs self-center" style={{ color: 'var(--text-secondary)' }}>Sort by:</span>
+            <SortBtn k="joined_at" label="Join Date" />
+            <SortBtn k="books_uploaded" label="Uploads" />
+            <SortBtn k="total_reading_minutes" label="Reading Time" />
+            <SortBtn k="books_completed" label="Books Done" />
+            <SortBtn k="gamify_score" label="Quiz Score" />
+            <SortBtn k="highlight_count" label="Highlights" />
+          </div>
+
+          {/* User rows */}
+          <div className="space-y-3">
+            {filtered.length === 0 ? (
+              <div className="text-center py-12 rounded-xl border" style={{ borderColor: 'var(--border)' }}>
+                <Users className="w-8 h-8 mx-auto mb-2 opacity-20" style={{ color: 'var(--text-secondary)' }} />
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>No users match your filters.</p>
+              </div>
+            ) : (
+              filtered.map(u => <UserRow key={u.id} user={u} />)
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── Notifications Tab ── */}
+      {activeTab === 'notifications' && (
+        <AdminNotificationsManager />
+      )}
     </div>
   );
 }

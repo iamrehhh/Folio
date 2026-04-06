@@ -17,12 +17,50 @@ export default async function LibraryPage() {
 
   const isAdmin = user.email === ADMIN_EMAIL;
 
-  const { data: books } = await supabase
-    .from('books')
-    .select('*')
-    .or(`uploaded_by.eq.${user.id},is_default.eq.true`)
-    .order('is_default', { ascending: false })
-    .order('created_at', { ascending: false });
+  // Fetch books the user can access.
+  // Try new visibility system first, fall back to legacy is_default if migration hasn't run.
+  let books: any[] | null = null;
+
+  // Check if book_access table exists by attempting a query
+  const { data: assignedBookIds, error: accessError } = await supabase
+    .from('book_access')
+    .select('book_id')
+    .eq('user_id', user.id);
+
+  if (!accessError) {
+    // New system: visibility-based access
+    const assignedIds = (assignedBookIds ?? []).map(r => r.book_id);
+
+    let booksQuery = supabase
+      .from('books')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (assignedIds.length > 0) {
+      booksQuery = booksQuery.or(
+        `uploaded_by.eq.${user.id},visibility.eq.public,and(visibility.eq.assigned,id.in.(${assignedIds.join(',')}))`
+      );
+    } else {
+      booksQuery = booksQuery.or(`uploaded_by.eq.${user.id},visibility.eq.public`);
+    }
+
+    const { data: newBooks, error: booksError } = await booksQuery;
+
+    if (!booksError) {
+      books = newBooks;
+    }
+  }
+
+  // Fallback: use legacy is_default query
+  if (books === null) {
+    const { data: legacyBooks } = await supabase
+      .from('books')
+      .select('*')
+      .or(`uploaded_by.eq.${user.id},is_default.eq.true`)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: false });
+    books = legacyBooks;
+  }
 
   const { data: progress } = await supabase
     .from('reading_progress')
@@ -42,12 +80,22 @@ export default async function LibraryPage() {
     (schedules ?? []).map(s => [s.book_id, s])
   );
 
+  const { data: ratingsData } = await supabase
+    .from('book_ratings')
+    .select('book_id, rating')
+    .eq('user_id', user.id);
+
+  const ratingsMap = new Map(
+    (ratingsData ?? []).map(r => [r.book_id, r.rating])
+  );
+
   return (
     <AppShell user={profile}>
       <LibraryClient
         books={(books as Book[]) ?? []}
         progressMap={progressMap}
         scheduleMap={scheduleMap}
+        ratingsMap={ratingsMap}
         userId={user.id}
         isAdmin={isAdmin}
       />

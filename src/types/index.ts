@@ -18,6 +18,8 @@ export interface Profile {
   updated_at: string;
 }
 
+export type BookVisibility = 'private' | 'public' | 'assigned';
+
 export interface Book {
   id: string;
   title: string;
@@ -28,9 +30,19 @@ export interface Book {
   description: string | null;
   total_chapters: number | null;
   uploaded_by: string; // profile id (admin)
-  is_default: boolean;
+  is_default: boolean; // Retained for backward compat
+  visibility: BookVisibility;
   created_at: string;
 }
+
+export interface BookAccess {
+  id: string;
+  book_id: string;
+  user_id: string;
+  granted_by: string;
+  granted_at: string;
+}
+
 
 export interface ReadingProgress {
   id: string;
@@ -121,6 +133,28 @@ export interface GamifyMastery {
   times_seen: number;
   correct_count: number;
   last_seen_at: string;
+}
+
+export interface SystemNotification {
+  id: string;
+  message: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface BookRating {
+  id: string;
+  user_id: string;
+  book_id: string;
+  rating: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BookRatingStats {
+  book_id: string;
+  average_rating: number;
+  total_ratings: number;
 }
 
 // ─────────────────────────────────────────────

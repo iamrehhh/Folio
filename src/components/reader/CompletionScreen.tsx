@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BookOpen, Star, ArrowLeft, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import type { Book } from '@/types';
+import toast from 'react-hot-toast';
 
 interface Props {
   book: Book;
@@ -86,9 +87,22 @@ export default function CompletionScreen({ book, onContinueReading }: Props) {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
-  function submitRating(stars: number) {
+  async function submitRating(stars: number) {
     setRating(stars);
     setRated(true);
+    try {
+      const res = await fetch('/api/books/rate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId: book.id, rating: stars }),
+      });
+      if (!res.ok) throw new Error('Failed to submit rating');
+      toast.success('Thank you for rating!');
+    } catch (error) {
+      toast.error('Failed to save rating');
+      setRated(false);
+      setRating(0);
+    }
   }
 
   return (

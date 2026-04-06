@@ -8,6 +8,7 @@ import RecentHighlights from '@/components/home/RecentHighlights';
 import RecentVocab from '@/components/home/RecentVocab';
 import DailyQuote from '@/components/home/DailyQuote';
 import UpcomingBookBanner from '@/components/home/UpcomingBookBanner';
+import LiveNotification from '@/components/home/LiveNotification';
 import type { ReadingProgress, Highlight, VocabWord, ReadingStats, BookSchedule, Book } from '@/types';
 
 export default async function HomePage() {
@@ -119,6 +120,8 @@ export default async function HomePage() {
             The content present in this site has been submitted by users and the site is not responsible for the content uploaded.
           </p>
         </div>
+
+        <LiveNotification />
       </div>
     </AppShell>
   );
