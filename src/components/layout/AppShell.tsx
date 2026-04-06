@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
-  Home, BookOpen, Highlighter, BookMarked, LogOut, User, HelpCircle, Menu, X, GraduationCap
+  Home, BookOpen, Highlighter, BookMarked, LogOut, User, HelpCircle, Menu, X, GraduationCap, Shield
 } from 'lucide-react';
 import GuideModal from './GuideModal';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,8 @@ interface AppShellProps {
   children: React.ReactNode;
   user: Profile | null;
 }
+
+const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
 
 const NAV_ITEMS = [
   { href: '/home',       label: 'Home',       icon: Home },
@@ -31,6 +33,8 @@ export default function AppShell({ children, user }: AppShellProps) {
   const supabase = createClient();
   const [showGuide, setShowGuide] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -77,6 +81,21 @@ export default function AppShell({ children, user }: AppShellProps) {
                 </Link>
               );
             })}
+
+            {/* Admin link — only for admin email */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className={cn(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+                  pathname === '/admin' ? 'text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border)]'
+                )}
+                style={pathname === '/admin' ? { backgroundColor: '#8B6914', color: '#fff' } : {}}
+              >
+                <Shield className="w-3.5 h-3.5" />
+                Admin
+              </Link>
+            )}
           </nav>
 
           {/* Right side */}
@@ -134,6 +153,23 @@ export default function AppShell({ children, user }: AppShellProps) {
                 </Link>
               );
             })}
+
+            {/* Admin link mobile */}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  pathname === '/admin' ? 'text-white' : 'hover:bg-[var(--border)]'
+                )}
+                style={pathname === '/admin' ? { backgroundColor: '#8B6914' } : { color: 'var(--text-primary)' }}
+              >
+                <Shield className="w-4 h-4" />
+                Admin
+              </Link>
+            )}
+
             <div className="pt-2 border-t flex items-center justify-between"
               style={{ borderColor: 'var(--border)' }}>
               <button onClick={() => { setShowGuide(true); setMobileMenuOpen(false); }}

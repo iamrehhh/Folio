@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -32,6 +34,20 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Protect /admin — only the designated admin email can access
+  if (pathname.startsWith('/admin')) {
+    if (!user) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      return NextResponse.redirect(loginUrl);
+    }
+    if (user.email !== ADMIN_EMAIL) {
+      const homeUrl = request.nextUrl.clone();
+      homeUrl.pathname = '/home';
+      return NextResponse.redirect(homeUrl);
+    }
+  }
+
   // Redirect unauthenticated users to /login
   const protectedRoutes = ['/home', '/library', '/read', '/vocab', '/highlights'];
   const isProtected = protectedRoutes.some((route) => pathname.startsWith(route));
@@ -50,7 +66,6 @@ export async function middleware(request: NextRequest) {
   }
 
   // If authenticated user goes to root, send to their home dashboard.
-  // Otherwise, let them see the magnificent landing page (required for Google Auth review)!
   if (pathname === '/' && user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = '/home';

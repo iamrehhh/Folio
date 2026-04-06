@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { X, Upload, BookOpen, CheckCircle2 } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { X, Upload, BookOpen, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -12,6 +12,52 @@ const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Ph
 
 function sanitize(name: string) {
   return name.replace(/[^a-zA-Z0-9.-]/g, '_');
+}
+
+/* ── Upload stages config ── */
+const STAGES = [
+  { key: 'epub',   label: 'Uploading EPUB',    pct: 45  },
+  { key: 'cover',  label: 'Uploading Cover',   pct: 72  },
+  { key: 'saving', label: 'Saving to Library', pct: 92  },
+  { key: 'done',   label: 'Complete',          pct: 100 },
+] as const;
+
+function stageIndex(stage: string): number {
+  if (stage.includes('EPUB'))    return 0;
+  if (stage.includes('cover'))   return 1;
+  if (stage.includes('Saving') || stage.includes('library')) return 2;
+  return -1;
+}
+
+/* ── Confetti particles for the success screen ── */
+function SuccessParticles() {
+  const particles = Array.from({ length: 12 }, (_, i) => {
+    const angle = (i / 12) * 360;
+    const delay = Math.random() * 0.3;
+    const size = 4 + Math.random() * 4;
+    const distance = 40 + Math.random() * 30;
+    const colors = ['#8B6914', '#C9972A', '#D4A843', '#A07D20', '#E8C54A', '#6B5210'];
+    const color = colors[i % colors.length];
+
+    return (
+      <span
+        key={i}
+        style={{
+          position: 'absolute',
+          width: size,
+          height: size,
+          borderRadius: i % 3 === 0 ? '50%' : i % 3 === 1 ? '2px' : '1px',
+          backgroundColor: color,
+          top: '50%',
+          left: '50%',
+          transform: `rotate(${angle}deg) translateY(-${distance}px)`,
+          animation: `confettiBurst 0.7s ${delay}s ease-out forwards`,
+          opacity: 0,
+        }}
+      />
+    );
+  });
+  return <div className="absolute inset-0 pointer-events-none">{particles}</div>;
 }
 
 export default function BookUploadModal({ onClose }: Props) {
@@ -27,6 +73,17 @@ export default function BookUploadModal({ onClose }: Props) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStage, setUploadStage] = useState('');
   const [done, setDone] = useState(false);
+
+  /* Derived progress state */
+  const activeIdx = stageIndex(uploadStage);
+  const prevPct = useRef(0);
+  const currentPct = activeIdx >= 0 ? STAGES[activeIdx].pct : 0;
+
+  useEffect(() => {
+    /* tiny delay so the CSS transition picks up changes */
+    const t = setTimeout(() => { prevPct.current = currentPct; }, 50);
+    return () => clearTimeout(t);
+  }, [currentPct]);
 
   async function handleSubmit() {
     if (!epubFile || !title || !author) {
@@ -80,7 +137,7 @@ export default function BookUploadModal({ onClose }: Props) {
         }
       }
 
-      // ── Step 3: Save metadata to DB via API (tiny request — just strings) ──
+      // ── Step 3: Save metadata to DB via API ──
       setUploadStage('Saving to library…');
       const res = await fetch('/api/books', {
         method: 'POST',
@@ -112,19 +169,35 @@ export default function BookUploadModal({ onClose }: Props) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative z-10 w-full max-w-md rounded-xl border shadow-popover p-8 text-center"
-          style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
-          <CheckCircle2 className="w-12 h-12 mx-auto mb-4" style={{ color: '#8B6914' }} />
-          <h2 className="text-lg font-semibold mb-1"
-            style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>
+        <div
+          className="relative z-10 w-full max-w-md rounded-xl border shadow-popover p-8 text-center animate-float-up"
+          style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}
+        >
+          {/* Animated checkmark with particles */}
+          <div className="relative w-16 h-16 mx-auto mb-5">
+            <SuccessParticles />
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center animate-success-bounce"
+              style={{ backgroundColor: '#8B6914' }}
+            >
+              <Check className="w-8 h-8 text-white" strokeWidth={3} />
+            </div>
+          </div>
+
+          <h2
+            className="text-xl font-semibold mb-1"
+            style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}
+          >
             Book Added!
           </h2>
           <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
-            "{title}" is ready to read.
+            &ldquo;{title}&rdquo; is ready to read.
           </p>
-          <button onClick={onClose}
-            className="w-full py-2.5 rounded-lg text-sm font-medium text-white"
-            style={{ backgroundColor: '#8B6914' }}>
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 active:scale-[0.98]"
+            style={{ backgroundColor: '#8B6914' }}
+          >
             Go to Library
           </button>
         </div>
@@ -134,12 +207,15 @@ export default function BookUploadModal({ onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={!isUploading ? onClose : undefined} />
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={!isUploading ? onClose : undefined}
+      />
 
-      <div className="relative z-10 w-full max-w-lg rounded-xl border shadow-popover overflow-hidden"
-        style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
-
+      <div
+        className="relative z-10 w-full max-w-lg rounded-xl border shadow-popover overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <h2 className="font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
@@ -152,27 +228,135 @@ export default function BookUploadModal({ onClose }: Props) {
           )}
         </div>
 
-        {/* Uploading state */}
+        {/* ──────── UPLOADING STATE ──────── */}
         {isUploading && (
-          <div className="px-6 py-10 flex flex-col items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center animate-pulse"
-              style={{ backgroundColor: '#8B691420' }}>
-              <Upload className="w-5 h-5" style={{ color: '#8B6914' }} />
+          <div className="px-6 py-8 flex flex-col items-center">
+            {/* Floating book icon with glow */}
+            <div className="relative mb-5">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center animate-book-float animate-glow-pulse"
+                style={{ backgroundColor: '#8B691418' }}
+              >
+                <BookOpen
+                  className="w-7 h-7"
+                  style={{ color: '#8B6914' }}
+                />
+              </div>
             </div>
-            <p className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
-              {uploadStage || 'Uploading…'}
+
+            {/* Stage text with fade animation */}
+            <p
+              key={uploadStage}
+              className="font-medium text-sm mb-5 animate-stage-fade"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {uploadStage || 'Preparing upload…'}
             </p>
-            <div className="w-48 h-1 rounded-full overflow-hidden mt-1" style={{ backgroundColor: 'var(--border)' }}>
-              <div className="h-full rounded-full animate-pulse"
-                style={{ width: '80%', backgroundColor: '#8B6914' }} />
+
+            {/* ── Multi-step stepper ── */}
+            <div className="w-full max-w-xs mb-5">
+              <div className="flex items-center justify-between mb-2">
+                {STAGES.slice(0, 3).map((s, i) => {
+                  const isActive = activeIdx === i;
+                  const isComplete = activeIdx > i || done;
+                  return (
+                    <div key={s.key} className="flex flex-col items-center" style={{ flex: 1 }}>
+                      {/* dot */}
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-500"
+                        style={{
+                          backgroundColor: isComplete
+                            ? '#8B6914'
+                            : isActive
+                            ? '#8B691430'
+                            : 'var(--border)',
+                          color: isComplete
+                            ? '#fff'
+                            : isActive
+                            ? '#8B6914'
+                            : 'var(--text-muted)',
+                          transform: isActive ? 'scale(1.15)' : 'scale(1)',
+                          boxShadow: isActive ? '0 0 12px rgba(139, 105, 20, 0.3)' : 'none',
+                        }}
+                      >
+                        {isComplete ? (
+                          <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                        ) : (
+                          i + 1
+                        )}
+                      </div>
+                      {/* label */}
+                      <span
+                        className="text-[10px] mt-1.5 text-center leading-tight transition-colors duration-300"
+                        style={{
+                          color: isActive || isComplete ? '#8B6914' : 'var(--text-muted)',
+                          fontWeight: isActive ? 600 : 400,
+                        }}
+                      >
+                        {s.label.replace('Uploading ', '').replace('Saving to ', '')}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Connecting line under steppers */}
+              <div className="flex items-center gap-0 px-3 -mt-[26px] mb-5">
+                {[0, 1].map((i) => (
+                  <div
+                    key={i}
+                    className="h-[2px] flex-1 rounded-full transition-colors duration-500"
+                    style={{
+                      backgroundColor: activeIdx > i ? '#8B6914' : 'var(--border)',
+                    }}
+                  />
+                ))}
+              </div>
             </div>
-            <p className="text-xs text-center" style={{ color: 'var(--text-secondary)' }}>
-              Uploading directly to storage — maximum 7MB file size
-            </p>
+
+            {/* ── Animated progress bar ── */}
+            <div className="w-full max-w-xs">
+              <div
+                className="w-full h-1.5 rounded-full overflow-hidden relative"
+                style={{ backgroundColor: 'var(--border)' }}
+              >
+                {/* Real progress fill */}
+                <div
+                  className="h-full rounded-full relative overflow-hidden"
+                  style={{
+                    width: `${currentPct}%`,
+                    backgroundColor: '#8B6914',
+                    transition: 'width 0.8s cubic-bezier(0.65, 0, 0.35, 1)',
+                  }}
+                >
+                  {/* Shimmer overlay */}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)',
+                      animation: 'uploadShimmer 1.5s ease-in-out infinite',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Percentage label */}
+              <div className="flex justify-between items-center mt-2">
+                <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  Uploading to storage
+                </p>
+                <span
+                  className="text-[11px] font-medium tabular-nums"
+                  style={{ color: '#8B6914' }}
+                >
+                  {currentPct}%
+                </span>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Form */}
+        {/* ──────── FORM ──────── */}
         {!isUploading && (
           <>
             <div className="px-6 py-5 space-y-4">

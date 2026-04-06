@@ -48,6 +48,9 @@ export default function ReaderClient({
   const sessionStartRef = useRef<number>(Date.now());
   const [loadError, setLoadError] = useState(false);
   const [showNextChapterOverlay, setShowNextChapterOverlay] = useState(false);
+  const [chapterTransition, setChapterTransition] = useState<'idle' | 'exit-next' | 'exit-prev' | 'enter-next' | 'enter-prev'>('idle');
+  const chapterTransitionRef = useRef('idle');
+  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isNavigatingRef = useRef(false);
 
   // FIX 1: Track store hydration to avoid white flash on theme refresh
@@ -418,8 +421,7 @@ export default function ReaderClient({
                 bottomAdvanceTimer = setTimeout(() => {
                   if (isAtChapterBottom() && !isNavigatingRef.current) {
                     isNavigatingRef.current = true;
-                    renditionRef.current?.next();
-                    setShowNextChapterOverlay(false);
+                    navigateChapter('next');
                   }
                   bottomAdvanceTimer = null;
                 }, 2000); // 2 second pause allows time to read short title pages
@@ -664,6 +666,7 @@ export default function ReaderClient({
       mounted = false;
       clearTimeout(loadingTimeout);
       clearTimeout(resizeTimer);
+      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
       window.removeEventListener('resize', onWindowResize);
       renditionRef.current?.destroy?.();
       bookRef.current?.destroy?.();
@@ -679,8 +682,8 @@ export default function ReaderClient({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'ArrowRight' || e.key === ']') renditionRef.current?.next();
-      if (e.key === 'ArrowLeft'  || e.key === '[') renditionRef.current?.prev();
+      if (e.key === 'ArrowRight' || e.key === ']') navigateChapter('next');
+      if (e.key === 'ArrowLeft'  || e.key === '[') navigateChapter('prev');
       if (e.ctrlKey && e.key === 'b') { e.preventDefault(); toggleChapterSidebar(); }
       if (e.ctrlKey && e.key === 'i') { e.preventDefault(); toggleAIPanel(); }
       if (e.key === 'Escape') { setSelectionToolbar(null); setWordPopover(null); }
@@ -728,6 +731,35 @@ export default function ReaderClient({
     } catch {
       try { await renditionRef.current.display(chapter.href); } catch { /* ignore */ }
     }
+  }
+
+  function navigateChapter(direction: 'next' | 'prev') {
+    if (!renditionRef.current || chapterTransitionRef.current !== 'idle') return;
+
+    const exitState = direction === 'next' ? 'exit-next' : 'exit-prev';
+    const enterState = direction === 'next' ? 'enter-next' : 'enter-prev';
+
+    chapterTransitionRef.current = exitState;
+    setChapterTransition(exitState);
+    setShowNextChapterOverlay(false);
+
+    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+
+    transitionTimeoutRef.current = setTimeout(() => {
+      if (direction === 'next') {
+        renditionRef.current?.next();
+      } else {
+        renditionRef.current?.prev();
+      }
+
+      chapterTransitionRef.current = enterState;
+      setChapterTransition(enterState);
+
+      transitionTimeoutRef.current = setTimeout(() => {
+        chapterTransitionRef.current = 'idle';
+        setChapterTransition('idle');
+      }, 300);
+    }, 250);
   }
 
   async function saveHighlight(cfiRange: string, text: string, color: string, note?: string) {
@@ -1011,9 +1043,55 @@ export default function ReaderClient({
             <div
               ref={viewerRef}
               id="epub-viewer"
-              style={{ width: '100%', height: '100%', overflow: 'hidden' }}
+              style={{
+                width: '100%',
+                height: '100%',
+                overflow: 'hidden',
+                ...(chapterTransition === 'exit-next' ? { animation: 'chapterExitNext 0.25s ease-in forwards' } :
+                    chapterTransition === 'exit-prev' ? { animation: 'chapterExitPrev 0.25s ease-in forwards' } :
+                    chapterTransition === 'enter-next' ? { animation: 'chapterEnterNext 0.3s ease-out forwards' } :
+                    chapterTransition === 'enter-prev' ? { animation: 'chapterEnterPrev 0.3s ease-out forwards' } :
+                    {}),
+              }}
             />
           </div>
+
+          {/* ── Chapter Nav Rail: Previous (left margin) ── */}
+          {!isLoading && currentChapterIndex > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); navigateChapter('prev'); }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 opacity-[0.12] hover:opacity-100 hover:scale-110 active:scale-95 hidden xl:flex"
+              style={{
+                backgroundColor: 'var(--bg-card, #fff)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-secondary)',
+              }}
+              title="Previous Chapter"
+            >
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 4l-4 4 4 4"/></svg>
+            </button>
+          )}
+
+          {/* ── Chapter Nav Rail: Next (right margin) ── */}
+          {!isLoading && (
+            <button
+              onClick={(e) => { e.stopPropagation(); navigateChapter('next'); }}
+              className={`absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 hidden xl:flex ${
+                showNextChapterOverlay && !continuousReading
+                  ? 'opacity-100 scale-110'
+                  : 'opacity-[0.12] hover:opacity-100 hover:scale-110'
+              }`}
+              style={{
+                backgroundColor: showNextChapterOverlay && !continuousReading ? '#8B6914' : 'var(--bg-card, #fff)',
+                border: showNextChapterOverlay && !continuousReading ? '1px solid #8B6914' : '1px solid var(--border)',
+                color: showNextChapterOverlay && !continuousReading ? '#fff' : 'var(--text-secondary)',
+                ...(showNextChapterOverlay && !continuousReading ? { animation: 'navPulse 2s ease-in-out infinite' } : {}),
+              }}
+              title="Next Chapter"
+            >
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4l4 4-4 4"/></svg>
+            </button>
+          )}
         </div>
 
         <div
@@ -1096,16 +1174,16 @@ export default function ReaderClient({
         />
       )}
 
+      {/* Mobile fallback: bottom center button (hidden on xl+ where rail buttons show) */}
       {showNextChapterOverlay && !continuousReading && (
         <div 
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 xl:hidden"
           style={{ animation: 'fadeSlideUp 0.3s ease-out' }}
         >
           <button 
             onClick={(e) => {
                e.stopPropagation();
-               renditionRef.current?.next();
-               setShowNextChapterOverlay(false);
+               navigateChapter('next');
             }}
             className="px-6 py-3 rounded-full shadow-2xl text-white font-bold transition-transform hover:scale-110 active:scale-95 flex items-center gap-2"
             style={{ backgroundImage: 'linear-gradient(to right, #8B6914, #6a4f0f)' }}

@@ -140,6 +140,77 @@ body {
 .animate-float-up        { animation: floatUp 0.2s ease-out; will-change: opacity, transform; }
 .animate-page-enter      { animation: pageEnter 0.3s ease-out; }
 
+/* ─── Upload Animation Keyframes ─────────────── */
+@keyframes uploadShimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+@keyframes bookFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes stageFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes successBounce {
+  0%   { transform: scale(0); opacity: 0; }
+  50%  { transform: scale(1.2); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 105, 20, 0.25); }
+  50%      { box-shadow: 0 0 20px 6px rgba(139, 105, 20, 0.15); }
+}
+
+@keyframes checkDraw {
+  from { stroke-dashoffset: 24; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes confettiBurst {
+  0%   { transform: scale(0) rotate(0deg); opacity: 1; }
+  50%  { transform: scale(1) rotate(180deg); opacity: 0.8; }
+  100% { transform: scale(1.5) rotate(360deg); opacity: 0; }
+}
+
+@keyframes progressFill {
+  from { width: var(--progress-from, 0%); }
+  to   { width: var(--progress-to, 0%); }
+}
+
+.animate-book-float   { animation: bookFloat 2s ease-in-out infinite; }
+.animate-stage-fade   { animation: stageFadeIn 0.35s ease-out; }
+.animate-success-bounce { animation: successBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.animate-glow-pulse   { animation: glowPulse 2s ease-in-out infinite; }
+
+/* ─── Chapter Transition Keyframes ────────────── */
+@keyframes chapterExitNext {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-40px); }
+}
+@keyframes chapterExitPrev {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(40px); }
+}
+@keyframes chapterEnterNext {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes chapterEnterPrev {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes navPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 105, 20, 0.3); }
+  50%      { box-shadow: 0 0 12px 4px rgba(139, 105, 20, 0.15); }
+}
+
 /* ─── Reading Progress Bar ─────────────────────── */
 .progress-bar {
   height: 2px;
