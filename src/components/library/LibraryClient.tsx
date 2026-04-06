@@ -88,7 +88,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
     if (activeTab === 'reading' && (pct === 0 || pct >= 100)) return false;
     if (activeTab === 'completed' && pct < 100) return false;
     if (activeTab === 'scheduled' && !isScheduled) return false;
-    if (selectedGenre !== 'All' && book.genre !== selectedGenre) return false;
+    if (selectedGenre !== 'All' && !(book.genre ?? '').split(',').map(g => g.trim()).includes(selectedGenre)) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return book.title.toLowerCase().includes(q) || book.author.toLowerCase().includes(q);
@@ -258,10 +258,14 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                         : <BookOpen className="w-8 h-8 opacity-25" style={{ color: 'var(--text-secondary)' }} />
                       }
                       {book.genre && (
-                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-medium"
-                          style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff' }}>
-                          {book.genre}
-                        </span>
+                        <div className="absolute top-2 left-2 flex flex-wrap gap-1 max-w-[calc(100%-3rem)]">
+                          {book.genre.split(',').map(g => g.trim()).filter(Boolean).map((g, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded text-[10px] font-medium leading-tight"
+                              style={{ backgroundColor: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}>
+                              {g}
+                            </span>
+                          ))}
+                        </div>
                       )}
                       
                       {scheduleMap.has(book.id) && (

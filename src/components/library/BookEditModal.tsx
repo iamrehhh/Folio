@@ -16,7 +16,9 @@ interface Props {
 export default function BookEditModal({ book, onClose, onSaved }: Props) {
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
-  const [genre, setGenre] = useState(book.genre ?? 'Fiction');
+  const [genres, setGenres] = useState<string[]>(
+    book.genre ? book.genre.split(',').map(g => g.trim()).filter(g => GENRES.includes(g)) : ['Fiction']
+  );
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(book.cover_url ?? null);
   const [saving, setSaving] = useState(false);
@@ -39,7 +41,7 @@ export default function BookEditModal({ book, onClose, onSaved }: Props) {
       const body = new FormData();
       body.append('title', title.trim());
       body.append('author', author.trim());
-      body.append('genre', genre);
+      body.append('genre', genres.join(', '));
       if (coverFile) body.append('cover', coverFile);
 
       const res = await fetch(`/api/books/${book.id}`, { method: 'PATCH', body });
@@ -126,17 +128,31 @@ export default function BookEditModal({ book, onClose, onSaved }: Props) {
             />
           </div>
 
-          {/* Genre */}
+          {/* Genre — multi-select pills */}
           <div>
-            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Genre</label>
-            <select
-              value={genre}
-              onChange={(e) => setGenre(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border text-sm outline-none"
-              style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-            >
-              {GENRES.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Genre {genres.length > 0 && <span className="text-xs font-normal" style={{ color: 'var(--text-secondary)' }}>({genres.length} selected)</span>}</label>
+            <div className="flex flex-wrap gap-1.5">
+              {GENRES.map(g => {
+                const selected = genres.includes(g);
+                return (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setGenres(prev => selected ? prev.filter(x => x !== g) : [...prev, g])}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
+                    style={{
+                      backgroundColor: selected ? '#8B6914' : 'transparent',
+                      color: selected ? '#fff' : 'var(--text-secondary)',
+                      border: `1.5px solid ${selected ? '#8B6914' : 'var(--border)'}`,
+                      transform: selected ? 'scale(1.04)' : 'scale(1)',
+                      boxShadow: selected ? '0 2px 8px rgba(139, 105, 20, 0.25)' : 'none',
+                    }}
+                  >
+                    {selected && <span style={{ marginRight: 4 }}>✓</span>}{g}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

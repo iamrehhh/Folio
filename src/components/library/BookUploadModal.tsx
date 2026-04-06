@@ -69,7 +69,7 @@ export default function BookUploadModal({ onClose }: Props) {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
-  const [genre, setGenre] = useState('');
+  const [genres, setGenres] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStage, setUploadStage] = useState('');
   const [done, setDone] = useState(false);
@@ -145,7 +145,7 @@ export default function BookUploadModal({ onClose }: Props) {
         body: JSON.stringify({
           title,
           author,
-          genre: genre || null,
+          genre: genres.length > 0 ? genres.join(', ') : null,
           epubPath,
           coverUrl,
           coverPath,
@@ -414,15 +414,31 @@ export default function BookUploadModal({ onClose }: Props) {
                 </div>
               </div>
 
-              {/* Genre */}
+              {/* Genre — multi-select pills */}
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>Genre</label>
-                <select value={genre} onChange={e => setGenre(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
-                  style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
-                  <option value="">Select genre…</option>
-                  {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
+                <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Genre {genres.length > 0 && <span className="text-xs font-normal" style={{ color: 'var(--text-secondary)' }}>({genres.length} selected)</span>}</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {GENRES.map(g => {
+                    const selected = genres.includes(g);
+                    return (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setGenres(prev => selected ? prev.filter(x => x !== g) : [...prev, g])}
+                        className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
+                        style={{
+                          backgroundColor: selected ? '#8B6914' : 'transparent',
+                          color: selected ? '#fff' : 'var(--text-secondary)',
+                          border: `1.5px solid ${selected ? '#8B6914' : 'var(--border)'}`,
+                          transform: selected ? 'scale(1.04)' : 'scale(1)',
+                          boxShadow: selected ? '0 2px 8px rgba(139, 105, 20, 0.25)' : 'none',
+                        }}
+                      >
+                        {selected && <span style={{ marginRight: 4 }}>✓</span>}{g}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Cover */}
