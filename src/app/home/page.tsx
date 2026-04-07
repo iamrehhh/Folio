@@ -9,6 +9,7 @@ import RecentVocab from '@/components/home/RecentVocab';
 import DailyQuote from '@/components/home/DailyQuote';
 import UpcomingBookBanner from '@/components/home/UpcomingBookBanner';
 import LiveNotification from '@/components/home/LiveNotification';
+import FeedbackPopup from '@/components/home/FeedbackPopup';
 import type { ReadingProgress, Highlight, VocabWord, ReadingStats, BookSchedule, Book } from '@/types';
 
 export default async function HomePage() {
@@ -122,6 +123,7 @@ export default async function HomePage() {
         </div>
 
         <LiveNotification />
+        <FeedbackPopup hasCompletedBooks={(completedAllTime ?? 0) > 0} />
       </div>
     </AppShell>
   );

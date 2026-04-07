@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import AdminBookManager from './AdminBookManager';
 import AdminNotificationsManager from './AdminNotificationsManager';
-import { Bell } from 'lucide-react';
+import AdminFeedbackViewer from './AdminFeedbackViewer';
+import { Bell, MessageSquare } from 'lucide-react';
 
 interface UserStat {
   id: string;
@@ -217,7 +218,7 @@ function Detail({ label, value }: { label: string; value: string | number }) {
 
 type SortKey = 'joined_at' | 'books_uploaded' | 'total_reading_minutes' | 'books_completed' | 'gamify_score' | 'highlight_count';
 
-type AdminTab = 'overview' | 'books' | 'users' | 'notifications';
+type AdminTab = 'overview' | 'books' | 'users' | 'notifications' | 'feedback';
 
 export default function AdminDashboard() {
   const [data, setData] = useState<AdminData | null>(null);
@@ -309,6 +310,7 @@ export default function AdminDashboard() {
     { id: 'books', label: 'Books', icon: Library },
     { id: 'users', label: 'Users', icon: Users },
     { id: 'notifications', label: 'Announcements', icon: Bell },
+    { id: 'feedback', label: 'Feedback', icon: MessageSquare },
   ];
 
   return (
@@ -437,6 +439,11 @@ export default function AdminDashboard() {
       {/* ── Notifications Tab ── */}
       {activeTab === 'notifications' && (
         <AdminNotificationsManager />
+      )}
+
+      {/* ── Feedback Tab ── */}
+      {activeTab === 'feedback' && (
+        <AdminFeedbackViewer />
       )}
     </div>
   );

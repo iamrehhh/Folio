@@ -157,6 +157,14 @@ export interface BookRatingStats {
   total_ratings: number;
 }
 
+export interface SiteFeedback {
+  id: string;
+  user_id: string;
+  rating: number;      // 1–5
+  feedback: string | null;
+  created_at: string;
+}
+
 // ─────────────────────────────────────────────
 // API / UI types
 // ─────────────────────────────────────────────
