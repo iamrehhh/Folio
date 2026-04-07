@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { X, Star, Send, Sparkles } from 'lucide-react';
 
-const LS_KEY = 'folio_feedback_done';
+const LS_KEY_PREFIX = 'folio_feedback_done_';
 
 export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks: boolean }) {
   const [show, setShow] = useState(false);
@@ -14,12 +14,12 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
   const [hoverRating, setHoverRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [lsKey, setLsKey] = useState('');
 
   const supabase = createClient();
 
   useEffect(() => {
     if (!hasCompletedBooks) return;
-    if (localStorage.getItem(LS_KEY)) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
@@ -28,6 +28,11 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || cancelled) return;
 
+      const userLsKey = `${LS_KEY_PREFIX}${user.id}`;
+      setLsKey(userLsKey);
+
+      if (localStorage.getItem(userLsKey)) return;
+
       const { data: existing } = await supabase
         .from('site_feedback')
         .select('id')
@@ -35,7 +40,7 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
         .maybeSingle();
 
       if (existing) {
-        localStorage.setItem(LS_KEY, 'submitted');
+        localStorage.setItem(userLsKey, 'submitted');
         return;
       }
 
@@ -59,7 +64,7 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
   }, []);
 
   const handleSkip = () => {
-    localStorage.setItem(LS_KEY, 'skipped');
+    if (lsKey) localStorage.setItem(lsKey, 'skipped');
     close();
   };
 
@@ -81,7 +86,7 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
 
       if (error) throw error;
 
-      localStorage.setItem(LS_KEY, 'submitted');
+      if (lsKey) localStorage.setItem(lsKey, 'submitted');
       setPhase('success');
 
       // Auto-close after showing success
