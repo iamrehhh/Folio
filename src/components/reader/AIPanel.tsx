@@ -21,10 +21,12 @@ const QUICK_PROMPTS = [
 ];
 
 export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose }: Props) {
-  const { aiMessages, addAIMessage, selectedText } = useReaderStore();
+  const { aiMessages, addAIMessage, updateLastAIMessage, selectedText } = useReaderStore();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Pre-fill with selected text if any
   useEffect(() => {
@@ -51,6 +53,13 @@ export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose 
     const userMsg: AIMessage = { role: 'user', content };
     addAIMessage(userMsg);
     setIsLoading(true);
+    setIsStreaming(true);
+
+    // Add an empty assistant message that we'll stream into
+    addAIMessage({ role: 'assistant', content: '' });
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
       const res = await fetch('/api/ai', {
@@ -61,14 +70,65 @@ export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose 
           chapterText,
           bookTitle,
         }),
+        signal: controller.signal,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      addAIMessage({ role: 'assistant', content: data.reply });
-    } catch {
-      addAIMessage({ role: 'assistant', content: 'Sorry, I couldn\'t process that request. Please try again.' });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(data.error || 'Request failed');
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No response body');
+
+      const decoder = new TextDecoder();
+      let accumulated = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        // Parse SSE events — may contain multiple `data: ...` lines
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+          const payload = trimmed.slice(6); // remove "data: "
+          if (payload === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(payload);
+            if (parsed.error) throw new Error(parsed.error);
+            if (parsed.text) {
+              accumulated += parsed.text;
+              updateLastAIMessage(accumulated);
+            }
+          } catch {
+            // Skip malformed chunks
+          }
+        }
+      }
+
+      // Final update to ensure complete message is set
+      if (accumulated) {
+        updateLastAIMessage(accumulated);
+      } else {
+        updateLastAIMessage('No response generated.');
+      }
+
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        // User cancelled — leave partial content
+      } else {
+        updateLastAIMessage('Sorry, I couldn\'t process that request. Please try again.');
+      }
     } finally {
       setIsLoading(false);
+      setIsStreaming(false);
+      abortRef.current = null;
     }
   }
 
@@ -115,40 +175,51 @@ export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose 
             </div>
           ) : (
             <div className="space-y-4">
-              {aiMessages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className="max-w-[85%] px-3 py-2 rounded-xl text-sm leading-relaxed"
-                    style={
-                      msg.role === 'user'
-                        ? { backgroundColor: '#8B6914', color: '#fff', borderRadius: '12px 12px 2px 12px' }
-                        : { backgroundColor: inputBg, color: textPrimary, border: `1px solid ${border}`, borderRadius: '12px 12px 12px 2px' }
-                    }
-                  >
-                    {msg.role === 'assistant' ? (
-                      <div className="ai-prose">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      msg.content
-                    )}
-                  </div>
-                </div>
-              ))}
+              {aiMessages.map((msg, i) => {
+                const isLastAssistant = msg.role === 'assistant' && i === aiMessages.length - 1;
+                const isCurrentlyStreaming = isLastAssistant && isStreaming;
+                const isEmpty = msg.role === 'assistant' && !msg.content;
 
-              {isLoading && (
-                <div className="flex justify-start">
+                return (
                   <div
-                    className="px-3 py-2.5 rounded-xl border"
-                    style={{ backgroundColor: inputBg, borderColor: border }}
+                    key={i}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    style={msg.role === 'assistant' ? { animation: i === aiMessages.length - 1 && !isStreaming ? undefined : undefined } : undefined}
                   >
-                    <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#8B6914' }} />
+                    <div
+                      className="max-w-[85%] px-3 py-2 rounded-xl text-sm leading-relaxed"
+                      style={
+                        msg.role === 'user'
+                          ? { backgroundColor: '#8B6914', color: '#fff', borderRadius: '12px 12px 2px 12px' }
+                          : { backgroundColor: inputBg, color: textPrimary, border: `1px solid ${border}`, borderRadius: '12px 12px 12px 2px' }
+                      }
+                    >
+                      {msg.role === 'assistant' ? (
+                        isEmpty && isLoading ? (
+                          /* Show thinking indicator while waiting for first token */
+                          <div className="flex items-center gap-2 py-0.5">
+                            <div className="ai-thinking-dots flex gap-1">
+                              <span className="ai-dot" style={{ backgroundColor: '#8B6914' }} />
+                              <span className="ai-dot" style={{ backgroundColor: '#8B6914', animationDelay: '0.15s' }} />
+                              <span className="ai-dot" style={{ backgroundColor: '#8B6914', animationDelay: '0.3s' }} />
+                            </div>
+                            <span className="text-xs" style={{ color: textSecondary }}>Thinking…</span>
+                          </div>
+                        ) : (
+                          <div className={`ai-prose ${isCurrentlyStreaming ? 'ai-streaming' : ''}`}>
+                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                            {isCurrentlyStreaming && (
+                              <span className="ai-cursor" style={{ borderColor: '#8B6914' }} />
+                            )}
+                          </div>
+                        )
+                      ) : (
+                        msg.content
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })}
 
               <div ref={bottomRef} />
             </div>

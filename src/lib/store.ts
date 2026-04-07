@@ -60,6 +60,15 @@ export const useReaderStore = create<ReaderState>()(
       addAIMessage: (msg: AIMessage) =>
         set((s) => ({ aiMessages: [...s.aiMessages, msg] })),
 
+      updateLastAIMessage: (content: string) =>
+        set((s) => {
+          const msgs = [...s.aiMessages];
+          if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
+            msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content };
+          }
+          return { aiMessages: msgs };
+        }),
+
       clearAIMessages: () => set({ aiMessages: [] }),
 
       setProgress: (currentChapterIndex: number, currentCfi: string, progressPercent: number) =>

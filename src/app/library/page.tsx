@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
 import LibraryClient from '@/components/library/LibraryClient';
@@ -8,6 +8,7 @@ const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
 
 export default async function LibraryPage() {
   const supabase = createClient();
+  const admin = createAdminClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -17,21 +18,21 @@ export default async function LibraryPage() {
 
   const isAdmin = user.email === ADMIN_EMAIL;
 
-  // Fetch books the user can access.
-  // Try new visibility system first, fall back to legacy is_default if migration hasn't run.
+  // Fetch books the user can access using admin client (bypasses RLS).
+  // We handle access filtering ourselves below.
   let books: any[] | null = null;
 
-  // Check if book_access table exists by attempting a query
-  const { data: assignedBookIds, error: accessError } = await supabase
+  // Get book IDs assigned to this user
+  const { data: assignedBookIds, error: accessError } = await admin
     .from('book_access')
     .select('book_id')
     .eq('user_id', user.id);
 
   if (!accessError) {
-    // New system: visibility-based access
     const assignedIds = (assignedBookIds ?? []).map(r => r.book_id);
 
-    let booksQuery = supabase
+    // Use admin client — no RLS interference
+    let booksQuery = admin
       .from('books')
       .select('*')
       .order('created_at', { ascending: false });
@@ -53,7 +54,7 @@ export default async function LibraryPage() {
 
   // Fallback: use legacy is_default query
   if (books === null) {
-    const { data: legacyBooks } = await supabase
+    const { data: legacyBooks } = await admin
       .from('books')
       .select('*')
       .or(`uploaded_by.eq.${user.id},is_default.eq.true`)

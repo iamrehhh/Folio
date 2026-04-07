@@ -211,6 +211,16 @@ body {
   50%      { box-shadow: 0 0 12px 4px rgba(139, 105, 20, 0.15); }
 }
 
+/* ─── Crossfade Transitions (sidebar chapter switch) ── */
+@keyframes crossfadeExit {
+  0%   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: translateY(-8px) scale(0.998); filter: blur(1px); }
+}
+@keyframes crossfadeEnter {
+  0%   { opacity: 0; transform: translateY(12px) scale(0.998); filter: blur(1px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
 /* ─── Reading Progress Bar ─────────────────────── */
 .progress-bar {
   height: 2px;
@@ -227,6 +237,48 @@ body {
 /* ─── Word Popover ──────────────────────────────── */
 .word-popover {
   animation: floatUp 0.2s ease-out;
+}
+
+/* ─── AI Streaming Animations ───────────────────── */
+.ai-thinking-dots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ai-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: aiDotPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes aiDotPulse {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50%      { opacity: 1; transform: translateY(-3px); }
+}
+
+.ai-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: aiCursorBlink 0.8s ease-in-out infinite;
+}
+
+@keyframes aiCursorBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+.ai-streaming p:last-child {
+  display: inline;
+}
+
+.ai-streaming > *:last-child {
+  display: inline;
 }
 
 /* ─── Focus Ring ────────────────────────────────── */

@@ -238,6 +238,7 @@ export interface ReaderState {
   toggleHighlightsPanel: () => void;
   setSelectedText: (text: string | null, cfi: string | null) => void;
   addAIMessage: (msg: AIMessage) => void;
+  updateLastAIMessage: (content: string) => void;
   clearAIMessages: () => void;
   setProgress: (chapter: number, cfi: string, percent: number) => void;
 }

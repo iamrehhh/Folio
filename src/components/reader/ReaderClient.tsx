@@ -48,7 +48,7 @@ export default function ReaderClient({
   const sessionStartRef = useRef<number>(Date.now());
   const [loadError, setLoadError] = useState(false);
   const [showNextChapterOverlay, setShowNextChapterOverlay] = useState(false);
-  const [chapterTransition, setChapterTransition] = useState<'idle' | 'exit-next' | 'exit-prev' | 'enter-next' | 'enter-prev'>('idle');
+  const [chapterTransition, setChapterTransition] = useState<'idle' | 'exit-next' | 'exit-prev' | 'enter-next' | 'enter-prev' | 'crossfade-exit' | 'crossfade-enter'>('idle');
   const chapterTransitionRef = useRef('idle');
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isNavigatingRef = useRef(false);
@@ -694,9 +694,24 @@ export default function ReaderClient({
 
   async function goToChapter(chapter: ChapterInfo) {
     if (!renditionRef.current || !bookRef.current) return;
+    if (chapterTransitionRef.current !== 'idle') return;
 
     const hrefBase = chapter.href.split('#')[0];
 
+    // Scroll the epub container to top before transitioning
+    const epubContainer = viewerRef.current?.querySelector('.epub-container') as HTMLElement | null;
+
+    // Phase 1: Crossfade exit
+    chapterTransitionRef.current = 'crossfade-exit';
+    setChapterTransition('crossfade-exit');
+
+    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current);
+
+    await new Promise<void>((resolve) => {
+      transitionTimeoutRef.current = setTimeout(resolve, 220);
+    });
+
+    // Phase 2: Navigate while content is invisible
     try {
       await renditionRef.current.display(hrefBase);
 
@@ -705,14 +720,12 @@ export default function ReaderClient({
       const isSection = nextChapter && ((nextChapter as any).depth ?? 0) > chapterDepth;
 
       if (!isSection) {
-        setTimeout(async () => {
-          if (!renditionRef.current || !bookRef.current) return;
-          try {
-            const iframe = document.querySelector('#epub-viewer iframe') as HTMLIFrameElement;
-            if (!iframe?.contentDocument) return;
+        // Check if the displayed chapter has meaningful content
+        try {
+          const iframe = document.querySelector('#epub-viewer iframe') as HTMLIFrameElement;
+          if (iframe?.contentDocument) {
             const body = iframe.contentDocument.body;
-            if (!body) return;
-            const text = (body.innerText ?? '').replace(/\s+/g, '').trim();
+            const text = (body?.innerText ?? '').replace(/\s+/g, '').trim();
             if (text.length < 30) {
               const spineItems: any[] = [];
               bookRef.current!.spine.each((item: any) => spineItems.push(item));
@@ -724,13 +737,26 @@ export default function ReaderClient({
                 await renditionRef.current.display(spineItems[currentIdx + 1].href);
               }
             }
-          } catch { /* ignore */ }
-        }, 600);
+          }
+        } catch { /* ignore */ }
       }
-
     } catch {
       try { await renditionRef.current.display(chapter.href); } catch { /* ignore */ }
     }
+
+    // Scroll to top of new chapter
+    if (epubContainer) {
+      epubContainer.scrollTop = 0;
+    }
+
+    // Phase 3: Crossfade enter
+    chapterTransitionRef.current = 'crossfade-enter';
+    setChapterTransition('crossfade-enter');
+
+    transitionTimeoutRef.current = setTimeout(() => {
+      chapterTransitionRef.current = 'idle';
+      setChapterTransition('idle');
+    }, 350);
   }
 
   function navigateChapter(direction: 'next' | 'prev') {
@@ -1051,6 +1077,8 @@ export default function ReaderClient({
                     chapterTransition === 'exit-prev' ? { animation: 'chapterExitPrev 0.25s ease-in forwards' } :
                     chapterTransition === 'enter-next' ? { animation: 'chapterEnterNext 0.3s ease-out forwards' } :
                     chapterTransition === 'enter-prev' ? { animation: 'chapterEnterPrev 0.3s ease-out forwards' } :
+                    chapterTransition === 'crossfade-exit' ? { animation: 'crossfadeExit 0.22s cubic-bezier(0.4, 0, 1, 1) forwards' } :
+                    chapterTransition === 'crossfade-enter' ? { animation: 'crossfadeEnter 0.35s cubic-bezier(0, 0, 0.2, 1) forwards' } :
                     {}),
               }}
             />
