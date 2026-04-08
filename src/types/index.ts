@@ -65,6 +65,7 @@ export interface Highlight {
   text: string; // highlighted text
   color: HighlightColor;
   note: string | null;
+  context_paragraph: string | null; // surrounding paragraph for Quick View
   chapter_index: number;
   chapter_title: string | null;
   created_at: string;

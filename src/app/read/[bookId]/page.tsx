@@ -5,9 +5,10 @@ import type { Book, ReadingProgress, Highlight } from '@/types';
 
 interface ReadPageProps {
   params: { bookId: string };
+  searchParams: { [key: string]: string | string[] | undefined };
 }
 
-export default async function ReadPage({ params }: ReadPageProps) {
+export default async function ReadPage({ params, searchParams }: ReadPageProps) {
   const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -53,6 +54,9 @@ export default async function ReadPage({ params }: ReadPageProps) {
     .eq('book_id', params.bookId)
     .order('created_at', { ascending: true });
 
+  // Extract jump-to CFI from URL query params (from "Jump to passage" links)
+  const jumpToCfi = typeof searchParams.cfi === 'string' ? searchParams.cfi : undefined;
+
   return (
     <ReaderClient
       book={book as Book}
@@ -61,6 +65,7 @@ export default async function ReadPage({ params }: ReadPageProps) {
       initialHighlights={(highlights as Highlight[]) ?? []}
       profile={profile}
       userId={user.id}
+      jumpToCfi={jumpToCfi}
     />
   );
 }

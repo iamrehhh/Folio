@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Highlighter, Trash2, ExternalLink } from 'lucide-react';
+import { Highlighter, Trash2, ExternalLink, Eye, X, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { highlightColorClass, formatReadingDate, truncate } from '@/lib/utils';
 import type { Highlight, Book, HighlightColor } from '@/types';
@@ -14,10 +14,277 @@ interface Props {
 
 type ColorFilter = 'all' | HighlightColor;
 
+const HIGHLIGHT_HEX: Record<HighlightColor, string> = {
+  yellow: '#FFE066',
+  blue: '#93C5FD',
+  green: '#86EFAC',
+  pink: '#F87171',
+};
+
+// ── Quick View Modal ──
+function QuickViewModal({
+  highlight,
+  onClose,
+}: {
+  highlight: Highlight;
+  onClose: () => void;
+}) {
+  const [isVisible, setIsVisible] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [fetchedParagraph, setFetchedParagraph] = useState<string | null>(null);
+  const [isLoadingContext, setIsLoadingContext] = useState(false);
+
+  useEffect(() => {
+    // Trigger entrance animation
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setIsVisible(true));
+    });
+  }, []);
+
+  // Auto-fetch paragraph context if not stored
+  useEffect(() => {
+    if (highlight.context_paragraph) return;
+
+    setIsLoadingContext(true);
+    fetch('/api/highlights/context', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        bookId: highlight.book_id,
+        highlightText: highlight.text,
+        highlightId: highlight.id,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.paragraph) setFetchedParagraph(data.paragraph);
+      })
+      .catch(() => {})
+      .finally(() => setIsLoadingContext(false));
+  }, [highlight]);
+
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+    setIsVisible(false);
+    setTimeout(onClose, 300);
+  }, [onClose]);
+
+  // Close on Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [handleClose]);
+
+  const color = HIGHLIGHT_HEX[highlight.color] ?? '#FFE066';
+  const paragraph = highlight.context_paragraph || fetchedParagraph;
+
+  // Build the paragraph with highlighted text
+  function renderParagraph() {
+    const highlightedText = highlight.text;
+
+    if (isLoadingContext) {
+      return (
+        <div className="flex items-center gap-3 py-4">
+          <div
+            className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin"
+            style={{ borderColor: color, borderTopColor: 'transparent' }}
+          />
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Loading passage context…
+          </p>
+        </div>
+      );
+    }
+
+    if (!paragraph) {
+      // No context available — just show the highlighted text
+      return (
+        <p
+          className="text-[15px] leading-[1.9] tracking-[0.01em]"
+          style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}
+        >
+          <span
+            style={{
+              backgroundColor: color + '40',
+              borderBottom: `2px solid ${color}`,
+              padding: '1px 2px',
+              borderRadius: '2px',
+            }}
+          >
+            {highlightedText}
+          </span>
+        </p>
+      );
+    }
+
+    // Find the highlighted text within the paragraph and split around it
+    const idx = paragraph.indexOf(highlightedText);
+    if (idx === -1) {
+      // Text not found as substring — show paragraph with highlight separate
+      return (
+        <div>
+          <p
+            className="text-[15px] leading-[1.9] tracking-[0.01em]"
+            style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}
+          >
+            {paragraph}
+          </p>
+          <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+            <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted, #9B9890)' }}>
+              Highlighted passage
+            </p>
+            <p
+              className="text-[15px] leading-[1.9]"
+              style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}
+            >
+              <span
+                style={{
+                  backgroundColor: color + '40',
+                  borderBottom: `2px solid ${color}`,
+                  padding: '1px 2px',
+                  borderRadius: '2px',
+                }}
+              >
+                {highlightedText}
+              </span>
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    const before = paragraph.slice(0, idx);
+    const after = paragraph.slice(idx + highlightedText.length);
+
+    return (
+      <p
+        className="text-[15px] leading-[1.9] tracking-[0.01em]"
+        style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}
+      >
+        {before}
+        <span
+          style={{
+            backgroundColor: color + '40',
+            borderBottom: `2px solid ${color}`,
+            padding: '1px 2px',
+            borderRadius: '2px',
+            transition: 'background-color 0.3s',
+          }}
+        >
+          {highlightedText}
+        </span>
+        {after}
+      </p>
+    );
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={handleClose}
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          opacity: isVisible ? 1 : 0,
+          transition: 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      />
+
+      {/* Modal */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden"
+        style={{
+          backgroundColor: 'var(--bg-card, #FFFDF8)',
+          borderColor: 'var(--border, #E8E4DA)',
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(12px)',
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: '1px solid var(--border, #E8E4DA)' }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: color + '25' }}
+            >
+              <BookOpen className="w-4 h-4" style={{ color }} />
+            </div>
+            <div>
+              <p
+                className="text-sm font-semibold"
+                style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}
+              >
+                Quick View
+              </p>
+              <p className="text-[11px]" style={{ color: 'var(--text-muted, #9B9890)' }}>
+                {highlight.chapter_title ?? 'Unknown Chapter'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleClose}
+            className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-black/5 transition-colors"
+          >
+            <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">
+          {/* Color bar accent */}
+          <div
+            className="w-1 rounded-full absolute left-6 top-[72px] bottom-5"
+            style={{ backgroundColor: color + '50' }}
+          />
+          <div className="pl-4">
+            {renderParagraph()}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div
+          className="flex items-center justify-between px-6 py-3"
+          style={{
+            borderTop: '1px solid var(--border, #E8E4DA)',
+            backgroundColor: 'var(--bg, #FAF8F4)',
+          }}
+        >
+          <span className="text-[11px]" style={{ color: 'var(--text-muted, #9B9890)' }}>
+            {formatReadingDate(highlight.created_at)}
+          </span>
+          {highlight.note && (
+            <p
+              className="text-[11px] italic truncate max-w-[60%]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              📝 {highlight.note}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ──
 export default function HighlightsClient({ highlights: initialHighlights, books }: Props) {
   const [highlights, setHighlights] = useState(initialHighlights);
   const [filterBook, setFilterBook] = useState('all');
   const [filterColor, setFilterColor] = useState<ColorFilter>('all');
+  const [quickViewHighlight, setQuickViewHighlight] = useState<Highlight | null>(null);
 
   const filtered = useMemo(() => {
     return highlights.filter((h) => {
@@ -161,7 +428,7 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
                           {/* Color indicator */}
                           <div
                             className="flex-none w-1 rounded-full self-stretch"
-                            style={{ backgroundColor: { yellow: '#FFE066', blue: '#93C5FD', green: '#86EFAC', pink: '#F87171' }[h.color] }}
+                            style={{ backgroundColor: HIGHLIGHT_HEX[h.color] }}
                           />
 
                           <div className="flex-1 min-w-0">
@@ -182,15 +449,29 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
                               <span className="text-xs" style={{ color: 'var(--text-muted, #9B9890)' }}>
                                 {formatReadingDate(h.created_at)}
                               </span>
-                              {book && (
-                                <Link
-                                  href={`/read/${book.id}?cfi=${encodeURIComponent(h.cfi_range)}`}
-                                  className="text-xs hover:underline"
-                                  style={{ color: '#8B6914' }}
+                              <div className="flex items-center gap-3">
+                                {/* Quick View button */}
+                                <button
+                                  onClick={() => setQuickViewHighlight(h)}
+                                  className="flex items-center gap-1 text-xs transition-all hover:gap-1.5"
+                                  style={{ color: 'var(--text-secondary)' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.color = '#8B6914')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
                                 >
-                                  Jump to passage →
-                                </Link>
-                              )}
+                                  <Eye className="w-3 h-3" />
+                                  Quick View
+                                </button>
+                                {/* Jump to passage */}
+                                {book && (
+                                  <Link
+                                    href={`/read/${book.id}?cfi=${encodeURIComponent(h.cfi_range)}`}
+                                    className="text-xs hover:underline"
+                                    style={{ color: '#8B6914' }}
+                                  >
+                                    Jump to passage →
+                                  </Link>
+                                )}
+                              </div>
                             </div>
                           </div>
 
@@ -209,6 +490,14 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
             );
           })}
         </div>
+      )}
+
+      {/* Quick View Modal */}
+      {quickViewHighlight && (
+        <QuickViewModal
+          highlight={quickViewHighlight}
+          onClose={() => setQuickViewHighlight(null)}
+        />
       )}
     </div>
   );

@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
       note?: string;
       chapterIndex: number;
       chapterTitle?: string;
+      contextParagraph?: string;
     };
 
     const { data, error } = await supabase
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
         note: body.note ?? null,
         chapter_index: body.chapterIndex,
         chapter_title: body.chapterTitle ?? null,
+        context_paragraph: body.contextParagraph ?? null,
       })
       .select()
       .single();

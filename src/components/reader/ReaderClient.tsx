@@ -21,10 +21,11 @@ interface Props {
   initialHighlights: Highlight[];
   profile: Profile | null;
   userId: string;
+  jumpToCfi?: string;
 }
 
 export default function ReaderClient({
-  book, epubUrl, initialProgress, initialHighlights, profile, userId
+  book, epubUrl, initialProgress, initialHighlights, profile, userId, jumpToCfi
 }: Props) {
   const viewerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<any>(null);
@@ -57,7 +58,7 @@ export default function ReaderClient({
   const [storeHydrated, setStoreHydrated] = useState(false);
 
   const [selectionToolbar, setSelectionToolbar] = useState<{
-    x: number; y: number; text: string; cfiRange: string;
+    x: number; y: number; text: string; cfiRange: string; contextParagraph: string;
   } | null>(null);
 
   const [wordPopover, setWordPopover] = useState<{
@@ -190,16 +191,32 @@ export default function ReaderClient({
 
       setChapters(chapterList);
 
+      // jumpToCfi takes priority (from "Jump to passage" in highlights)
+      const targetCfi = jumpToCfi || initialProgress?.cfi;
+
+      // epub.js range CFIs look like epubcfi(/6/4!/4,/2/1:0,/2/1:15)
+      // rendition.display() needs just the base CFI without the range part
+      // Extract the start position: base + first range component
+      function cfiForDisplay(cfi: string): string {
+        if (!cfi) return cfi;
+        // Match: epubcfi( base , startRange , endRange )
+        const rangeMatch = cfi.match(/^(epubcfi\([^,]+),([^,]+),([^)]+\))$/);
+        if (rangeMatch) {
+          // Reconstruct as: epubcfi( base + startRange )
+          const base = rangeMatch[1]; // e.g. "epubcfi(/6/4!/4"
+          const startPart = rangeMatch[2]; // e.g. "/2/1:0"
+          return base + startPart + ')';
+        }
+        return cfi;
+      }
+
       let displayOk = false;
+      const displayCfi = targetCfi ? cfiForDisplay(targetCfi) : undefined;
+
       await Promise.race([
-        (initialProgress?.cfi
-          ? rendition.display(initialProgress.cfi).then(async () => {
+        (displayCfi
+          ? rendition.display(displayCfi).then(() => {
               displayOk = true;
-              setTimeout(() => {
-                try {
-                  renditionRef.current?.display(initialProgress.cfi!);
-                } catch { /* ignore */ }
-              }, 300);
             })
           : rendition.display()
         ).then(() => { displayOk = true; }),
@@ -249,6 +266,46 @@ export default function ReaderClient({
         return;
       }
       setIsLoading(false);
+
+      // After navigating to a highlight via jumpToCfi, scroll the annotation into view
+      if (jumpToCfi && displayOk) {
+        setTimeout(() => {
+          try {
+            const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
+            const iframeDoc = iframe?.contentDocument;
+            if (iframeDoc) {
+              // epub.js renders highlights as SVG elements with the epubjs-hl class
+              const hlElements = iframeDoc.querySelectorAll('.epubjs-hl');
+              if (hlElements.length > 0) {
+                // Find the highlight matching our CFI by checking data attributes
+                let targetEl: Element | null = null;
+                for (const el of Array.from(hlElements)) {
+                  const elCfi = el.getAttribute('data-epubcfi') ?? el.closest('g')?.getAttribute('data-epubcfi') ?? '';
+                  if (elCfi === jumpToCfi) {
+                    targetEl = el;
+                    break;
+                  }
+                }
+                // Fallback: use the first highlight on the page
+                if (!targetEl) targetEl = hlElements[0];
+
+                // Scroll into view smoothly
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Add a brief pulse animation to draw attention
+                const rect = targetEl.closest('g') ?? targetEl;
+                if (rect instanceof SVGElement || rect instanceof HTMLElement) {
+                  rect.style.transition = 'opacity 0.3s';
+                  rect.style.opacity = '1';
+                  setTimeout(() => { rect.style.opacity = '0.35'; }, 1500);
+                  setTimeout(() => { rect.style.opacity = '1'; }, 2000);
+                  setTimeout(() => { rect.style.opacity = '0.35'; }, 2500);
+                }
+              }
+            }
+          } catch { /* ignore scroll-to-highlight errors */ }
+        }, 800);
+      }
 
       setTimeout(() => {
         if (!mounted) return;
@@ -586,12 +643,33 @@ export default function ReaderClient({
         const x = (iframeRect?.left ?? 0) + rect.left + rect.width / 2;
         const y = (iframeRect?.top ?? 0) + rect.top - 10;
 
+        // Capture the surrounding paragraph NOW while selection is still active
+        let contextParagraph = '';
+        try {
+          let node: Node | null = range.startContainer;
+          const doc = contents.document;
+          while (node && node !== doc.body) {
+            const el = node.nodeType === Node.ELEMENT_NODE ? node as HTMLElement : node.parentElement;
+            if (el) {
+              const tag = el.tagName?.toLowerCase();
+              if (tag === 'p' || tag === 'div' || tag === 'blockquote' || tag === 'li') {
+                contextParagraph = el.textContent?.trim() ?? '';
+                break;
+              }
+            }
+            node = node.parentNode;
+          }
+          if (!contextParagraph) {
+            contextParagraph = range.startContainer.parentElement?.textContent?.trim() ?? '';
+          }
+        } catch { /* ignore */ }
+
         if (text.split(/\s+/).length === 1) {
           const paragraph = range.startContainer.parentElement?.textContent ?? '';
           setWordPopover({ x, y, word: text, paragraph });
           setSelectionToolbar(null);
         } else {
-          setSelectionToolbar({ x, y, text, cfiRange });
+          setSelectionToolbar({ x, y, text, cfiRange, contextParagraph });
           setWordPopover(null);
         }
       });
@@ -672,7 +750,7 @@ export default function ReaderClient({
       bookRef.current?.destroy?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [epubUrl, storeHydrated]);
+  }, [epubUrl, storeHydrated, jumpToCfi]);
 
   useEffect(() => {
     if (renditionRef.current) {
@@ -788,7 +866,7 @@ export default function ReaderClient({
     }, 250);
   }
 
-  async function saveHighlight(cfiRange: string, text: string, color: string, note?: string) {
+  async function saveHighlight(cfiRange: string, text: string, color: string, contextParagraph?: string, note?: string) {
     try {
       const res = await fetch('/api/highlights', {
         method: 'POST',
@@ -797,6 +875,7 @@ export default function ReaderClient({
           bookId: book.id, cfiRange, text, color, note,
           chapterIndex: currentChapterIndex,
           chapterTitle: chapters[currentChapterIndex]?.title,
+          contextParagraph: contextParagraph || null,
         }),
       });
       const data = await res.json();
@@ -1154,7 +1233,7 @@ export default function ReaderClient({
           y={selectionToolbar.y}
           text={selectionToolbar.text}
           cfiRange={selectionToolbar.cfiRange}
-          onHighlight={(color) => saveHighlight(selectionToolbar.cfiRange, selectionToolbar.text, color)}
+          onHighlight={(color) => saveHighlight(selectionToolbar.cfiRange, selectionToolbar.text, color, selectionToolbar.contextParagraph)}
           onAskAI={() => {
             useReaderStore.getState().setSelectedText(selectionToolbar.text, selectionToolbar.cfiRange);
             if (!isAIPanelOpen) toggleAIPanel();
