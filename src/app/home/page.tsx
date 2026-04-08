@@ -44,7 +44,7 @@ export default async function HomePage() {
       .eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
       
     supabase.from('vocab_words').select('*, book:books(title)')
-      .eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
+      .eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
       
     supabase.from('reading_progress').select('*', { count: 'exact', head: true })
       .eq('user_id', user.id).eq('progress_percent', 100).gte('last_read_at', startOfMonth),
@@ -56,7 +56,7 @@ export default async function HomePage() {
       .eq('user_id', user.id).eq('progress_percent', 100),
       
     supabase.from('reading_sessions').select('started_at, duration_seconds')
-      .eq('user_id', user.id).order('started_at', { ascending: false }).limit(60),
+      .eq('user_id', user.id).order('started_at', { ascending: false }),
       
     supabase.from('book_schedules').select('*, book:books(*)')
       .eq('user_id', user.id).gte('scheduled_for', new Date().toISOString().split('T')[0])
@@ -68,22 +68,12 @@ export default async function HomePage() {
       .limit(10)
   ]);
 
-  let streakDays = 0;
-  if (sessions?.length) {
-    const readDates = new Set(sessions.map(s => new Date(s.started_at).toDateString()));
-    let checkDate = new Date();
-    while (readDates.has(checkDate.toDateString())) {
-      streakDays++;
-      checkDate = new Date(checkDate.getTime() - 86400000);
-    }
-  }
-
   const totalSecs = sessions?.reduce((s, r) => s + (r.duration_seconds ?? 0), 0) ?? 0;
   const stats: ReadingStats = {
     booksCompletedThisMonth: completedThisMonth ?? 0,
     booksCompletedThisYear:  completedThisYear  ?? 0,
     booksCompletedAllTime:   completedAllTime   ?? 0,
-    readingStreakDays: streakDays,
+    totalReadingTimeMinutes: Math.round(totalSecs / 60),
     avgSessionMinutes: sessions?.length ? Math.round(totalSecs / sessions.length / 60) : 0,
   };
 

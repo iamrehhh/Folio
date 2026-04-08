@@ -204,7 +204,7 @@ export interface ReadingStats {
   booksCompletedThisMonth: number;
   booksCompletedThisYear: number;
   booksCompletedAllTime: number;
-  readingStreakDays: number;
+  totalReadingTimeMinutes: number;
   avgSessionMinutes: number;
 }
 

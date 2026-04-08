@@ -1,4 +1,4 @@
-import { Flame, BookCheck, BarChart2 } from 'lucide-react';
+import { Clock, BookCheck, BarChart2 } from 'lucide-react';
 import type { ReadingStats } from '@/types';
 
 interface Props {
@@ -16,14 +16,16 @@ export default function ReadingStatsPanel({ stats }: Props) {
       </p>
 
       <div className="space-y-4">
-        {/* Streak */}
+        {/* Total Time */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Flame className="w-4 h-4" style={{ color: '#E07340' }} />
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Reading streak</span>
+            <Clock className="w-4 h-4" style={{ color: '#E07340' }} />
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>Total reading time</span>
           </div>
           <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {stats.readingStreakDays}d
+            {stats.totalReadingTimeMinutes >= 60
+              ? `${Math.floor(stats.totalReadingTimeMinutes / 60)}h ${stats.totalReadingTimeMinutes % 60}m`
+              : `${stats.totalReadingTimeMinutes}m`}
           </span>
         </div>
 
