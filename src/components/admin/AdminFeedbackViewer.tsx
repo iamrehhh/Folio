@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, AlertCircle, Star, MessageSquare, Filter, User } from 'lucide-react';
+import { Loader2, AlertCircle, Star, MessageSquare, Filter, User, Eye, EyeOff } from 'lucide-react';
 
 interface FeedbackItem {
   id: string;
   user_id: string;
   rating: number;
   feedback: string | null;
+  show_on_homepage?: boolean;
   created_at: string;
   user: {
     full_name: string | null;
@@ -99,6 +100,30 @@ export default function AdminFeedbackViewer() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function toggleHomepage(id: string, currentStatus: boolean) {
+    try {
+      // Optimistic update
+      setFeedbacks(prev =>
+        prev.map(f => (f.id === id ? { ...f, show_on_homepage: !currentStatus } : f))
+      );
+
+      const r = await fetch('/api/admin/feedback', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, show_on_homepage: !currentStatus }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+    } catch (err: any) {
+      console.error('Failed to toggle feedback homepage status:', err);
+      // Revert on error
+      setFeedbacks(prev =>
+        prev.map(f => (f.id === id ? { ...f, show_on_homepage: currentStatus } : f))
+      );
+      setError('Failed to update feedback visibility.');
     }
   }
 
@@ -280,9 +305,20 @@ export default function AdminFeedbackViewer() {
                           {f.user.email}
                         </span>
                       </div>
-                      <span className="text-xs flex-none" style={{ color: 'var(--text-secondary)' }}>
-                        {formatDate(f.created_at)}
-                      </span>
+                      <div className="flex items-center gap-3 flex-none">
+                        <button
+                          onClick={() => toggleHomepage(f.id, !!f.show_on_homepage)}
+                          className={`p-1.5 rounded-md transition-colors ${
+                            f.show_on_homepage ? 'bg-[#8B6914]/10 text-[#8B6914]' : 'hover:bg-black/5 text-gray-400'
+                          }`}
+                          title={f.show_on_homepage ? "Visible on Homepage" : "Hidden from Homepage"}
+                        >
+                          {f.show_on_homepage ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </button>
+                        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          {formatDate(f.created_at)}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="mb-2">

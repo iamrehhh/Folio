@@ -10,6 +10,7 @@ import DailyQuote from '@/components/home/DailyQuote';
 import UpcomingBookBanner from '@/components/home/UpcomingBookBanner';
 import LiveNotification from '@/components/home/LiveNotification';
 import FeedbackPopup from '@/components/home/FeedbackPopup';
+import FeaturedFeedback from '@/components/home/FeaturedFeedback';
 import type { ReadingProgress, Highlight, VocabWord, ReadingStats, BookSchedule, Book } from '@/types';
 
 export default async function HomePage() {
@@ -30,7 +31,8 @@ export default async function HomePage() {
     { count: completedThisYear },
     { count: completedAllTime },
     { data: sessions },
-    { data: upcomingSchedule }
+    { data: upcomingSchedule },
+    { data: featuredFeedbacks }
   ] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     
@@ -58,7 +60,12 @@ export default async function HomePage() {
       
     supabase.from('book_schedules').select('*, book:books(*)')
       .eq('user_id', user.id).gte('scheduled_for', new Date().toISOString().split('T')[0])
-      .order('scheduled_for', { ascending: true }).limit(1).maybeSingle()
+      .order('scheduled_for', { ascending: true }).limit(1).maybeSingle(),
+      
+    supabase.from('site_feedback').select('*, user:profiles(full_name, avatar_url)')
+      .eq('show_on_homepage', true)
+      .order('created_at', { ascending: false })
+      .limit(10)
   ]);
 
   let streakDays = 0;
@@ -115,12 +122,10 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* Global Liability Disclaimer */}
-        <div className="mt-12 text-center border-t pt-6" style={{ borderColor: 'var(--border)' }}>
-          <p className="text-xs italic mx-auto max-w-xl" style={{ color: 'var(--text-secondary)' }}>
-            The content present in this site has been submitted by users and the site is not responsible for the content uploaded.
-          </p>
-        </div>
+        {/* Featured Feedback Carousel */}
+        {featuredFeedbacks && featuredFeedbacks.length > 0 && (
+          <FeaturedFeedback feedbacks={featuredFeedbacks as any} />
+        )}
 
         <LiveNotification />
         <FeedbackPopup hasCompletedBooks={(completedAllTime ?? 0) > 0} />

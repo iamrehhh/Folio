@@ -68,3 +68,33 @@ export async function GET() {
     return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
   }
 }
+
+export async function PATCH(req: Request) {
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user || user.email !== ADMIN_EMAIL) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { id, show_on_homepage } = await req.json();
+
+    if (!id || typeof show_on_homepage !== 'boolean') {
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    }
+
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from('site_feedback')
+      .update({ show_on_homepage })
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error('[Admin Feedback PATCH Error]', err);
+    return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
+  }
+}
