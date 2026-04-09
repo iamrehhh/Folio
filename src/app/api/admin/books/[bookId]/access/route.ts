@@ -10,7 +10,6 @@ const admin = createClient(
 );
 
 // GET /api/admin/books/[bookId]/access
-// Returns all users and whether they have access to this book
 export async function GET(req: Request, { params }: { params: { bookId: string } }) {
   try {
     const supabase = createServerClient();
@@ -22,7 +21,6 @@ export async function GET(req: Request, { params }: { params: { bookId: string }
 
     const bookId = params.bookId;
 
-    // Get all users
     const { data: users, error: usersError } = await admin
       .from('profiles')
       .select('id, full_name, email, avatar_url')
@@ -30,7 +28,6 @@ export async function GET(req: Request, { params }: { params: { bookId: string }
 
     if (usersError) throw usersError;
 
-    // Get book access
     const { data: access, error: accessError } = await admin
       .from('book_access')
       .select('user_id')
@@ -52,7 +49,6 @@ export async function GET(req: Request, { params }: { params: { bookId: string }
 }
 
 // PUT /api/admin/books/[bookId]/access
-// Updates the assigned users for a book
 export async function PUT(req: Request, { params }: { params: { bookId: string } }) {
   try {
     const supabase = createServerClient();
@@ -74,7 +70,7 @@ export async function PUT(req: Request, { params }: { params: { bookId: string }
       .from('book_access')
       .select('user_id')
       .eq('book_id', bookId);
-      
+
     const currentSet = new Set((currentAccess ?? []).map(a => a.user_id));
     const newSet = new Set(userIds);
 
@@ -112,7 +108,6 @@ export async function PUT(req: Request, { params }: { params: { bookId: string }
           is_read: false
         }));
 
-        // Try to insert — table may not exist yet, so we catch silently
         try {
           await admin.from('user_notifications').insert(notifications);
         } catch {
@@ -120,6 +115,17 @@ export async function PUT(req: Request, { params }: { params: { bookId: string }
         }
       }
     }
+
+    // 4. FIX: Update book visibility based on assignment state
+    //    - If users are assigned → set visibility to 'assigned' so RLS allows access via book_access
+    //    - If all users removed → revert to 'private'
+    const finalCount = newSet.size;
+    const newVisibility = finalCount > 0 ? 'assigned' : 'private';
+
+    await admin
+      .from('books')
+      .update({ visibility: newVisibility })
+      .eq('id', bookId);
 
     return NextResponse.json({ success: true, added: toAdd.length, removed: toRemove.length });
   } catch (err: any) {
