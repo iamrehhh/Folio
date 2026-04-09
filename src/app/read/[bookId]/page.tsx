@@ -1,7 +1,9 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import ReaderClient from '@/components/reader/ReaderClient';
 import type { Book, ReadingProgress, Highlight } from '@/types';
+
+const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
 
 interface ReadPageProps {
   params: { bookId: string };
@@ -10,6 +12,7 @@ interface ReadPageProps {
 
 export default async function ReadPage({ params, searchParams }: ReadPageProps) {
   const supabase = createClient();
+  const admin = createAdminClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -20,8 +23,8 @@ export default async function ReadPage({ params, searchParams }: ReadPageProps) 
     .eq('id', user.id)
     .single();
 
-  // Fetch book
-  const { data: book } = await supabase
+  // Fetch book using admin to bypass RLS
+  const { data: book } = await admin
     .from('books')
     .select('*')
     .eq('id', params.bookId)
@@ -29,8 +32,24 @@ export default async function ReadPage({ params, searchParams }: ReadPageProps) 
 
   if (!book) notFound();
 
-  // Get signed URL for the private EPUB file
-  const { data: signedUrlData } = await supabase.storage
+  // Verify access manually
+  let hasAccess = false;
+  if (user.email === ADMIN_EMAIL || book.uploaded_by === user.id || book.visibility === 'public' || book.is_default) {
+    hasAccess = true;
+  } else if (book.visibility === 'assigned') {
+    const { data: access } = await admin
+      .from('book_access')
+      .select('id')
+      .eq('book_id', book.id)
+      .eq('user_id', user.id)
+      .single();
+    if (access) hasAccess = true;
+  }
+
+  if (!hasAccess) notFound();
+
+  // Get signed URL for the private EPUB file using admin
+  const { data: signedUrlData } = await admin.storage
     .from('books')
     .createSignedUrl(book.epub_path, 60 * 60); // 1 hour
 

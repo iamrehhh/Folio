@@ -79,11 +79,13 @@ export async function PUT(req: Request, { params }: { params: { bookId: string }
 
     // 2. Remove old access
     if (toRemove.length > 0) {
-      await admin
+      const { error: removeError } = await admin
         .from('book_access')
         .delete()
         .eq('book_id', bookId)
         .in('user_id', toRemove);
+      
+      if (removeError) throw removeError;
     }
 
     // 3. Add new access
@@ -94,7 +96,8 @@ export async function PUT(req: Request, { params }: { params: { bookId: string }
         granted_by: user.id
       }));
 
-      await admin.from('book_access').insert(rows);
+      const { error: insertError } = await admin.from('book_access').insert(rows);
+      if (insertError) throw insertError;
 
       // Book info for notifications
       const { data: book } = await admin.from('books').select('title').eq('id', bookId).single();
@@ -122,10 +125,12 @@ export async function PUT(req: Request, { params }: { params: { bookId: string }
     const finalCount = newSet.size;
     const newVisibility = finalCount > 0 ? 'assigned' : 'private';
 
-    await admin
+    const { error: updateError } = await admin
       .from('books')
       .update({ visibility: newVisibility })
       .eq('id', bookId);
+      
+    if (updateError) throw updateError;
 
     return NextResponse.json({ success: true, added: toAdd.length, removed: toRemove.length });
   } catch (err: any) {
