@@ -25,10 +25,12 @@ export async function GET(req: NextRequest) {
         const openai = getOpenAI();
         const response = await openai.chat.completions.create({
           model: AI_MODEL,
-          max_tokens: 150,
+          response_format: { type: 'json_object' },
+          max_tokens: 250,
           messages: [{ role: 'user', content: buildContextualDefinitionPrompt(word, paragraph) }],
         });
-        return response.choices[0]?.message?.content ?? null;
+        const content = response.choices[0]?.message?.content;
+        return content ? JSON.parse(content) : null;
       })(),
     ]);
 
@@ -55,7 +57,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const aiContext = aiResult.status === 'fulfilled' ? aiResult.value : null;
+    const aiData = aiResult.status === 'fulfilled' ? aiResult.value : null;
+    const aiContext = aiData?.contextualMeaning ?? null;
+
+    if (dictionaryData && aiData?.phonetic) {
+      dictionaryData.phonetic = aiData.phonetic;
+    }
 
     // If we have multiple definitions and a paragraph context,
     // use AI to pick the most appropriate one
@@ -76,7 +83,10 @@ export async function GET(req: NextRequest) {
           }],
         });
 
-        const picked = parseInt(pickResponse.choices[0]?.message?.content?.trim() ?? '1');
+        const replyContent = pickResponse.choices[0]?.message?.content?.trim() ?? '1';
+        const numberMatch = replyContent.match(/\d+/);
+        const picked = numberMatch ? parseInt(numberMatch[0], 10) : 1;
+        
         const bestIdx = isNaN(picked) ? 0 : Math.max(0, Math.min(picked - 1, allDefinitions.length - 1));
         const best = allDefinitions[bestIdx];
 

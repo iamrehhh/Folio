@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { Search, BookMarked, Trash2, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
-import { formatReadingDate, downloadCSV, truncate } from '@/lib/utils';
+import { formatReadingDate, downloadPDF, truncate } from '@/lib/utils';
 import type { VocabWord, Book } from '@/types';
 
 type SortBy = 'date' | 'alpha' | 'book';
@@ -53,19 +53,7 @@ export default function VocabClient({ words: initialWords, books }: Props) {
   }
 
   function handleExport() {
-    downloadCSV(
-      filtered.map((w) => ({
-        word: w.word,
-        pronunciation: w.pronunciation ?? '',
-        part_of_speech: w.part_of_speech ?? '',
-        definition: w.definition,
-        ai_context: w.ai_context ?? '',
-        book: (w.book as any)?.title ?? '',
-        chapter: w.chapter_title ?? '',
-        saved_on: formatReadingDate(w.created_at),
-      })),
-      'vocabulary.csv'
-    );
+    downloadPDF(filtered, 'vocabulary.pdf');
   }
 
   return (
@@ -89,7 +77,7 @@ export default function VocabClient({ words: initialWords, books }: Props) {
           style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
         >
           <Download className="w-4 h-4" />
-          Export CSV
+          Download PDF
         </button>
       </div>
 

@@ -21,10 +21,15 @@ The reader tapped on the word "${word}" in the following passage:
 ${paragraph}
 ---
 
-Explain what "${word}" means specifically in relation to how it is used in this passage. Be conversational and explain its contextual meaning as if you are a helpful tutor.
-CRITICAL RULES:
-- Keep your explanation to 2–3 concise sentences.
-- DO NOT start with phrases like "In this context...", "The word refers to...", or "\"${word}\" means...". Just start the explanation directly.`;
+Provide:
+1. A conversational explanation of what "${word}" means specifically in relation to how it is used in this passage (2-3 concise sentences). DO NOT start with phrases like "In this context..." or "The word refers to...".
+2. An intuitive, English-based phonetic respelling for clear pronunciation (e.g. "uh-VUNG-kyuh-ler" for avuncular). Do NOT use IPA symbols.
+
+Return ONLY a valid JSON object:
+{
+  "contextualMeaning": "...",
+  "phonetic": "..."
+}`;
 }
 
 export function buildChapterQuizPrompt(chapterTitle: string, chapterText: string): string {

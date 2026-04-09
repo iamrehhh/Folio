@@ -1,6 +1,8 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Tailwind class merging utility
 export function cn(...inputs: ClassValue[]) {
@@ -82,23 +84,68 @@ export function firstName(fullName: string | null): string {
   return fullName.split(' ')[0];
 }
 
-// Download text as CSV
-export function downloadCSV(data: Record<string, unknown>[], filename: string) {
+// Download vocabulary list as PDF
+export function downloadPDF(data: any[], filename: string) {
   if (data.length === 0) return;
-  const headers = Object.keys(data[0]);
-  const csvRows = [
-    headers.join(','),
-    ...data.map((row) =>
-      headers
-        .map((h) => `"${String(row[h] ?? '').replace(/"/g, '""')}"`)
-        .join(',')
-    ),
-  ];
-  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  // Fill first page background
+  doc.setFillColor(250, 248, 244); // #FAF8F4
+  doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+  // Title
+  doc.setTextColor(28, 28, 30); // #1C1C1E
+  doc.setFontSize(18);
+  doc.text('Vocabulary List', 14, 22);
+
+  // Map data to table rows
+  const tableData = data.map((w) => [
+    w.word || '',
+    w.pronunciation || '',
+    w.part_of_speech || '',
+    w.definition || '',
+    (w.book as any)?.title || 'Unknown',
+    formatReadingDate(w.created_at)
+  ]);
+
+  // Generate table
+  autoTable(doc, {
+    startY: 30,
+    head: [['Word', 'Pronunciation', 'Part of Speech', 'Definition', 'Book', 'Saved On']],
+    body: tableData,
+    styles: { 
+      fontSize: 10, 
+      cellPadding: 3, 
+      textColor: [28, 28, 30], // #1C1C1E
+      fillColor: [250, 248, 244] // #FAF8F4
+    },
+    headStyles: { 
+      fillColor: [139, 105, 20], // #8B6914
+      textColor: [250, 248, 244], // #FAF8F4
+    },
+    alternateRowStyles: { 
+      fillColor: [242, 239, 233], // #F2EFE9
+    },
+    columnStyles: {
+      0: { fontStyle: 'bold' },
+      3: { cellWidth: 50 }, // Allow wrapping for longer definitions
+    },
+    didDrawPage: function () {
+      // Draw watermark on every page
+      doc.saveGraphicsState();
+      doc.setGState(new (doc as any).GState({opacity: 0.1}));
+      doc.setTextColor(139, 105, 20); // #8B6914
+      doc.setFontSize(80);
+      doc.text('Folio.', pageWidth / 2, pageHeight / 2 + 10, {
+        align: 'center',
+        angle: 45,
+      });
+      doc.restoreGraphicsState();
+    }
+  });
+
+  doc.save(filename);
 }
