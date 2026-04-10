@@ -74,6 +74,8 @@ export default function BookUploadModal({ onClose }: Props) {
   const [uploadStage, setUploadStage] = useState('');
   const [done, setDone] = useState(false);
 
+  const [isDragActive, setIsDragActive] = useState(false);
+
   /* Derived progress state */
   const activeIdx = stageIndex(uploadStage);
   const prevPct = useRef(0);
@@ -84,6 +86,38 @@ export default function BookUploadModal({ onClose }: Props) {
     const t = setTimeout(() => { prevPct.current = currentPct; }, 50);
     return () => clearTimeout(t);
   }, [currentPct]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (!file.name.toLowerCase().endsWith('.epub')) {
+        toast.error('Please upload an .epub file');
+        return;
+      }
+      if (file.size > 7 * 1024 * 1024) {
+        toast.error('File exceeds 7MB limit');
+        setEpubFile(null);
+      } else {
+        setEpubFile(file);
+      }
+    }
+  }, []);
 
   async function handleSubmit() {
     if (!epubFile || !title || !author) {
@@ -365,19 +399,32 @@ export default function BookUploadModal({ onClose }: Props) {
                 <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
                   EPUB File <span style={{ color: '#8B6914' }}>*</span>
                 </label>
-                <button onClick={() => epubRef.current?.click()}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-8 rounded-lg border-2 border-dashed text-sm transition-colors hover:border-[#8B6914]"
-                  style={{ borderColor: epubFile ? '#8B6914' : 'var(--border)', color: 'var(--text-secondary)' }}>
+                <button
+                  type="button"
+                  onClick={() => epubRef.current?.click()}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`w-full flex-col flex items-center justify-center gap-1.5 px-4 py-8 rounded-lg border-2 border-dashed text-sm transition-colors ${
+                    isDragActive ? 'border-[#8B6914] bg-[#8B6914]/5' : 'hover:border-[#8B6914]'
+                  }`}
+                  style={{ borderColor: epubFile || isDragActive ? '#8B6914' : 'var(--border)', color: 'var(--text-secondary)' }}>
                   {epubFile ? (
-                    <>
-                      <BookOpen className="w-4 h-4 flex-none" style={{ color: '#8B6914' }} />
-                      <span style={{ color: 'var(--text-primary)' }}>{epubFile.name}</span>
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="w-5 h-5 flex-none" style={{ color: '#8B6914' }} />
+                      <span style={{ color: 'var(--text-primary)' }} className="truncate max-w-[200px]">{epubFile.name}</span>
                       <span className="text-xs ml-1" style={{ color: 'var(--text-secondary)' }}>
                         ({(epubFile.size / 1024).toFixed(0)} KB)
                       </span>
-                    </>
+                    </div>
                   ) : (
-                    <><Upload className="w-4 h-4" /> Click to upload .epub file (Max 7MB)</>
+                    <>
+                      <Upload className={`w-6 h-6 mb-1 transition-colors ${isDragActive ? 'text-[#8B6914]' : 'text-gray-400'}`} />
+                      <span className="font-medium" style={{ color: isDragActive ? '#8B6914' : 'var(--text-primary)' }}>
+                        {isDragActive ? 'Drop .epub file here' : 'Click or drag to upload .epub file'}
+                      </span>
+                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>(Max 7MB)</span>
+                    </>
                   )}
                 </button>
                 <input ref={epubRef} type="file" accept=".epub" className="hidden"
