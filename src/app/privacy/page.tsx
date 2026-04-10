@@ -66,13 +66,13 @@ export default function PrivacyPolicyPage() {
                 1. Introduction
               </h2>
               <p>
-                Welcome to <strong>Folio</strong> ("we", "our", or "us"). Folio is an intelligent reading companion
+                Welcome to <strong>Folio</strong>. Folio is an intelligent reading companion
                 application that allows users to read EPUB books, save highlights and vocabulary words, and use AI-powered
                 features to deepen their understanding of what they read.
               </p>
               <p className="mt-3">
                 This Privacy Policy explains how we collect, use, and protect your personal information when you use
-                Folio at <strong>foliolib.vercel.app</strong>. By using Folio, you agree to the practices described here.
+                Folio at <strong>foliolib.xyz</strong>. By using Folio, you agree to the practices described here.
               </p>
             </section>
 
@@ -186,7 +186,7 @@ export default function PrivacyPolicyPage() {
                 <li>Access the personal data we hold about you</li>
                 <li>Request correction of inaccurate data</li>
                 <li>Request deletion of your account and associated data</li>
-                <li>Export your vocabulary words as CSV at any time from within the app</li>
+                <li>Export your vocabulary words as PDF at any time from within the app</li>
               </ul>
               <p className="mt-3">
                 To exercise any of these rights, please contact us at{' '}
@@ -229,14 +229,14 @@ export default function PrivacyPolicyPage() {
                 className="mt-4 p-4 rounded-xl border"
                 style={{ backgroundColor: '#FAF8F4', borderColor: '#E5E0D8' }}
               >
-                <p><strong>Team Folio</strong></p>
+                <p><strong>Folio</strong></p>
                 <p>
                   Email:{' '}
                   <a href="mailto:mintbyte90@gmail.com" className="underline" style={{ color: '#8B6914' }}>
                     mintbyte90@gmail.com
                   </a>
                 </p>
-                <p>Application: <a href="https://foliolib.vercel.app" className="underline" style={{ color: '#8B6914' }}>foliolib.vercel.app</a></p>
+                <p>Application: <a href="https://foliolib.vercel.app" className="underline" style={{ color: '#8B6914' }}>foliolib.xyz</a></p>
               </div>
             </section>
           </div>
@@ -244,7 +244,7 @@ export default function PrivacyPolicyPage() {
 
         {/* Footer note */}
         <p className="text-center text-xs mt-8" style={{ color: '#9B9890' }}>
-          © {new Date().getFullYear()} Team Folio. All rights reserved.{' '}
+          © {new Date().getFullYear()} Folio. All rights reserved.{' '}
           <Link href="/" className="underline hover:text-[#8B6914] transition-colors">
             Back to Home
           </Link>

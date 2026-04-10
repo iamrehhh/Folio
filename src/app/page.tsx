@@ -338,7 +338,7 @@ export default function LandingPage() {
           </div>
 
           <p className="text-xs" style={{ color: '#9B9890' }}>
-            © {new Date().getFullYear()} Team Folio. All rights reserved.
+            © {new Date().getFullYear()} Folio. All rights reserved.
           </p>
         </div>
       </footer>
