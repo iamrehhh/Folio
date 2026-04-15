@@ -935,15 +935,40 @@ export default function ReaderClient({
       }
     }
 
-    async function saveSession() {
-      const dur = sessionSecondsRef.current;
+    // Track what we've already saved to avoid double-counting
+    let lastSavedSeconds = 0;
+    // Guard against double-save on unload (beforeunload + cleanup both fire)
+    let didSaveOnUnload = false;
+
+    // Save via fetch (for periodic auto-saves and visibility changes)
+    async function saveSessionFetch() {
+      const dur = sessionSecondsRef.current - lastSavedSeconds;
       if (dur < 5) return;
+      lastSavedSeconds = sessionSecondsRef.current;
       try {
         await fetch('/api/sessions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ bookId: book.id, durationSeconds: dur }),
         });
+      } catch { /* ignore */ }
+    }
+
+    // Save via sendBeacon (for unload — reliable, fire-and-forget)
+    function saveSessionBeacon() {
+      if (didSaveOnUnload) return;
+      const dur = sessionSecondsRef.current - lastSavedSeconds;
+      if (dur < 5) return;
+      didSaveOnUnload = true;
+      lastSavedSeconds = sessionSecondsRef.current;
+      try {
+        navigator.sendBeacon(
+          '/api/sessions',
+          new Blob(
+            [JSON.stringify({ bookId: book.id, durationSeconds: dur })],
+            { type: 'application/json' }
+          )
+        );
       } catch { /* ignore */ }
     }
 
@@ -967,18 +992,19 @@ export default function ReaderClient({
         
         if (cfi) {
           const percent = bookRef.current?.locations ? Math.round((bookRef.current.locations.percentageFromCfi?.(cfi) ?? 0) * 100) : useReaderStore.getState().progressPercent;
-          fetch('/api/books/progress', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              bookId: book.id,
-              cfi,
-              chapterIndex: currentChapterIndexRef.current ?? 0,
-              chapterTitle: '', 
-              progressPercent: percent,
-            }),
-            keepalive: true
-          }).catch(() => {});
+          navigator.sendBeacon(
+            '/api/books/progress',
+            new Blob(
+              [JSON.stringify({
+                bookId: book.id,
+                cfi,
+                chapterIndex: currentChapterIndexRef.current ?? 0,
+                chapterTitle: '',
+                progressPercent: percent,
+              })],
+              { type: 'application/json' }
+            )
+          );
         }
       } catch { /* ignore */ }
     }
@@ -986,6 +1012,7 @@ export default function ReaderClient({
     function onVisibilityChange() {
       if (document.hidden) {
         pauseTimer();
+        saveSessionFetch();
         saveProgressOnExit();
       } else {
         startTimer();
@@ -995,17 +1022,17 @@ export default function ReaderClient({
 
     function onUnload() {
       pauseTimer();
-      saveSession();
+      saveSessionBeacon();
       saveProgressOnExit();
     }
     window.addEventListener('beforeunload', onUnload);
 
-    const autoSave = setInterval(saveSession, 60000);
+    const autoSave = setInterval(saveSessionFetch, 60000);
 
     return () => {
       pauseTimer();
-      saveSession();
-      saveProgressOnExit();
+      // On cleanup, use beacon if beforeunload didn't already fire
+      saveSessionBeacon();
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('beforeunload', onUnload);
       clearInterval(autoSave);
