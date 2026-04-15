@@ -40,7 +40,7 @@ interface Overview {
   total_highlights: number;
   total_vocab_saved: number;
   total_quiz_attempts: number;
-  active_users_last_7_days: number;
+  total_reading_minutes: number;
 }
 
 interface AdminData {
@@ -359,8 +359,8 @@ export default function AdminDashboard() {
       {activeTab === 'overview' && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard icon={Users} label="Total Users" value={overview.total_users} />
-          <StatCard icon={Activity} label="Active (7d)" value={overview.active_users_last_7_days}
-            sub="unique readers this week" />
+          <StatCard icon={Clock} label="Total Time Read" value={formatMinutes(overview.total_reading_minutes)}
+            sub="combined all users" />
           <StatCard icon={Upload} label="Users w/ Uploads" value={overview.users_who_uploaded}
             sub={`${overview.total_user_books} personal books`} />
           <StatCard icon={BookOpen} label="Public Books" value={overview.total_default_books}

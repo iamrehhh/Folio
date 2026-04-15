@@ -133,17 +133,8 @@ export async function GET() {
     const totalHighlights = highlights?.length ?? 0;
     const totalVocab = vocabWords?.length ?? 0;
     const totalQuizAttempts = quizAttempts?.length ?? 0;
-    const activeUsersLast7Days = (() => {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 7);
-      const cutoffStr = cutoff.toISOString();
-      const activeIds = new Set(
-        (sessions ?? [])
-          .filter(s => s.started_at >= cutoffStr)
-          .map(s => s.user_id)
-      );
-      return activeIds.size;
-    })();
+    const totalReadingSecondsGlobal = (sessions ?? []).reduce((sum, s) => sum + (s.duration_seconds ?? 0), 0);
+    const totalReadingMinutesGlobal = Math.round(totalReadingSecondsGlobal / 60);
 
     return NextResponse.json({
       overview: {
@@ -154,7 +145,7 @@ export async function GET() {
         total_highlights: totalHighlights,
         total_vocab_saved: totalVocab,
         total_quiz_attempts: totalQuizAttempts,
-        active_users_last_7_days: activeUsersLast7Days,
+        total_reading_minutes: totalReadingMinutesGlobal,
       },
       users: userStats,
     });
