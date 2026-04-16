@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import type { BookVisibility } from '@/types';
 
-const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
+const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
 
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     const supabase = createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !ADMIN_EMAILS.includes(user.email as string)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -65,7 +65,7 @@ export async function PATCH(req: Request) {
     const supabase = createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !ADMIN_EMAILS.includes(user.email as string)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

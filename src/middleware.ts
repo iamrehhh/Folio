@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
+const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
       loginUrl.pathname = '/login';
       return NextResponse.redirect(loginUrl);
     }
-    if (user.email !== ADMIN_EMAIL) {
+    if (!ADMIN_EMAILS.includes(user.email as string)) {
       const homeUrl = request.nextUrl.clone();
       homeUrl.pathname = '/home';
       return NextResponse.redirect(homeUrl);

@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 
-const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
+const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
 
 export async function GET() {
   try {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !ADMIN_EMAILS.includes(user.email as string)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -74,7 +74,7 @@ export async function PATCH(req: Request) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !ADMIN_EMAILS.includes(user.email as string)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

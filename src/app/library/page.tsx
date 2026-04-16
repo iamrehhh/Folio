@@ -4,7 +4,7 @@ import AppShell from '@/components/layout/AppShell';
 import LibraryClient from '@/components/library/LibraryClient';
 import type { Book } from '@/types';
 
-const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
+const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
 
 export default async function LibraryPage() {
   const supabase = createClient();
@@ -16,7 +16,7 @@ export default async function LibraryPage() {
   const { data: profile } = await supabase
     .from('profiles').select('*').eq('id', user.id).single();
 
-  const isAdmin = user.email === ADMIN_EMAIL;
+  const isAdmin = ADMIN_EMAILS.includes(user.email as string);
 
   // Fetch books the user can access using admin client (bypasses RLS).
   // We handle access filtering ourselves below.

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 
-const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
+const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
 
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +15,7 @@ export async function GET(req: Request, { params }: { params: { bookId: string }
     const supabase = createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !ADMIN_EMAILS.includes(user.email as string)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -54,7 +54,7 @@ export async function PUT(req: Request, { params }: { params: { bookId: string }
     const supabase = createServerClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || !ADMIN_EMAILS.includes(user.email as string)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

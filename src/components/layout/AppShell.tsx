@@ -17,7 +17,7 @@ interface AppShellProps {
   user: Profile | null;
 }
 
-const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
+const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
 
 const NAV_ITEMS = [
   { href: '/home',       label: 'Home',       icon: Home },
@@ -34,7 +34,7 @@ export default function AppShell({ children, user }: AppShellProps) {
   const [showGuide, setShowGuide] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = ADMIN_EMAILS.includes(user?.email as string);
 
   async function handleSignOut() {
     await supabase.auth.signOut();

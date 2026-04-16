@@ -3,7 +3,7 @@ import { redirect, notFound } from 'next/navigation';
 import ReaderClient from '@/components/reader/ReaderClient';
 import type { Book, ReadingProgress, Highlight } from '@/types';
 
-const ADMIN_EMAIL = 'abdulrehanoffical@gmail.com';
+const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
 
 interface ReadPageProps {
   params: { bookId: string };
@@ -34,7 +34,7 @@ export default async function ReadPage({ params, searchParams }: ReadPageProps) 
 
   // Verify access manually
   let hasAccess = false;
-  if (user.email === ADMIN_EMAIL || book.uploaded_by === user.id || book.visibility === 'public' || book.is_default) {
+  if (ADMIN_EMAILS.includes(user.email as string) || book.uploaded_by === user.id || book.visibility === 'public' || book.is_default) {
     hasAccess = true;
   } else if (book.visibility === 'assigned') {
     const { data: access } = await admin
