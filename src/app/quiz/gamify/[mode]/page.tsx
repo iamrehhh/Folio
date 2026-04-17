@@ -25,6 +25,7 @@ export default function GameModePage({ params }: { params: { mode: string } }) {
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [enriching, setEnriching] = useState(false);
   
   const [missedWords, setMissedWords] = useState<any[]>([]);
   const [wordsSeen, setWordsSeen] = useState<any[]>([]);
@@ -56,7 +57,7 @@ export default function GameModePage({ params }: { params: { mode: string } }) {
     }
   };
 
-  const handleSelectOption = (idx: number) => {
+  const handleSelectOption = async (idx: number) => {
     if (selectedOption !== null) return; // Prevent double click
     setSelectedOption(idx);
     
@@ -69,6 +70,29 @@ export default function GameModePage({ params }: { params: { mode: string } }) {
       setScore(s => s + 10);
     } else {
       setMissedWords(prev => [...prev, currQ]);
+    }
+
+    if (!currQ.example || !currQ.synonyms || currQ.synonyms.length === 0) {
+      setEnriching(true);
+      try {
+        const res = await fetch('/api/gamify/enrich', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ term: currQ.term, definition: currQ.definition, mode: params.mode })
+        });
+        if (res.ok) {
+           const { example, synonyms } = await res.json();
+           setQuestions(prev => {
+             const newQ = [...prev];
+             newQ[currentIndex] = { ...newQ[currentIndex], example, synonyms };
+             return newQ;
+           });
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setEnriching(false);
+      }
     }
   };
 
@@ -110,7 +134,7 @@ export default function GameModePage({ params }: { params: { mode: string } }) {
       <AppShell user={null}>
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
            <Loader2 className="w-12 h-12 animate-spin mb-4" style={{ color: '#8B6914' }} />
-           <p className="font-serif text-xl" style={{ color: 'var(--text-primary)' }}>Generating your adaptive set...</p>
+           <p className="font-serif text-xl" style={{ color: 'var(--text-primary)' }}>Preparing your set...</p>
         </div>
       </AppShell>
     );
@@ -230,27 +254,40 @@ export default function GameModePage({ params }: { params: { mode: string } }) {
                   <Quote size={120} />
                </div>
 
-               <div className="relative z-10 mb-8">
-                 <div className="flex items-center gap-2 mb-3 text-xs font-bold tracking-widest uppercase" style={{ color: '#8B6914' }}>
-                   <Quote className="w-4 h-4" /> Example
+               {enriching ? (
+                 <div className="relative z-10 flex flex-col items-center justify-center py-6 opacity-60">
+                    <Loader2 className="w-8 h-8 animate-spin mb-3" style={{ color: '#8B6914' }} />
+                    <p className="text-sm font-bold uppercase tracking-widest" style={{ color: '#8B6914' }}>AI is generating context...</p>
                  </div>
-                 <p className="text-xl md:text-2xl font-serif italic" style={{ color: 'var(--text-primary)' }}>
-                   "{q.example}"
-                 </p>
-               </div>
-
-               <div className="relative z-10">
-                 <div className="flex items-center gap-2 mb-3 text-xs font-bold tracking-widest uppercase" style={{ color: '#8B6914' }}>
-                   <LinkIcon className="w-4 h-4" /> Synonyms
-                 </div>
-                 <div className="flex flex-wrap gap-2">
-                   {q.synonyms.map((s, i) => (
-                     <div key={i} className="px-4 py-2 bg-white dark:bg-black rounded-lg border border-[#8B6914]/20 shadow-sm font-medium text-sm">
-                       {s}
+               ) : (
+                 <>
+                   {q.example && (
+                     <div className="relative z-10 mb-8">
+                       <div className="flex items-center gap-2 mb-3 text-xs font-bold tracking-widest uppercase" style={{ color: '#8B6914' }}>
+                         <Quote className="w-4 h-4" /> Example
+                       </div>
+                       <p className="text-xl md:text-2xl font-serif italic" style={{ color: 'var(--text-primary)' }}>
+                         "{q.example}"
+                       </p>
                      </div>
-                   ))}
-                 </div>
-               </div>
+                   )}
+
+                   {q.synonyms && q.synonyms.length > 0 && (
+                     <div className="relative z-10">
+                       <div className="flex items-center gap-2 mb-3 text-xs font-bold tracking-widest uppercase" style={{ color: '#8B6914' }}>
+                         <LinkIcon className="w-4 h-4" /> Synonyms
+                       </div>
+                       <div className="flex flex-wrap gap-2">
+                         {q.synonyms.map((s, i) => (
+                           <div key={i} className="px-4 py-2 bg-white dark:bg-black rounded-lg border border-[#8B6914]/20 shadow-sm font-medium text-sm">
+                             {s}
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+                 </>
+               )}
             </div>
 
             <div className="flex justify-end">

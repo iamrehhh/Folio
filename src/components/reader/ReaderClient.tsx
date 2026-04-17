@@ -66,7 +66,7 @@ export default function ReaderClient({
   } | null>(null);
 
   const {
-    theme, fontSize, lineHeight, continuousReading,
+    theme, fontFamily, fontSize, lineHeight, continuousReading,
     isChapterSidebarOpen, isAIPanelOpen,
     currentChapterIndex, setProgress,
     toggleChapterSidebar, toggleAIPanel,
@@ -130,7 +130,7 @@ export default function ReaderClient({
       });
       renditionRef.current = rendition;
 
-      applyTheme(rendition, theme, fontSize, lineHeight);
+      applyTheme(rendition, theme, fontFamily, fontSize, lineHeight);
 
       await epubBook.ready;
       if (!mounted) return;
@@ -216,8 +216,8 @@ export default function ReaderClient({
       await Promise.race([
         (displayCfi
           ? rendition.display(displayCfi).then(() => {
-              displayOk = true;
-            })
+            displayOk = true;
+          })
           : rendition.display()
         ).then(() => { displayOk = true; }),
         new Promise<void>((_, reject) =>
@@ -234,7 +234,7 @@ export default function ReaderClient({
           flow: 'scrolled', allowScriptedContent: true,
         });
         renditionRef.current = fallback;
-        applyTheme(fallback, theme, fontSize, lineHeight);
+        applyTheme(fallback, theme, fontFamily, fontSize, lineHeight);
 
         await Promise.race([
           fallback.display().then(() => { displayOk = true; }),
@@ -343,6 +343,15 @@ export default function ReaderClient({
           `;
         }
 
+        // Inject Google Fonts into the iframe so custom fonts are available
+        if (doc?.head && !doc.getElementById('folio-gfonts')) {
+          const link = doc.createElement('link');
+          link.id = 'folio-gfonts';
+          link.rel = 'stylesheet';
+          link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400';
+          doc.head.appendChild(link);
+        }
+
         // FIX 2: Track mouse position inside iframe for accurate toolbar placement
         doc.addEventListener('mousemove', (e: MouseEvent) => {
           const iframeEl = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
@@ -408,7 +417,7 @@ export default function ReaderClient({
                   for (const group of Array.from(svgGroups)) {
                     const rect = group.getBoundingClientRect();
                     if (rect && e.clientX >= rect.left && e.clientX <= rect.right &&
-                        e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                      e.clientY >= rect.top && e.clientY <= rect.bottom) {
                       cfi = group.getAttribute('data-epubcfi') ?? group.getAttribute('title');
                       if (cfi) break;
                     }
@@ -463,7 +472,7 @@ export default function ReaderClient({
             if (sh <= wind.innerHeight + 5) return true;
             const gap = sh - wind.scrollY - wind.innerHeight;
             return gap < 40;
-          } catch {}
+          } catch { }
           return false;
         }
 
@@ -496,13 +505,13 @@ export default function ReaderClient({
             // Only HIDE the button if user scrolled significantly away (200px+)
             // This prevents the button from flickering on tiny scroll adjustments
             let farFromBottom = false;
-            
+
             const container = viewerRef.current?.querySelector('.epub-container') as HTMLElement | null;
             if (container) {
-               if (container.scrollHeight > container.clientHeight + 50) {
-                 const gap = container.scrollHeight - container.scrollTop - container.clientHeight;
-                 farFromBottom = gap > 200;
-               }
+              if (container.scrollHeight > container.clientHeight + 50) {
+                const gap = container.scrollHeight - container.scrollTop - container.clientHeight;
+                farFromBottom = gap > 200;
+              }
             } else {
               try {
                 const wind = contents.window;
@@ -512,7 +521,7 @@ export default function ReaderClient({
                   const gap = sh - wind.scrollY - wind.innerHeight;
                   farFromBottom = gap > 200;
                 }
-              } catch {}
+              } catch { }
             }
 
             if (farFromBottom) {
@@ -551,7 +560,7 @@ export default function ReaderClient({
                         (epubBook.locations.percentageFromCfi?.(cfi) ?? 0) * 100
                       ),
                     }),
-                  }).catch(() => {});
+                  }).catch(() => { });
                 }
               }
             } catch { /* ignore */ }
@@ -580,10 +589,10 @@ export default function ReaderClient({
       rendition.on('relocated', async (location: any) => {
         if (!mounted) return;
         isNavigatingRef.current = false;
-        
+
         const cfi = location.start.cfi;
         const spineIdx = location.start.index ?? 0;
-        
+
         let tocIdx = 0;
         for (let i = 0; i < chapterList.length; i++) {
           const pos = chapterList[i].spinePos;
@@ -591,7 +600,7 @@ export default function ReaderClient({
             tocIdx = i;
           }
         }
-        
+
         let percent: number;
         if (locationsReadyRef.current) {
           percent = Math.round(
@@ -624,7 +633,7 @@ export default function ReaderClient({
             bookId: book.id, cfi, chapterIndex: tocIdx,
             chapterTitle, progressPercent: percent,
           }),
-        }).catch(() => {});
+        }).catch(() => { });
       });
 
       rendition.on('selected', (cfiRange: string, contents: any) => {
@@ -705,7 +714,7 @@ export default function ReaderClient({
     function onWindowResize() {
       if (!mounted || !renditionRef.current) return;
       clearTimeout(resizeTimer);
-      
+
       let currentCfi = renditionRef.current.currentLocation()?.start?.cfi;
       try {
         const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
@@ -728,7 +737,7 @@ export default function ReaderClient({
           if (currentCfi) {
             renditionRef.current.display(currentCfi);
           }
-        } catch(e) {}
+        } catch (e) { }
       }, 300);
     }
     window.addEventListener('resize', onWindowResize);
@@ -754,14 +763,14 @@ export default function ReaderClient({
 
   useEffect(() => {
     if (renditionRef.current) {
-      applyTheme(renditionRef.current, theme, fontSize, lineHeight);
+      applyTheme(renditionRef.current, theme, fontFamily, fontSize, lineHeight);
     }
-  }, [theme, fontSize, lineHeight]);
+  }, [theme, fontFamily, fontSize, lineHeight]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'ArrowRight' || e.key === ']') navigateChapter('next');
-      if (e.key === 'ArrowLeft'  || e.key === '[') navigateChapter('prev');
+      if (e.key === 'ArrowLeft' || e.key === '[') navigateChapter('prev');
       if (e.ctrlKey && e.key === 'b') { e.preventDefault(); toggleChapterSidebar(); }
       if (e.ctrlKey && e.key === 'i') { e.preventDefault(); toggleAIPanel(); }
       if (e.key === 'Escape') { setSelectionToolbar(null); setWordPopover(null); }
@@ -896,8 +905,8 @@ export default function ReaderClient({
   async function deleteHighlight(cfiRange: string) {
     const highlight = highlights.find(h => h.cfi_range === cfiRange)
       ?? highlights.find(h =>
-          (h.cfi_range && cfiRange && (h.cfi_range.includes(cfiRange) || cfiRange.includes(h.cfi_range)))
-        );
+        (h.cfi_range && cfiRange && (h.cfi_range.includes(cfiRange) || cfiRange.includes(h.cfi_range)))
+      );
 
     try { renditionRef.current?.annotations.remove(cfiRange, 'highlight'); } catch { /* ignore */ }
     if (highlight?.cfi_range && highlight.cfi_range !== cfiRange) {
@@ -912,7 +921,7 @@ export default function ReaderClient({
     toast.success('Highlight removed');
 
     if (highlight) {
-      fetch(`/api/highlights/${highlight.id}`, { method: 'DELETE' }).catch(() => {});
+      fetch(`/api/highlights/${highlight.id}`, { method: 'DELETE' }).catch(() => { });
     }
   }
 
@@ -989,7 +998,7 @@ export default function ReaderClient({
             cfi = renditionRef.current.epubcfi?.fromElement?.(el, sectionIndex) ?? cfi;
           }
         }
-        
+
         if (cfi) {
           const percent = bookRef.current?.locations ? Math.round((bookRef.current.locations.percentageFromCfi?.(cfi) ?? 0) * 100) : useReaderStore.getState().progressPercent;
           navigator.sendBeacon(
@@ -1180,12 +1189,12 @@ export default function ReaderClient({
                 height: '100%',
                 overflow: 'hidden',
                 ...(chapterTransition === 'exit-next' ? { animation: 'chapterExitNext 0.25s ease-in forwards' } :
-                    chapterTransition === 'exit-prev' ? { animation: 'chapterExitPrev 0.25s ease-in forwards' } :
+                  chapterTransition === 'exit-prev' ? { animation: 'chapterExitPrev 0.25s ease-in forwards' } :
                     chapterTransition === 'enter-next' ? { animation: 'chapterEnterNext 0.3s ease-out forwards' } :
-                    chapterTransition === 'enter-prev' ? { animation: 'chapterEnterPrev 0.3s ease-out forwards' } :
-                    chapterTransition === 'crossfade-exit' ? { animation: 'crossfadeExit 0.22s cubic-bezier(0.4, 0, 1, 1) forwards' } :
-                    chapterTransition === 'crossfade-enter' ? { animation: 'crossfadeEnter 0.35s cubic-bezier(0, 0, 0.2, 1) forwards' } :
-                    {}),
+                      chapterTransition === 'enter-prev' ? { animation: 'chapterEnterPrev 0.3s ease-out forwards' } :
+                        chapterTransition === 'crossfade-exit' ? { animation: 'crossfadeExit 0.22s cubic-bezier(0.4, 0, 1, 1) forwards' } :
+                          chapterTransition === 'crossfade-enter' ? { animation: 'crossfadeEnter 0.35s cubic-bezier(0, 0, 0.2, 1) forwards' } :
+                            {}),
               }}
             />
           </div>
@@ -1202,7 +1211,7 @@ export default function ReaderClient({
               }}
               title="Previous Chapter"
             >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 4l-4 4 4 4"/></svg>
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 4l-4 4 4 4" /></svg>
             </button>
           )}
 
@@ -1210,11 +1219,10 @@ export default function ReaderClient({
           {!isLoading && (
             <button
               onClick={(e) => { e.stopPropagation(); navigateChapter('next'); }}
-              className={`absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 hidden xl:flex ${
-                showNextChapterOverlay && !continuousReading
+              className={`absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 hidden xl:flex ${showNextChapterOverlay && !continuousReading
                   ? 'opacity-100 scale-110'
                   : 'opacity-[0.12] hover:opacity-100 hover:scale-110'
-              }`}
+                }`}
               style={{
                 backgroundColor: showNextChapterOverlay && !continuousReading ? '#8B6914' : 'var(--bg-card, #fff)',
                 border: showNextChapterOverlay && !continuousReading ? '1px solid #8B6914' : '1px solid var(--border)',
@@ -1223,7 +1231,7 @@ export default function ReaderClient({
               }}
               title="Next Chapter"
             >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4l4 4-4 4"/></svg>
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4l4 4-4 4" /></svg>
             </button>
           )}
         </div>
@@ -1310,14 +1318,14 @@ export default function ReaderClient({
 
       {/* Mobile fallback: bottom center button (hidden on xl+ where rail buttons show) */}
       {showNextChapterOverlay && !continuousReading && (
-        <div 
+        <div
           className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 xl:hidden"
           style={{ animation: 'fadeSlideUp 0.3s ease-out' }}
         >
-          <button 
+          <button
             onClick={(e) => {
-               e.stopPropagation();
-               navigateChapter('next');
+              e.stopPropagation();
+              navigateChapter('next');
             }}
             className="px-6 py-3 rounded-full shadow-2xl text-white font-bold transition-transform hover:scale-110 active:scale-95 flex items-center gap-2"
             style={{ backgroundImage: 'linear-gradient(to right, #8B6914, #6a4f0f)' }}
@@ -1337,14 +1345,17 @@ export default function ReaderClient({
   );
 }
 
-function applyTheme(rendition: any, theme: string, fontSize: number, lineHeight: number) {
-  const bg   = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A' }[theme] ?? '#FAF8F4';
+function applyTheme(rendition: any, theme: string, fontFamily: string, fontSize: number, lineHeight: number) {
+  const bg = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A' }[theme] ?? '#FAF8F4';
   const text = theme === 'dark' ? '#D4C5A0' : '#1C1C1E';
 
   const THEME_NAME = 'folio';
 
+  // Google Fonts URL to inject into iframes so non-system fonts are available
+  const GOOGLE_FONTS_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400';
+
   // Step 1: Immediately paint every existing iframe so the user never sees white.
-  // This runs BEFORE any stylesheet changes, so there's zero gap.
+  // Also inject Google Fonts <link> into each iframe so custom fonts are available.
   try {
     const views = rendition.manager?.views?._views ?? rendition.manager?.views ?? [];
     const viewList = Array.isArray(views) ? views : (typeof views.forEach === 'function' ? Array.from(views) : []);
@@ -1353,25 +1364,39 @@ function applyTheme(rendition: any, theme: string, fontSize: number, lineHeight:
       if (!doc) continue;
       if (doc.documentElement) {
         doc.documentElement.style.setProperty('background', bg, 'important');
-        doc.documentElement.style.setProperty('transition', 'background 0.3s ease, color 0.3s ease');
       }
       if (doc.body) {
         doc.body.style.setProperty('background', bg, 'important');
         doc.body.style.setProperty('color', text, 'important');
-        doc.body.style.setProperty('transition', 'background 0.3s ease, color 0.3s ease');
+      }
+      // Inject Google Fonts into the iframe if not already present
+      if (doc.head && !doc.getElementById('folio-gfonts')) {
+        const link = doc.createElement('link');
+        link.id = 'folio-gfonts';
+        link.rel = 'stylesheet';
+        link.href = GOOGLE_FONTS_URL;
+        doc.head.appendChild(link);
       }
     }
   } catch { /* best-effort */ }
 
   // Step 2: Register + select the single named theme. Using a fixed name
   // ensures epub.js overwrites the previous rules instead of stacking.
+  const fontStyle = {
+    default: "'Lora', Georgia, serif",
+    inter: "'Inter', system-ui, sans-serif",
+    merriweather: "'Merriweather', serif",
+    'comic-sans': "'Comic Sans MS', 'Chalkboard SE', sans-serif",
+    arial: "Arial, sans-serif"
+  }[fontFamily] || "'Lora', Georgia, serif";
+
   const rules: Record<string, Record<string, string>> = {
     '*': { 'box-sizing': 'border-box' },
-    'html': { 'overflow-x': 'hidden', 'background': `${bg} !important`, 'transition': 'background 0.3s ease' },
+    'html': { 'overflow-x': 'hidden', 'background': `${bg} !important` },
     'body': {
       'background': `${bg} !important`,
       'color': `${text} !important`,
-      'font-family': "'Lora', Georgia, serif",
+      'font-family': `${fontStyle} !important`,
       'font-size': `${fontSize}px`,
       'line-height': String(lineHeight),
       'width': '100%',
@@ -1380,22 +1405,22 @@ function applyTheme(rendition: any, theme: string, fontSize: number, lineHeight:
       'box-sizing': 'border-box',
       'overflow-x': 'hidden',
       'word-wrap': 'break-word',
-      'overflow-wrap': 'break-word',
-      'transition': 'background 0.3s ease, color 0.3s ease',
+      'overflow-wrap': 'break-word'
     },
     'p, span, div, li': {
+      'color': `${text} !important`,
+      'font-family': `${fontStyle} !important`,
       'font-size': `${fontSize}px !important`,
       'line-height': `${lineHeight} !important`,
-      'transition': 'color 0.3s ease',
     },
-    'p':   { 'margin': '0 0 1.2em 0 !important', 'overflow-wrap': 'break-word' },
-    'h1':  { 'font-size': '1.6em !important',  'font-weight': 'bold !important', 'margin': '1.5em 0 0.75em !important', 'color': `${text} !important`, 'transition': 'color 0.3s ease' },
-    'h2':  { 'font-size': '1.35em !important', 'font-weight': 'bold !important', 'margin': '1.5em 0 0.75em !important', 'color': `${text} !important`, 'transition': 'color 0.3s ease' },
-    'h3':  { 'font-size': '1.15em !important', 'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important',  'color': `${text} !important`, 'transition': 'color 0.3s ease' },
-    'h4':  { 'font-size': '1.05em !important', 'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important',  'color': `${text} !important`, 'transition': 'color 0.3s ease' },
-    'h5':  { 'font-size': '1.0em !important',  'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important',  'color': `${text} !important`, 'transition': 'color 0.3s ease' },
-    'h6':  { 'font-size': '1.0em !important',  'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important',  'color': `${text} !important`, 'transition': 'color 0.3s ease' },
-    'a':   { 'color': '#8B6914', 'text-decoration': 'none' },
+    'p': { 'margin': '0 0 1.2em 0 !important', 'overflow-wrap': 'break-word' },
+    'h1': { 'font-size': '1.6em !important', 'font-weight': 'bold !important', 'margin': '1.5em 0 0.75em !important', 'color': `${text} !important` },
+    'h2': { 'font-size': '1.35em !important', 'font-weight': 'bold !important', 'margin': '1.5em 0 0.75em !important', 'color': `${text} !important` },
+    'h3': { 'font-size': '1.15em !important', 'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important', 'color': `${text} !important` },
+    'h4': { 'font-size': '1.05em !important', 'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important', 'color': `${text} !important` },
+    'h5': { 'font-size': '1.0em !important', 'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important', 'color': `${text} !important` },
+    'h6': { 'font-size': '1.0em !important', 'font-weight': 'bold !important', 'margin': '1.2em 0 0.6em !important', 'color': `${text} !important` },
+    'a': { 'color': '#8B6914', 'text-decoration': 'none' },
     'a:hover': { 'color': '#8B6914 !important', 'text-decoration': 'underline !important', 'background-color': 'transparent !important' },
     'img': { 'max-width': '100% !important', 'height': 'auto !important' },
   };

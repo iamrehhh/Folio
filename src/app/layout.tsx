@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { Lora } from 'next/font/google';
+import { Inter, Lora, Merriweather } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 import NavigationProgress from '@/components/layout/NavigationProgress';
 import './globals.css';
@@ -16,6 +15,12 @@ const lora = Lora({
   variable: '--font-lora',
   display: 'swap',
 });
+const merriweather = Merriweather({
+  subsets: ['latin'],
+  weight: ['300', '400', '700'],
+  variable: '--font-merriweather',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Folio | Your Personal Library',
@@ -29,7 +34,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${lora.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${lora.variable} ${merriweather.variable} font-sans antialiased`}>
         <NavigationProgress />
         {children}
         <Toaster

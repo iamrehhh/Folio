@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────
 
 export type ReadingTheme = 'light' | 'sepia' | 'dark';
+export type ReadingFontFamily = 'default' | 'inter' | 'merriweather' | 'comic-sans' | 'arial';
 export type HighlightColor = 'yellow' | 'blue' | 'green' | 'pink';
 
 export interface Profile {
@@ -227,6 +228,7 @@ export interface ReaderState {
 
   // Reading preferences (also in DB via profile)
   theme: ReadingTheme;
+  fontFamily: ReadingFontFamily;
   fontSize: number;
   lineHeight: number;
   continuousReading: boolean;
@@ -239,6 +241,7 @@ export interface ReaderState {
 
   // Actions
   setTheme: (theme: ReadingTheme) => void;
+  setFontFamily: (font: ReadingFontFamily) => void;
   setFontSize: (size: number) => void;
   setLineHeight: (lh: number) => void;
   setContinuousReading: (c: boolean) => void;

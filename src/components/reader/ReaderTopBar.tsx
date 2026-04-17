@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, SlidersHorizontal, Trophy, Book, Timer, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useReaderStore } from '@/lib/store';
-import type { Book as BookType, ReadingTheme } from '@/types';
+import type { Book as BookType, ReadingTheme, ReadingFontFamily } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -18,7 +18,15 @@ interface Props {
 const THEMES: { id: ReadingTheme; label: string; bg: string }[] = [
   { id: 'light', label: 'Light', bg: '#FAF8F4' },
   { id: 'sepia', label: 'Sepia', bg: '#F5EDD6' },
-  { id: 'dark',  label: 'Dark',  bg: '#1A1A1A' },
+  { id: 'dark', label: 'Dark', bg: '#1A1A1A' },
+];
+
+const FONTS: { id: ReadingFontFamily; label: string; style: React.CSSProperties }[] = [
+  { id: 'default', label: 'Default', style: { fontFamily: "'Lora', Georgia, serif" } },
+  { id: 'inter', label: 'Inter', style: { fontFamily: "'Inter', system-ui, sans-serif" } },
+  { id: 'merriweather', label: 'Merri', style: { fontFamily: "'Merriweather', serif" } },
+  { id: 'comic-sans', label: 'Comic', style: { fontFamily: "'Comic Sans MS', 'Chalkboard SE', sans-serif" } },
+  { id: 'arial', label: 'Arial', style: { fontFamily: "Arial, sans-serif" } },
 ];
 
 function formatTime(seconds: number): string {
@@ -31,7 +39,7 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
   const [showFontControls, setShowFontControls] = useState(false);
   const [timerVisible, setTimerVisible] = useState(true);
   const fontControlsRef = useRef<HTMLDivElement>(null);
-  
+
   const store = useReaderStore();
   const [mounted, setMounted] = useState(false);
 
@@ -41,10 +49,11 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
   }, []);
 
   const theme = mounted ? store.theme : 'light';
+  const fontFamily = mounted ? store.fontFamily : 'default';
   const fontSize = mounted ? store.fontSize : 17;
   const lineHeight = mounted ? store.lineHeight : 1.8;
   const continuousReading = mounted ? store.continuousReading : false;
-  const { setTheme, setFontSize, setLineHeight, setContinuousReading, toggleChapterSidebar } = store;
+  const { setTheme, setFontFamily, setFontSize, setLineHeight, setContinuousReading, toggleChapterSidebar } = store;
 
   useEffect(() => {
     if (!showFontControls) return;
@@ -64,10 +73,10 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
     });
   }
 
-  const textColor   = theme === 'dark' ? '#D4C5A0' : '#1C1C1E';
+  const textColor = theme === 'dark' ? '#D4C5A0' : '#1C1C1E';
   const borderColor = theme === 'dark' ? '#333' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
-  const bgColor     = theme === 'dark' ? '#242424' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
-  const mutedColor  = theme === 'dark' ? '#A0998C' : '#6B6860';
+  const bgColor = theme === 'dark' ? '#242424' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
+  const mutedColor = theme === 'dark' ? '#A0998C' : '#6B6860';
 
   return (
     <div className="flex-none border-b z-20" style={{ backgroundColor: bgColor, borderColor, transition: 'background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease' }}>
@@ -163,6 +172,23 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
                 </div>
               </div>
               <div className="mb-4">
+                <p className="text-xs font-medium mb-2" style={{ color: mutedColor }}>Font</p>
+                <div className="flex flex-wrap gap-2">
+                  {FONTS.map(f => (
+                    <button key={f.id} onClick={() => setFontFamily(f.id)}
+                      className={cn('flex-1 min-w-[70px] py-1.5 rounded text-xs border transition-all',
+                        fontFamily === f.id ? 'border-[#8B6914] bg-[#8B6914]/10 text-[#8B6914] font-medium' : '')}
+                      style={{
+                        ...f.style,
+                        borderColor: fontFamily === f.id ? '#8B6914' : borderColor,
+                        color: fontFamily === f.id ? '#8B6914' : textColor,
+                      }}>
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-4">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-xs font-medium" style={{ color: mutedColor }}>Font Size</p>
                   <span className="text-xs" style={{ color: textColor }}>{fontSize}px</span>
@@ -185,7 +211,7 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
                   <p className="text-xs font-medium" style={{ color: textColor }}>Continuous Scrolling</p>
                   <p className="text-[10px]" style={{ color: mutedColor }}>Auto-advance chapters</p>
                 </div>
-                <button 
+                <button
                   onClick={() => setContinuousReading(!continuousReading)}
                   className={cn("w-10 h-6 rounded-full transition-colors relative", continuousReading ? 'bg-[#8B6914]' : 'bg-gray-300 dark:bg-gray-600')}
                 >

@@ -20,10 +20,10 @@ function Confetti() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width  = window.innerWidth;
+    canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const COLORS = ['#8B6914','#C9972A','#FFD700','#F5EDD6','#E8E6E0','#ffffff','#A07D20'];
+    const COLORS = ['#8B6914', '#C9972A', '#FFD700', '#F5EDD6', '#E8E6E0', '#ffffff', '#A07D20'];
     const pieces: {
       x: number; y: number; vx: number; vy: number;
       w: number; h: number; color: string; angle: number; va: number; opacity: number;
@@ -79,9 +79,9 @@ function Confetti() {
 }
 
 export default function CompletionScreen({ book, onContinueReading }: Props) {
-  const [rating, setRating]       = useState(0);
+  const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
-  const [rated, setRated]         = useState(false);
+  const [rated, setRated] = useState(false);
 
   const completedDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -148,15 +148,15 @@ export default function CompletionScreen({ book, onContinueReading }: Props) {
             {rated ? `You rated this ${rating} star${rating !== 1 ? 's' : ''}` : 'Rate this book'}
           </p>
           <div className="flex justify-center gap-1.5">
-            {[1,2,3,4,5].map(star => (
+            {[1, 2, 3, 4, 5].map(star => (
               <button key={star} onClick={() => submitRating(star)}
                 onMouseEnter={() => !rated && setHoverRating(star)}
                 onMouseLeave={() => setHoverRating(0)}
                 disabled={rated}
                 className="transition-transform hover:scale-110 active:scale-95">
                 <Star className="w-9 h-9" style={{
-                  color:  star <= (hoverRating || rating) ? '#FFD700' : '#2A2A2A',
-                  fill:   star <= (hoverRating || rating) ? '#FFD700' : 'transparent',
+                  color: star <= (hoverRating || rating) ? '#FFD700' : '#2A2A2A',
+                  fill: star <= (hoverRating || rating) ? '#FFD700' : 'transparent',
                   transition: 'color 0.12s, fill 0.12s',
                 }} />
               </button>

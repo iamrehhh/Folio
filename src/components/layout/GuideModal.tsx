@@ -82,7 +82,7 @@ export default function GuideModal({ onClose }: Props) {
                 a Daily <strong>Vocabulary set</strong>, a Daily <strong>Idioms set</strong>, and the interactive <strong>Game Mode</strong>.
               </p>
               <p>
-                The <strong>Game Mode</strong> is highly adaptive, evaluating your accuracy to generate personalized, spaced-repetition Multiple Choice tests on your weakest concepts. Climb the global <strong>Top 5 Leaderboard</strong> to see how you rank among other readers!
+                The <strong>Game Mode</strong> draws from a curated, offline question bank to test your knowledge with Multiple Choice questions. Climb the global <strong>Top 5 Leaderboard</strong> to see how you rank among other readers!
               </p>
             </div>
           </section>

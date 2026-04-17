@@ -40,7 +40,7 @@ export default async function GamifyModePage() {
               <BookMarked className="w-8 h-8" style={{ color: '#8B6914' }} />
             </div>
             <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>Vocabulary</h2>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Adaptive MCQ set of 5 words.</p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Curated set of 5 vocabulary words.</p>
           </Link>
 
           <Link href="/quiz/gamify/idiom"
@@ -51,7 +51,7 @@ export default async function GamifyModePage() {
               <Lightbulb className="w-8 h-8" style={{ color: '#8B6914' }} />
             </div>
             <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>Idioms</h2>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Adaptive MCQ set of 5 idioms.</p>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Curated set of 5 idiomatic phrases.</p>
           </Link>
         </div>
       </div>

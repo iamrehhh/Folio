@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ReaderState, ReadingTheme, AIMessage } from '@/types';
+import type { ReaderState, ReadingTheme, ReadingFontFamily, AIMessage } from '@/types';
 
 export const useReaderStore = create<ReaderState>()(
   persist(
@@ -19,6 +19,7 @@ export const useReaderStore = create<ReaderState>()(
 
       // Reading preferences
       theme: 'light' as ReadingTheme,
+      fontFamily: 'default' as ReadingFontFamily,
       fontSize: 17,
       lineHeight: 1.8,
       continuousReading: false,
@@ -32,6 +33,8 @@ export const useReaderStore = create<ReaderState>()(
       // ── Actions ──────────────────────────────────────
 
       setTheme: (theme: ReadingTheme) => set({ theme }),
+
+      setFontFamily: (fontFamily: ReadingFontFamily) => set({ fontFamily }),
 
       setFontSize: (fontSize: number) => set({ fontSize }),
 
@@ -79,6 +82,7 @@ export const useReaderStore = create<ReaderState>()(
       // Only persist reading preferences, not ephemeral UI state
       partialize: (state) => ({
         theme: state.theme,
+        fontFamily: state.fontFamily,
         fontSize: state.fontSize,
         lineHeight: state.lineHeight,
         continuousReading: state.continuousReading,

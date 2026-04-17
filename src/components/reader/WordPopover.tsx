@@ -28,7 +28,7 @@ export default function WordPopover({
 
   // Position: keep within viewport horizontally
   const posX = Math.min(Math.max(10, x - 160), typeof window !== 'undefined' ? window.innerWidth - 340 : x);
-  
+
   // Dynamic vertical positioning: flip to top if clicked in the lower half of viewport
   const isBottomHalf = typeof window !== 'undefined' && y > window.innerHeight / 2;
   const topPos = isBottomHalf ? 'auto' : `${y + 20}px`;

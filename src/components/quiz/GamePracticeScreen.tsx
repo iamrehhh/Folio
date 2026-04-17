@@ -138,7 +138,7 @@ export default function GamePracticeScreen({
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="overflow-hidden">
              <div className="p-5 rounded-2xl border border-[var(--border)] bg-[#8B6914]/5 relative">
                <Sparkles className="absolute top-4 right-4 w-5 h-5 opacity-20" style={{ color: '#8B6914' }} />
-               <h4 className="font-bold mb-2 flex items-center" style={{ color: '#8B6914' }}>AI Feedback</h4>
+               <h4 className="font-bold mb-2 flex items-center" style={{ color: '#8B6914' }}>Feedback</h4>
                <p className="leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                  {isLoading && !feedback ? 'Analyzing your sentence...' : feedback}
                </p>

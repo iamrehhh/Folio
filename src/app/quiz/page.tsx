@@ -96,7 +96,7 @@ export default async function QuizPage() {
                   Let's Gamify
                 </h2>
                 <p className="text-base" style={{ color: 'var(--text-secondary)' }}>
-                  Test your knowledge in our adaptive arena. Climb the leaderboard, master new words, and get real-time AI feedback on your weak spots.
+                  Test your knowledge in our curated arena. Climb the leaderboard, master new vocabulary and idioms, and track your true understanding of the English language.
                 </p>
                 <div className="mt-6 inline-flex items-center gap-2 font-bold px-5 py-2.5 rounded-xl bg-[#8B6914] text-white transition-transform group-hover:scale-105">
                   Play Game Mode →
