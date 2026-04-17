@@ -167,6 +167,36 @@ export interface SiteFeedback {
   created_at: string;
 }
 
+export interface BugReport {
+  id: string;
+  user_id: string;
+  subject: string;
+  status: 'active' | 'resolved';
+  created_at: string;
+  updated_at: string;
+  // joined optional
+  user?: {
+    full_name: string | null;
+    avatar_url: string | null;
+    email?: string;
+  };
+}
+
+export interface BugReportMessage {
+  id: string;
+  report_id: string;
+  sender_id: string;
+  message: string;
+  screenshot_url: string | null;
+  ocr_text: string | null;
+  created_at: string;
+  // joined optional
+  sender?: {
+    full_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
 // ─────────────────────────────────────────────
 // API / UI types
 // ─────────────────────────────────────────────

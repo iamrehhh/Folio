@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
-  Home, BookOpen, Highlighter, BookMarked, LogOut, User, HelpCircle, Menu, X, GraduationCap, Shield
+  Home, BookOpen, Highlighter, BookMarked, LogOut, User, HelpCircle, Menu, X, GraduationCap, Shield, AlertCircle
 } from 'lucide-react';
 import GuideModal from './GuideModal';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { href: '/highlights',label: 'Highlights', icon: Highlighter },
   { href: '/vocab',     label: 'Vocabulary', icon: BookMarked },
   { href: '/quiz',      label: 'Quiz',       icon: GraduationCap },
+  { href: '/report',    label: 'Report Error', icon: AlertCircle },
 ];
 
 export default function AppShell({ children, user }: AppShellProps) {
