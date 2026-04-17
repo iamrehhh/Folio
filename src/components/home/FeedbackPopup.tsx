@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { X, Star, Send, Sparkles } from 'lucide-react';
 
-const LS_KEY_PREFIX = 'folio_feedback_done_';
+const LS_KEY_PREFIX = 'folio_feedback_state_v2_';
 
 export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks: boolean }) {
   const [show, setShow] = useState(false);
@@ -31,7 +31,14 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
       const userLsKey = `${LS_KEY_PREFIX}${user.id}`;
       setLsKey(userLsKey);
 
-      if (localStorage.getItem(userLsKey)) return;
+      const lsValue = localStorage.getItem(userLsKey);
+      if (lsValue === 'skipped' || lsValue === 'submitted') return;
+      if (lsValue) {
+        const timeSaved = parseInt(lsValue, 10);
+        if (!isNaN(timeSaved) && Date.now() - timeSaved < 7 * 24 * 60 * 60 * 1000) {
+          return;
+        }
+      }
 
       const { data: existing } = await supabase
         .from('site_feedback')
@@ -65,6 +72,11 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
 
   const handleSkip = () => {
     if (lsKey) localStorage.setItem(lsKey, 'skipped');
+    close();
+  };
+
+  const handleLater = () => {
+    if (lsKey) localStorage.setItem(lsKey, Date.now().toString());
     close();
   };
 
@@ -108,7 +120,7 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
       <div
         className={`fixed inset-0 z-[60] transition-all duration-350 ${closing ? 'bg-black/0 backdrop-blur-0' : 'bg-black/40 backdrop-blur-sm'
           }`}
-        onClick={handleSkip}
+        onClick={handleLater}
       />
 
       {/* Modal */}
@@ -139,7 +151,7 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
 
               {/* Close button */}
               <button
-                onClick={handleSkip}
+                onClick={handleLater}
                 className="absolute top-4 right-4 p-1.5 rounded-full transition-colors hover:bg-black/5"
                 style={{ color: 'var(--text-muted)' }}
               >
@@ -229,13 +241,23 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
                 className="flex items-center justify-between px-6 py-4 border-t"
                 style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg, #FAF8F4)' }}
               >
-                <button
-                  onClick={handleSkip}
-                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-black/5"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  Skip
-                </button>
+                <div className="flex gap-1 md:gap-2">
+                  <button
+                    onClick={handleSkip}
+                    className="px-2 md:px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors hover:bg-black/5 whitespace-nowrap"
+                    style={{ color: 'var(--text-muted)' }}
+                    title="Don't ask again"
+                  >
+                    Skip forever
+                  </button>
+                  <button
+                    onClick={handleLater}
+                    className="px-2 md:px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors hover:bg-black/5"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    Later
+                  </button>
+                </div>
                 <button
                   onClick={handleSubmit}
                   disabled={rating === 0 || submitting}

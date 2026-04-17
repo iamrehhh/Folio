@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, AlertCircle, Send, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Loader2, AlertCircle, Send, Trash2, Clock } from 'lucide-react';
 import type { SystemNotification } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -11,6 +11,8 @@ export default function AdminNotificationsManager() {
   const [error, setError] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
@@ -68,6 +70,30 @@ export default function AdminNotificationsManager() {
       fetchNotifications(); // refresh list
     } catch (err: any) {
       toast.error(`Failed to update: ${err.message}`);
+    }
+  }
+
+  function handleDeleteClick(id: string) {
+    setDeleteConfirmId(id);
+  }
+
+  async function confirmDelete() {
+    if (!deleteConfirmId) return;
+    try {
+      setIsDeleting(true);
+      const r = await fetch(`/api/admin/notifications/${deleteConfirmId}`, {
+        method: 'DELETE',
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      
+      toast.success('Notification deleted');
+      setDeleteConfirmId(null);
+      fetchNotifications();
+    } catch (err: any) {
+      toast.error(`Failed to delete: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -156,15 +182,23 @@ export default function AdminNotificationsManager() {
                   </div>
                 </div>
 
-                <div className="flex-none">
+                <div className="flex-none flex items-center gap-2">
                   <button
                     onClick={() => handleToggleStatus(n.id, n.is_active)}
-                    className="px-3 py-1.5 rounded-md text-xs font-medium border transition-colors hover:bg-slate-50"
+                    className="px-3 py-1.5 rounded-md text-xs font-medium border transition-colors"
                     style={n.is_active 
                       ? { color: '#EF4444', borderColor: '#EF444430', backgroundColor: '#EF444410' }
                       : { color: '#10B981', borderColor: '#10B98130', backgroundColor: '#10B98110' }}
                   >
                     {n.is_active ? 'Deactivate' : 'Activate'}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(n.id)}
+                    className="p-1.5 rounded-md border border-transparent transition-colors hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                    style={{ color: 'var(--text-muted)' }}
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -172,6 +206,47 @@ export default function AdminNotificationsManager() {
           </div>
         )}
       </div>
+
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-2xl border shadow-2xl p-6 transition-all" style={{ backgroundColor: 'var(--bg-card, #fff)', borderColor: 'var(--border)', animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>Delete Announcement</h3>
+              <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+                Are you sure you want to permanently delete this announcement? This action cannot be undone.
+              </p>
+              
+              <div className="flex w-full gap-3">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  disabled={isDeleting}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-medium border transition-colors hover:bg-black/5"
+                  style={{ color: 'var(--text-secondary)', borderColor: 'var(--border)' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="flex-1 py-2.5 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: '#EF4444' }}
+                >
+                  {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+          <style jsx>{`
+            @keyframes popIn {
+              from { opacity: 0; transform: scale(0.9) translateY(15px); }
+              to { opacity: 1; transform: scale(1) translateY(0); }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 }

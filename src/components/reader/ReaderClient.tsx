@@ -581,12 +581,17 @@ export default function ReaderClient({
         // Fallback: iframe scroll
         contents.window.addEventListener('scroll', onScroll, { passive: true });
         doc.addEventListener('scroll', onScroll, { passive: true });
+        doc.addEventListener('mousemove', () => window.dispatchEvent(new Event('folio-activity')));
+        doc.addEventListener('keydown', () => window.dispatchEvent(new Event('folio-activity')));
+        doc.addEventListener('click', () => window.dispatchEvent(new Event('folio-activity')));
+        doc.addEventListener('touchstart', () => window.dispatchEvent(new Event('folio-activity')));
         doc.addEventListener('wheel', (e: WheelEvent) => {
           if (e.deltaY > 0) handleBottomCheck();
         }, { passive: true });
       });
 
       rendition.on('relocated', async (location: any) => {
+        window.dispatchEvent(new Event('folio-activity'));
         if (!mounted) return;
         isNavigatingRef.current = false;
 
@@ -637,6 +642,7 @@ export default function ReaderClient({
       });
 
       rendition.on('selected', (cfiRange: string, contents: any) => {
+        window.dispatchEvent(new Event('folio-activity'));
         const selection = contents.window.getSelection();
         if (!selection || selection.isCollapsed) {
           setSelectionToolbar(null);
@@ -929,9 +935,27 @@ export default function ReaderClient({
 
   // Reading timer
   useEffect(() => {
+    let lastActivity = Date.now();
+    const IDLE_TIMEOUT_MS = 120_000; // 2 minutes
+
+    function updateActivity() {
+      lastActivity = Date.now();
+    }
+
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+    window.addEventListener('click', updateActivity);
+    window.addEventListener('touchstart', updateActivity);
+    window.addEventListener('scroll', updateActivity, { passive: true });
+    window.addEventListener('folio-activity', updateActivity);
+
     function startTimer() {
       if (timerRef.current) return;
+      lastActivity = Date.now(); // reset on start
       timerRef.current = setInterval(() => {
+        if (document.hidden) return;
+        if (Date.now() - lastActivity > IDLE_TIMEOUT_MS) return;
+        
         sessionSecondsRef.current += 1;
         setSessionSeconds(s => s + 1);
       }, 1000);
@@ -1045,6 +1069,13 @@ export default function ReaderClient({
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('beforeunload', onUnload);
       clearInterval(autoSave);
+
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('click', updateActivity);
+      window.removeEventListener('touchstart', updateActivity);
+      window.removeEventListener('scroll', updateActivity);
+      window.removeEventListener('folio-activity', updateActivity);
     };
   }, [book.id]);
 
