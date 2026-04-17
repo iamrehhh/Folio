@@ -151,12 +151,9 @@ export default function AdminReportsViewer() {
   return (
     <div className="space-y-6">
       <div className="rounded-xl border p-5" style={{ backgroundColor: 'var(--bg-card, #fff)', borderColor: 'var(--border)' }}>
-        <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+        <h2 className="text-lg font-semibold mb-6" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
           User Bug Reports
         </h2>
-        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-          Review user feedback, read OCR extracted screenshots, and reply back to resolve their issues.
-        </p>
 
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <div className="flex bg-slate-100 rounded-lg p-1 w-full max-w-sm" style={{ backgroundColor: 'var(--bg-sidebar)' }}>

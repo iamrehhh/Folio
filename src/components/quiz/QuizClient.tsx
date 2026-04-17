@@ -397,7 +397,7 @@ export default function QuizClient({ type }: Props) {
       <div className="flex flex-col sm:flex-row justify-end items-end sm:items-center gap-3">
         <input 
           type="text" 
-          placeholder="Topic (e.g. Harry Potter, Tech)" 
+          placeholder="Topic (e.g. Fantasy, Tech)" 
           value={customTheme}
           onChange={(e) => setCustomTheme(e.target.value.substring(0, 50))}
           className="w-full sm:w-64 px-4 py-3 rounded-xl text-sm border focus:outline-none"
