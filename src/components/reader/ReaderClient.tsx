@@ -813,8 +813,8 @@ export default function ReaderClient({
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'ArrowRight' || e.key === ']') navigateChapter('next');
       if (e.key === 'ArrowLeft' || e.key === '[') navigateChapter('prev');
-      if (e.ctrlKey && e.key === 'b') { e.preventDefault(); toggleChapterSidebar(); }
-      if (e.ctrlKey && e.key === 'i') { e.preventDefault(); toggleAIPanel(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); toggleChapterSidebar(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') { e.preventDefault(); toggleAIPanel(); }
       if (e.key === 'Escape') { setSelectionToolbar(null); setWordPopover(null); }
     }
     window.addEventListener('keydown', onKeyDown);

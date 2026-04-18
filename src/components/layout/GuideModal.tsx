@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar } from 'lucide-react';
+import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar, Keyboard } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -71,6 +71,49 @@ export default function GuideModal({ onClose }: Props) {
             </div>
           </section>
 
+          {/* Supported Files */}
+          <section>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+              <FileText className="w-5 h-5" style={{ color: '#8B6914' }} /> Supported Formats
+            </h3>
+            <div className="p-4 rounded-xl border bg-white/50" style={{ borderColor: 'var(--border)' }}>
+              <p className="text-sm leading-relaxed mb-2" style={{ color: 'var(--text-secondary)' }}>
+                Currently, Folio exclusively supports <strong>EPUB (.epub)</strong> files for a seamless, reflowable reading experience.
+              </p>
+              <ul className="list-disc pl-5 text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
+                <li>Upload cleanly formatted EPUBs for the best AI analysis.</li>
+                <li>Add custom cover images optionally during the upload process.</li>
+                <li><strong>Note on compatibility:</strong> We currently do not support <strong>DRM-protected files</strong>, <strong>fixed-layout EPUBs</strong>, or heavily <strong>image-based files</strong> (such as comics or manga). These formats may fail to upload or render properly.</li>
+              </ul>
+            </div>
+          </section>
+
+          {/* Keyboard Shortcuts */}
+          <section>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+              <Keyboard className="w-5 h-5" style={{ color: '#8B6914' }} /> Keyboard Shortcuts
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              <div className="space-y-2">
+                <h4 className="font-semibold" style={{ color: 'var(--text-primary)' }}>Reader Mode</h4>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 rounded border text-xs font-sans leading-none" style={{ backgroundColor: 'var(--bg-sidebar, #F2EFE9)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}>→ / ]</kbd> Next Chapter</li>
+                  <li className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 rounded border text-xs font-sans leading-none" style={{ backgroundColor: 'var(--bg-sidebar, #F2EFE9)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}>← / [</kbd> Previous Chapter</li>
+                  <li className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 rounded border text-xs font-sans leading-none" style={{ backgroundColor: 'var(--bg-sidebar, #F2EFE9)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}>Ctrl/Cmd + B</kbd> Toggle Sidebar</li>
+                  <li className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 rounded border text-xs font-sans leading-none" style={{ backgroundColor: 'var(--bg-sidebar, #F2EFE9)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}>Ctrl/Cmd + I</kbd> Toggle AI Panel</li>
+                  <li className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 rounded border text-xs font-sans leading-none" style={{ backgroundColor: 'var(--bg-sidebar, #F2EFE9)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}>Esc</kbd> Close popups</li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-semibold" style={{ color: 'var(--text-primary)' }}>AI Chat & Forms</h4>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 rounded border text-xs font-sans leading-none" style={{ backgroundColor: 'var(--bg-sidebar, #F2EFE9)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}>Enter</kbd> Send message</li>
+                  <li className="flex items-center gap-2"><kbd className="px-1.5 py-0.5 rounded border text-xs font-sans leading-none" style={{ backgroundColor: 'var(--bg-sidebar, #F2EFE9)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}>Shift + Enter</kbd> New line</li>
+                </ul>
+              </div>
+            </div>
+          </section>
+
           {/* Quiz & Gamification */}
           <section>
             <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
@@ -102,23 +145,6 @@ export default function GuideModal({ onClose }: Props) {
             </div>
           </section>
 
-          {/* Supported Files */}
-          <section>
-            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
-              <FileText className="w-5 h-5" style={{ color: '#8B6914' }} /> Supported Formats
-            </h3>
-            <div className="p-4 rounded-xl border bg-white/50" style={{ borderColor: 'var(--border)' }}>
-              <p className="text-sm leading-relaxed mb-2" style={{ color: 'var(--text-secondary)' }}>
-                Currently, Folio exclusively supports <strong>EPUB (.epub)</strong> files for a seamless, reflowable reading experience.
-              </p>
-              <ul className="list-disc pl-5 text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                <li>Upload cleanly formatted EPUBs for the best AI analysis.</li>
-                <li>Add custom cover images optionally during the upload process.</li>
-                <li><strong>Note on compatibility:</strong> We currently do not support <strong>DRM-protected files</strong>, <strong>fixed-layout EPUBs</strong>, or heavily <strong>image-based files</strong> (such as comics or manga). These formats may fail to upload or render properly.</li>
-              </ul>
-            </div>
-          </section>
-
           {/* Bug Reporting */}
           <section>
             <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
@@ -146,6 +172,9 @@ export default function GuideModal({ onClose }: Props) {
               <p>
                 The intelligence engine is powered by advanced AI models (such as OpenAI/GPT).
                 When you ask a question or request a chapter summary, the AI processes the specific context of the book you are reading to provide accurate, insightful, and relevant responses directly inside your reader.
+              </p>
+              <p className="italic opacity-90">
+                *Note: AI can sometimes make mistakes. Please verify important information.*
               </p>
             </div>
           </section>
@@ -185,7 +214,7 @@ export default function GuideModal({ onClose }: Props) {
           {/* Disclaimer */}
           <section>
             <p className="text-xs italic text-center mx-auto max-w-lg mt-4" style={{ color: 'var(--text-secondary)' }}>
-              The content present in this site has been submitted by users (made it public for user testing purposes) and the site is not responsible for the content uploaded.
+              The content present in this site has been submitted by users (made it public for user testing purposes only) and the site is not responsible for the content uploaded.
             </p>
           </section>
         </div>
