@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { BookMarked, Lightbulb, ChevronRight, CheckCircle2, XCircle, Loader2, BookOpen } from 'lucide-react';
 
-type Stage = 'loading' | 'learn' | 'test' | 'results' | 'read' | 'complete' | 'done' | 'error';
+type Stage = 'loading' | 'learn' | 'test' | 'results' | 'read' | 'complete' | 'review' | 'error';
 
 interface WordItem {
   word: string;
@@ -55,12 +55,11 @@ export default function QuizClient({ type }: Props) {
         if (!res.ok) throw new Error(data.error);
         setQuizSet(data.set);
 
-        if (data.attempt?.stage === 'complete') {
-          setAlreadyCompleted(true);
-          setStage('done');
-        } else if (data.attempt?.stage === 'read') {
-          setResults(data.attempt.feedback);
-          setStage('read');
+        if (data.attempt?.stage === 'complete' || data.attempt?.stage === 'read') {
+          setAlreadyCompleted(data.attempt?.stage === 'complete');
+          setResults(data.attempt?.feedback || null);
+          setAnswers(data.attempt?.answers || ['', '', '', '', '']);
+          setStage('review');
         } else {
           setStage('learn');
         }
@@ -131,7 +130,8 @@ export default function QuizClient({ type }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quizSetId: quizSet.id, stage: 'complete' }),
     });
-    setStage('done');
+    setAlreadyCompleted(true);
+    setStage('review');
   }
 
   // Parse passage with bold markdown and newlines
@@ -170,26 +170,98 @@ export default function QuizClient({ type }: Props) {
     </div>
   );
 
-  // ── Already done today ──
-  if (stage === 'done') return (
-    <div className="flex flex-col items-center justify-center py-32 gap-4 text-center max-w-sm mx-auto">
-      <div className="w-16 h-16 rounded-full flex items-center justify-center"
-        style={{ backgroundColor: '#8B691415' }}>
-        <CheckCircle2 className="w-8 h-8" style={{ color: accent }} />
+  // ── Review Stage ──
+  if (stage === 'review' && results && quizSet) {
+    const questions = quizSet.fill_blanks;
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-8">
+        <div className="flex flex-col items-center justify-center mb-8 text-center py-10 rounded-3xl" style={{ backgroundColor: '#8B691408', border: '1px solid #8B691420' }}>
+          <CheckCircle2 className="w-12 h-12 mb-4" style={{ color: accent }} />
+          <h2 className="text-2xl font-bold" style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>
+            You've completed today's set!
+          </h2>
+          <p className="text-sm mt-3 leading-relaxed max-w-sm" style={{ color: 'var(--text-secondary)' }}>
+            Review your performance below. Come back tomorrow for a new fresh set.
+          </p>
+          <a href="/quiz"
+             className="mt-6 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 shadow-md"
+             style={{ backgroundColor: accent }}>
+            Back to Dashboard
+          </a>
+        </div>
+
+        {/* Score */}
+        <div className="rounded-2xl p-6 mb-10 text-center shadow-sm"
+          style={{ backgroundColor: 'var(--bg-card,#fff)', border: '1px solid var(--border)' }}>
+          <div className="text-5xl font-bold mb-2" style={{ color: accent, fontFamily: 'Lora, Georgia, serif' }}>
+            {results.totalScore}/5
+          </div>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{results.overallFeedback}</p>
+        </div>
+
+        {/* Per-question feedback */}
+        <h3 className="text-xl font-bold mb-5 flex items-center gap-2" style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>
+          <BookOpen className="w-5 h-5" style={{ color: accent }} /> Your Answers
+        </h3>
+        <div className="space-y-4 mb-10">
+          {results.results?.map((r: any, idx: number) => {
+            const parts = questions[idx]?.sentence.split('__________');
+            return (
+              <div key={idx} className="rounded-2xl border p-5 shadow-sm"
+                style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
+                <p className="text-[15px] leading-loose mb-4" style={{ color: 'var(--text-primary)' }}>
+                  <span className="font-bold opacity-60 mr-2">{idx + 1}.</span>
+                  {parts[0]}
+                  <strong style={{ color: accent, margin: '0 4px', borderBottom: `2px solid ${accent}` }}>
+                    {questions[idx]?.answer}
+                  </strong>
+                  {parts[1]}
+                </p>
+                <div className="flex gap-3 items-start p-4 rounded-xl border" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border)' }}>
+                  <div className="mt-0.5 shrink-0">
+                    {r.correct
+                      ? <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      : <XCircle className="w-5 h-5 text-red-500" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                      {r.correct ? 'Correct' : `Expected "${questions[idx]?.answer}" — you wrote "${answers[idx] || r.userAnswer || 'nothing'}"`}
+                    </p>
+                    <p className="text-xs leading-relaxed opacity-80" style={{ color: 'var(--text-secondary)' }}>{r.feedback}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <h3 className="text-xl font-bold mb-5 flex items-center gap-2" style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>
+          <BookMarked className="w-5 h-5" style={{ color: accent }} /> Passage Review
+        </h3>
+        <div className="rounded-2xl border p-8 mb-8 shadow-sm"
+          style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
+          {renderPassage(results?.customPassage || quizSet.passage)}
+        </div>
+        
+        
+        <div className="flex justify-center mt-12 mb-8">
+          {!alreadyCompleted ? (
+            <button onClick={handleFinish}
+              className="flex items-center gap-2 px-8 py-4 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90 shadow-lg"
+              style={{ backgroundColor: accent }}>
+              Finish Set ✦
+            </button>
+          ) : (
+            <a href="/quiz"
+              className="flex items-center gap-2 px-8 py-4 rounded-xl text-sm font-bold text-white transition-opacity hover:opacity-90 shadow-lg"
+              style={{ backgroundColor: accent }}>
+              Back to Quiz Dashboard <ChevronRight className="w-4 h-4" />
+            </a>
+          )}
+        </div>
       </div>
-      <h2 className="text-xl font-semibold" style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>
-        {alreadyCompleted ? "You've already completed today's set!" : "Set Complete! ✦"}
-      </h2>
-      <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-        Come back tomorrow for a fresh {label.toLowerCase()} set. Consistency is key to building a strong vocabulary!
-      </p>
-      <a href="/quiz"
-        className="mt-2 px-6 py-2.5 rounded-xl text-sm font-medium text-white"
-        style={{ backgroundColor: accent }}>
-        Back to Quiz
-      </a>
-    </div>
-  );
+    );
+  }
 
   if (!quizSet) return null;
   const words = quizSet.items;

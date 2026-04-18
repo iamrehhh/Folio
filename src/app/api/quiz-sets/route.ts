@@ -16,23 +16,29 @@ export async function GET(req: NextRequest) {
     const admin = createAdminClient();
 
     // Check if today's set already exists
-    const { data: existing } = await admin
+    const { data: existingSets } = await admin
       .from('daily_quiz_sets')
       .select('*')
       .eq('type', type)
       .eq('date', today)
-      .single();
+      .order('created_at', { ascending: true });
 
-    if (existing) {
-      // Get user's attempt for this set
-      const { data: attempt } = await supabase
+    if (existingSets && existingSets.length > 0) {
+      const setIds = existingSets.map((s: any) => s.id);
+
+      // Get user's attempt for any of these sets
+      const { data: attempts } = await supabase
         .from('quiz_attempts')
         .select('*')
         .eq('user_id', user.id)
-        .eq('quiz_set_id', existing.id)
-        .single();
+        .in('quiz_set_id', setIds);
 
-      return NextResponse.json({ set: existing, attempt: attempt ?? null });
+      const userAttempt = attempts && attempts.length > 0 ? attempts[0] : null;
+      
+      const targetSetId = userAttempt ? userAttempt.quiz_set_id : existingSets[0].id;
+      const targetSet = existingSets.find((s: any) => s.id === targetSetId) || existingSets[0];
+
+      return NextResponse.json({ set: targetSet, attempt: userAttempt });
     }
 
     // Generate new set — get last 7 days of used words to avoid repeats
