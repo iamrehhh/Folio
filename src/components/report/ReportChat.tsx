@@ -43,6 +43,13 @@ export default function ReportChat({ reportId, onBack, isAdmin, onResolve }: Pro
   }, [reportId]);
 
   useEffect(() => {
+    // Mark as read when the user opens the chat
+    if (!isAdmin) {
+      fetch(`/api/reports/${reportId}/read`, { method: 'PATCH' }).catch(console.error);
+    }
+  }, [reportId, isAdmin]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 

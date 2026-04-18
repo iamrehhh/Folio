@@ -24,6 +24,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
+const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
+
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const supabase = createClient();
@@ -51,10 +53,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     if (error) throw error;
 
+    const isAdmin = ADMIN_EMAILS.includes(user.email as string);
+
     // touch the updated_at timestamp on the report
     await supabase
       .from('bug_reports')
-      .update({ updated_at: new Date().toISOString() })
+      .update({ 
+        updated_at: new Date().toISOString(),
+        ...(isAdmin ? { has_unread_admin_message: true } : {})
+      })
       .eq('id', params.id);
 
     return NextResponse.json({ success: true });

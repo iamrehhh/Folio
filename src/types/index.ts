@@ -2,7 +2,7 @@
 // Database row types (mirrors Supabase schema)
 // ─────────────────────────────────────────────
 
-export type ReadingTheme = 'light' | 'sepia' | 'dark';
+export type ReadingTheme = 'light' | 'sepia' | 'dark' | 'dark-sepia';
 export type ReadingFontFamily = 'default' | 'inter' | 'merriweather' | 'comic-sans' | 'arial';
 export type HighlightColor = 'yellow' | 'blue' | 'green' | 'pink';
 
@@ -173,6 +173,7 @@ export interface BugReport {
   user_id: string;
   subject: string;
   status: 'active' | 'resolved';
+  has_unread_admin_message: boolean;
   created_at: string;
   updated_at: string;
   // joined optional

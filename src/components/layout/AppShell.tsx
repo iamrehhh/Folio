@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Home, BookOpen, Highlighter, BookMarked, LogOut, User, HelpCircle, Menu, X, GraduationCap, Shield, AlertCircle
 } from 'lucide-react';
@@ -34,6 +34,26 @@ export default function AppShell({ children, user }: AppShellProps) {
   const supabase = createClient();
   const [showGuide, setShowGuide] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hasUnreadReport, setHasUnreadReport] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const checkUnread = async () => {
+      try {
+        const r = await fetch('/api/reports/unread');
+        if (!r.ok) return;
+        const d = await r.json();
+        setHasUnreadReport(d.hasUnread || false);
+      } catch (err) {
+        console.error('Failed to check unread reports', err);
+      }
+    };
+
+    checkUnread();
+    const interval = setInterval(checkUnread, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
+  }, [user]);
 
   const isAdmin = ADMIN_EMAILS.includes(user?.email as string);
 
@@ -69,15 +89,21 @@ export default function AppShell({ children, user }: AppShellProps) {
           <nav className="hidden md:flex items-center gap-1 shrink-0">
             {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
               const active = pathname === href;
+              const isReport = href === '/report';
               return (
                 <Link key={href} href={href}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors relative',
                     active ? 'text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border)]'
                   )}
                   style={active ? { backgroundColor: '#8B6914', color: '#fff' } : {}}
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <div className="relative flex items-center justify-center pointer-events-none">
+                    <Icon className="w-3.5 h-3.5" />
+                    {isReport && hasUnreadReport && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white" style={{ borderColor: active ? '#8B6914' : 'var(--bg-sidebar)' }} />
+                    )}
+                  </div>
                   {label}
                 </Link>
               );
@@ -140,6 +166,7 @@ export default function AppShell({ children, user }: AppShellProps) {
             style={{ backgroundColor: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}>
             {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
               const active = pathname === href;
+              const isReport = href === '/report';
               return (
                 <Link key={href} href={href}
                   onClick={() => setMobileMenuOpen(false)}
@@ -149,7 +176,12 @@ export default function AppShell({ children, user }: AppShellProps) {
                   )}
                   style={active ? { backgroundColor: '#8B6914' } : { color: 'var(--text-primary)' }}
                 >
-                  <Icon className="w-4 h-4" />
+                  <div className="relative flex items-center justify-center pointer-events-none">
+                    <Icon className="w-4 h-4" />
+                    {isReport && hasUnreadReport && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[var(--bg-sidebar)]" style={{ borderColor: active ? '#8B6914' : 'var(--bg-sidebar)' }} />
+                    )}
+                  </div>
                   {label}
                 </Link>
               );

@@ -14,7 +14,7 @@ CREATE TABLE public.profiles (
   email TEXT NOT NULL,
   full_name TEXT,
   avatar_url TEXT,
-  reading_theme TEXT NOT NULL DEFAULT 'light' CHECK (reading_theme IN ('light', 'sepia', 'dark')),
+  reading_theme TEXT NOT NULL DEFAULT 'light' CHECK (reading_theme IN ('light', 'sepia', 'dark', 'dark-sepia')),
   font_size INTEGER NOT NULL DEFAULT 17 CHECK (font_size BETWEEN 14 AND 22),
   line_height NUMERIC(3,1) NOT NULL DEFAULT 1.8 CHECK (line_height BETWEEN 1.4 AND 2.2),
   gamify_score INTEGER NOT NULL DEFAULT 0,
