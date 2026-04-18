@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 type FilterTab = 'all' | 'unread' | 'reading' | 'completed' | 'scheduled';
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
@@ -395,10 +396,12 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
               } catch { toast.error('Failed to schedule book'); }
             }}>
               <label className="block text-sm mb-2 font-medium" style={{ color: 'var(--text-secondary)' }}>Select a date to start reading:</label>
-              <input type="date" name="date" required 
-                     defaultValue={scheduleMap.get(schedulingBook.id)?.scheduled_for || ''}
-                     className="w-full px-3 py-2 rounded-lg border mb-5 outline-none" 
-                     style={{ backgroundColor: 'transparent', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
+              <DatePicker 
+                name="date" 
+                required 
+                value={scheduleMap.get(schedulingBook.id)?.scheduled_for ? new Date(scheduleMap.get(schedulingBook.id)!.scheduled_for) : undefined}
+                className="mb-5"
+              />
               
               <div className="flex gap-3">
                 {scheduleMap.has(schedulingBook.id) && (

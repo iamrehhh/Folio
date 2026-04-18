@@ -619,8 +619,9 @@ export default function ReaderClient({
         currentChapterIndexRef.current = tocIdx;
 
         if (percent >= 100 && completionShownFor !== book.id) {
-          setCompletionShownFor(book.id);
-          setTimeout(() => setShowCompletion(true), 800);
+          // Progress is 100%, but we wait until the user finishes reading
+          // the last page (i.e. tries to advance past the last section)
+          // before showing the rating popup.
         }
 
         try {
@@ -857,6 +858,27 @@ export default function ReaderClient({
 
     const exitState = direction === 'next' ? 'exit-next' : 'exit-prev';
     const enterState = direction === 'next' ? 'enter-next' : 'enter-prev';
+
+    if (direction === 'next') {
+      let isLastSpine = false;
+      if (bookRef.current) {
+        const location = renditionRef.current.currentLocation?.();
+        const spineIdx = location?.start?.index ?? 0;
+        const spineItems: any[] = [];
+        bookRef.current.spine.each((item: any) => spineItems.push(item));
+        if (spineIdx >= spineItems.length - 1) {
+          isLastSpine = true;
+        }
+      }
+
+      if (isLastSpine) {
+        if (completionShownFor !== book.id) {
+          setCompletionShownFor(book.id);
+          setShowCompletion(true);
+        }
+        return;
+      }
+    }
 
     chapterTransitionRef.current = exitState;
     setChapterTransition(exitState);
