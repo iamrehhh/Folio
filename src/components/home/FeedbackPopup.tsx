@@ -6,7 +6,7 @@ import { X, Star, Send, Sparkles } from 'lucide-react';
 
 const LS_KEY_PREFIX = 'folio_feedback_state_v2_';
 
-export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks: boolean }) {
+export default function FeedbackPopup({ hasCompletedBooks, forceFeedback }: { hasCompletedBooks: boolean; forceFeedback?: boolean }) {
   const [show, setShow] = useState(false);
   const [phase, setPhase] = useState<'form' | 'success'>('form');
   const [closing, setClosing] = useState(false);
@@ -19,7 +19,7 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
   const supabase = createClient();
 
   useEffect(() => {
-    if (!hasCompletedBooks) return;
+    if (!hasCompletedBooks && !forceFeedback) return;
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
@@ -27,6 +27,13 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || cancelled) return;
+
+      if (forceFeedback) {
+        if (!cancelled) {
+          timer = setTimeout(() => setShow(true), 2500);
+        }
+        return;
+      }
 
       const userLsKey = `${LS_KEY_PREFIX}${user.id}`;
       setLsKey(userLsKey);
@@ -60,7 +67,7 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [hasCompletedBooks]);
+  }, [hasCompletedBooks, forceFeedback]);
 
   const close = useCallback(() => {
     setClosing(true);
@@ -70,13 +77,22 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
     }, 350);
   }, []);
 
+  const dismissForcedFeedback = async () => {
+    if (!forceFeedback) return;
+    try {
+      await fetch('/api/user/feedback-request/dismiss', { method: 'POST' });
+    } catch (e) {}
+  };
+
   const handleSkip = () => {
     if (lsKey) localStorage.setItem(lsKey, 'skipped');
+    dismissForcedFeedback();
     close();
   };
 
   const handleLater = () => {
     if (lsKey) localStorage.setItem(lsKey, Date.now().toString());
+    dismissForcedFeedback();
     close();
   };
 
@@ -90,15 +106,16 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
 
       const { error } = await supabase
         .from('site_feedback')
-        .insert({
+        .upsert({
           user_id: user.id,
           rating,
           feedback: feedback.trim() || null,
-        });
+        }, { onConflict: 'user_id' });
 
       if (error) throw error;
 
       if (lsKey) localStorage.setItem(lsKey, 'submitted');
+      dismissForcedFeedback();
       setPhase('success');
 
       // Auto-close after showing success
@@ -174,10 +191,10 @@ export default function FeedbackPopup({ hasCompletedBooks }: { hasCompletedBooks
                   className="text-xl font-bold text-center mb-1"
                   style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}
                 >
-                  How's your Folio experience?
+                  {forceFeedback ? "We'd love to hear your thoughts on Folio!" : "How's your Folio experience?"}
                 </h3>
                 <p className="text-sm text-center mb-6" style={{ color: 'var(--text-secondary)' }}>
-                  You've finished a book — we'd love to hear your thoughts!
+                  {forceFeedback ? "Got a moment? Share your feedback with us!" : "You've finished a book — we'd love to hear your thoughts!"}
                 </p>
 
                 {/* Star Rating */}

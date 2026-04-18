@@ -15,6 +15,7 @@ export interface Profile {
   font_size: number; // 14–22
   line_height: number; // 1.4–2.2
   gamify_score: number;
+  force_feedback_request: boolean;
   created_at: string;
   updated_at: string;
 }

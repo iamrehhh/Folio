@@ -31,6 +31,7 @@ interface UserStat {
   avg_daily_quiz_score: number;
   chapter_quizzes_taken: number;
   avg_chapter_quiz_score: number;
+  force_feedback_request?: boolean;
 }
 
 interface Overview {
@@ -85,8 +86,10 @@ function StatCard({ icon: Icon, label, value, sub }: {
   );
 }
 
-function UserRow({ user }: { user: UserStat }) {
+function UserRow({ user: initialUser }: { user: UserStat }) {
   const [expanded, setExpanded] = useState(false);
+  const [user, setUser] = useState(initialUser);
+  const [isRequesting, setIsRequesting] = useState(false);
 
   const initials = user.full_name
     ? user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -202,6 +205,38 @@ function UserRow({ user }: { user: UserStat }) {
               No personal books uploaded.
             </p>
           )}
+
+          <div className="mt-4 pt-4 border-t flex justify-end" style={{ borderColor: 'var(--border)' }}>
+            <button
+              disabled={isRequesting || user.force_feedback_request}
+              onClick={async (e) => {
+                e.stopPropagation();
+                setIsRequesting(true);
+                try {
+                  const res = await fetch('/api/admin/users/feedback-request', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.id, force_feedback_request: true })
+                  });
+                  if (!res.ok) throw new Error('Failed to request feedback');
+                  setUser(prev => ({ ...prev, force_feedback_request: true }));
+                } catch (err) {
+                  console.error(err);
+                } finally {
+                  setIsRequesting(false);
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+              style={{ 
+                backgroundColor: user.force_feedback_request ? 'var(--bg-card,#fff)' : '#8B6914', 
+                color: user.force_feedback_request ? 'var(--text-secondary)' : '#fff',
+                border: user.force_feedback_request ? '1px solid var(--border)' : 'none'
+              }}
+            >
+              {isRequesting ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              {user.force_feedback_request ? 'Feedback Requested' : 'Ask for Feedback'}
+            </button>
+          </div>
         </div>
       )}
     </div>

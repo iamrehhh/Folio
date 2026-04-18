@@ -3,17 +3,19 @@
 import { Star, Quote } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
 
+interface FeedbackProps {
+  id: string;
+  rating: number;
+  feedback: string | null;
+  created_at: string;
+  user: {
+    full_name: string | null;
+    avatar_url: string | null;
+  };
+}
+
 interface FeaturedFeedbackProps {
-  feedbacks: {
-    id: string;
-    rating: number;
-    feedback: string | null;
-    created_at: string;
-    user: {
-      full_name: string | null;
-      avatar_url: string | null;
-    };
-  }[];
+  feedbacks: FeedbackProps[];
 }
 
 function StarDisplay({ rating }: { rating: number }) {
@@ -28,6 +30,73 @@ function StarDisplay({ rating }: { rating: number }) {
           strokeWidth={1.5}
         />
       ))}
+    </div>
+  );
+}
+
+function FeedbackCard({ f }: { f: FeedbackProps }) {
+  const [expanded, setExpanded] = useState(false);
+  const text = f.feedback || "Excellent experience on the platform.";
+  const isLong = text.length > 140; // threshold for showing "Read more"
+
+  const initials = f.user.full_name
+    ? f.user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'F'; // Default if no name
+
+  return (
+    <div 
+      className="flex-none w-[280px] sm:w-[320px] rounded-2xl p-6 border transition-all duration-300 hover:shadow-soft hover:-translate-y-1 snap-start relative bg-white/50 backdrop-blur-md flex flex-col"
+      style={{ 
+        borderColor: 'var(--border)',
+        background: 'linear-gradient(135deg, var(--bg-card, #fff) 0%, rgba(255,255,255,0.4) 100%)'
+      }}
+    >
+      <Quote className="absolute top-5 right-5 w-6 h-6 opacity-5" style={{ color: 'var(--text-primary)' }} />
+      
+      <div className="mb-4">
+        <StarDisplay rating={f.rating} />
+      </div>
+
+      <div className={`relative transition-all duration-300 ${expanded ? '' : 'h-[100px] overflow-hidden'}`}>
+        <p 
+          className={`text-sm leading-relaxed italic ${expanded ? 'pb-2' : 'line-clamp-4'}`} 
+          style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}
+        >
+          "{text}"
+        </p>
+        {/* Fade out text if overly long */}
+        {!expanded && isLong && (
+          <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/20 to-transparent pointer-events-none" />
+        )}
+      </div>
+
+      {isLong && (
+        <button 
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs font-semibold mt-1 text-left opacity-70 hover:opacity-100 transition-opacity w-[fit-content]"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          {expanded ? 'Show less' : 'Read more'}
+        </button>
+      )}
+
+      <div className="flex items-center gap-3 mt-auto pt-4 border-t" style={{ borderColor: 'var(--border)', marginTop: '1.25rem' }}>
+        {f.user.avatar_url ? (
+          <img src={f.user.avatar_url} alt={f.user.full_name ?? ''} className="w-10 h-10 rounded-full object-cover shadow-sm" />
+        ) : (
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm" style={{ backgroundColor: '#F0EBE1', color: '#8B6914' }}>
+            {initials}
+          </div>
+        )}
+        <div>
+          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            {f.user.full_name ?? 'Anonymous'}
+          </p>
+          <p className="text-[10px] uppercase font-medium tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+            Folio Reader
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -100,57 +169,9 @@ export default function FeaturedFeedback({ feedbacks }: FeaturedFeedbackProps) {
         className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 px-2 snap-x snap-mandatory hide-scrollbars"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {feedbacks.map((f, idx) => {
-          const initials = f.user.full_name
-            ? f.user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-            : 'F'; // Default if no name
-            
-          return (
-            <div 
-              key={f.id || idx}
-              className="flex-none w-[280px] sm:w-[320px] rounded-2xl p-6 border transition-all duration-300 hover:shadow-soft hover:-translate-y-1 snap-start relative bg-white/50 backdrop-blur-md"
-              style={{ 
-                borderColor: 'var(--border)',
-                background: 'linear-gradient(135deg, var(--bg-card, #fff) 0%, rgba(255,255,255,0.4) 100%)'
-              }}
-            >
-              <Quote className="absolute top-5 right-5 w-6 h-6 opacity-5" style={{ color: 'var(--text-primary)' }} />
-              
-              <div className="mb-4">
-                <StarDisplay rating={f.rating} />
-              </div>
-
-              <div className="h-[100px] overflow-hidden relative">
-                <p 
-                  className="text-sm leading-relaxed italic line-clamp-4" 
-                  style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}
-                >
-                  "{f.feedback || "Excellent experience on the platform."}"
-                </p>
-                {/* Fade out text if overly long */}
-                <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/20 to-transparent pointer-events-none" />
-              </div>
-
-              <div className="flex items-center gap-3 mt-6 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
-                {f.user.avatar_url ? (
-                  <img src={f.user.avatar_url} alt={f.user.full_name ?? ''} className="w-10 h-10 rounded-full object-cover shadow-sm" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm" style={{ backgroundColor: '#F0EBE1', color: '#8B6914' }}>
-                    {initials}
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {f.user.full_name ?? 'Anonymous'}
-                  </p>
-                  <p className="text-[10px] uppercase font-medium tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-                    Folio Reader
-                  </p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {feedbacks.map((f, idx) => (
+          <FeedbackCard key={f.id || idx} f={f} />
+        ))}
       </div>
       <style dangerouslySetInnerHTML={{__html: `
         .hide-scrollbars::-webkit-scrollbar {

@@ -17,7 +17,7 @@ export async function GET() {
     // 1. All users (profiles)
     const { data: profiles, error: profilesError } = await admin
       .from('profiles')
-      .select('id, email, full_name, avatar_url, created_at, gamify_score')
+      .select('id, email, full_name, avatar_url, created_at, gamify_score, force_feedback_request')
       .order('created_at', { ascending: false });
 
     if (profilesError) throw profilesError;
@@ -121,6 +121,7 @@ export async function GET() {
         avg_daily_quiz_score: avgQuizScore,
         chapter_quizzes_taken: userChapterQuizzes.length,
         avg_chapter_quiz_score: avgChapterScore,
+        force_feedback_request: profile.force_feedback_request || false,
       };
     });
 

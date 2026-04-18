@@ -118,7 +118,10 @@ export default async function HomePage() {
         )}
 
         <LiveNotification />
-        <FeedbackPopup hasCompletedBooks={(completedAllTime ?? 0) > 0} />
+        <FeedbackPopup 
+          hasCompletedBooks={(completedAllTime ?? 0) > 0} 
+          forceFeedback={profile?.force_feedback_request ?? false} 
+        />
       </div>
     </AppShell>
   );
