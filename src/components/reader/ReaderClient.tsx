@@ -213,119 +213,6 @@ export default function ReaderClient({
       let displayOk = false;
       const displayCfi = targetCfi ? cfiForDisplay(targetCfi) : undefined;
 
-      await Promise.race([
-        (displayCfi
-          ? rendition.display(displayCfi).then(() => {
-            displayOk = true;
-          })
-          : rendition.display()
-        ).then(() => { displayOk = true; }),
-        new Promise<void>((_, reject) =>
-          setTimeout(() => reject(new Error('display timeout')), 8000)
-        ),
-      ]).catch(async (err) => {
-        console.warn('[Reader] display failed, retrying:', err.message);
-        if (!mounted || !viewerRef.current) return;
-        renditionRef.current?.destroy?.();
-        viewerRef.current.innerHTML = '';
-
-        const fallback = epubBook.renderTo(viewerRef.current!, {
-          width: '100%', height: '100%', spread: 'none',
-          flow: 'scrolled', allowScriptedContent: true,
-        });
-        renditionRef.current = fallback;
-        applyTheme(fallback, theme, fontFamily, fontSize, lineHeight);
-
-        await Promise.race([
-          fallback.display().then(() => { displayOk = true; }),
-          new Promise<void>((_, reject) =>
-            setTimeout(() => reject(new Error('fallback timeout')), 8000)
-          ),
-        ]).catch(() => {
-          console.warn('[Reader] fallback also failed — showing error');
-        });
-
-        if (displayOk) {
-          fallback.hooks.content.register((contents: any) => {
-            const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
-            if (iframe) iframe.style.cssText = 'width:100% !important;height:100% !important;border:none !important;';
-            const doc = contents.document;
-            if (doc?.body) doc.body.style.cssText = 'width:100% !important;margin:0 !important;padding:3rem 5rem !important;box-sizing:border-box !important;overflow-x:hidden !important;word-wrap:break-word !important;';
-            doc.addEventListener('click', () => {
-              const sel = contents.window.getSelection();
-              if (!sel || sel.isCollapsed) { setSelectionToolbar(null); setWordPopover(null); }
-            });
-          });
-        }
-      });
-
-      if (!mounted) return;
-      if (!displayOk) {
-        setLoadError(true);
-        setIsLoading(false);
-        return;
-      }
-      setIsLoading(false);
-
-      // After navigating to a highlight via jumpToCfi, scroll the annotation into view
-      if (jumpToCfi && displayOk) {
-        setTimeout(() => {
-          try {
-            const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
-            const iframeDoc = iframe?.contentDocument;
-            if (iframeDoc) {
-              // epub.js renders highlights as SVG elements with the epubjs-hl class
-              const hlElements = iframeDoc.querySelectorAll('.epubjs-hl');
-              if (hlElements.length > 0) {
-                // Find the highlight matching our CFI by checking data attributes
-                let targetEl: Element | null = null;
-                for (const el of Array.from(hlElements)) {
-                  const elCfi = el.getAttribute('data-epubcfi') ?? el.closest('g')?.getAttribute('data-epubcfi') ?? '';
-                  if (elCfi === jumpToCfi) {
-                    targetEl = el;
-                    break;
-                  }
-                }
-                // Fallback: use the first highlight on the page
-                if (!targetEl) targetEl = hlElements[0];
-
-                // Scroll into view smoothly
-                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                // Add a brief pulse animation to draw attention
-                const rect = targetEl.closest('g') ?? targetEl;
-                if (rect instanceof SVGElement || rect instanceof HTMLElement) {
-                  rect.style.transition = 'opacity 0.3s';
-                  rect.style.opacity = '1';
-                  setTimeout(() => { rect.style.opacity = '0.35'; }, 1500);
-                  setTimeout(() => { rect.style.opacity = '1'; }, 2000);
-                  setTimeout(() => { rect.style.opacity = '0.35'; }, 2500);
-                }
-              }
-            }
-          } catch { /* ignore scroll-to-highlight errors */ }
-        }, 800);
-      }
-
-      setTimeout(() => {
-        if (!mounted) return;
-        epubBook.locations.generate(1000).then(() => {
-          if (!mounted) return;
-          locationsReadyRef.current = true;
-          const currentCfi = initialProgress?.cfi;
-          if (currentCfi) {
-            const accuratePercent = Math.round(
-              (epubBook.locations.percentageFromCfi?.(currentCfi) ?? 0) * 100
-            );
-            if (accuratePercent > 0) {
-              setProgress(currentChapterIndexRef.current, currentCfi, accuratePercent);
-            }
-          }
-        }).catch(() => {
-          locationsReadyRef.current = true;
-        });
-      }, 500);
-
       rendition.hooks.content.register((contents: any) => {
         const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
         if (iframe) {
@@ -700,6 +587,154 @@ export default function ReaderClient({
           setWordPopover(null);
         }
       });
+
+      await Promise.race([
+        (displayCfi
+          ? rendition.display(displayCfi).then(() => {
+            displayOk = true;
+          })
+          : rendition.display()
+        ).then(() => { displayOk = true; }),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('display timeout')), 8000)
+        ),
+      ]).catch(async (err) => {
+        console.warn('[Reader] display failed, retrying:', err.message);
+        if (!mounted || !viewerRef.current) return;
+        renditionRef.current?.destroy?.();
+        viewerRef.current.innerHTML = '';
+
+        const fallback = epubBook.renderTo(viewerRef.current!, {
+          width: '100%', height: '100%', spread: 'none',
+          flow: 'scrolled', allowScriptedContent: true,
+        });
+        renditionRef.current = fallback;
+        applyTheme(fallback, theme, fontFamily, fontSize, lineHeight);
+
+        await Promise.race([
+          fallback.display().then(() => { displayOk = true; }),
+          new Promise<void>((_, reject) =>
+            setTimeout(() => reject(new Error('fallback timeout')), 8000)
+          ),
+        ]).catch(() => {
+          console.warn('[Reader] fallback also failed — showing error');
+        });
+
+        if (displayOk) {
+          fallback.hooks.content.register((contents: any) => {
+            const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
+            if (iframe) iframe.style.cssText = 'width:100% !important;height:100% !important;border:none !important;';
+            const doc = contents.document;
+            if (doc?.body) doc.body.style.cssText = 'width:100% !important;margin:0 !important;padding:3rem 5rem !important;box-sizing:border-box !important;overflow-x:hidden !important;word-wrap:break-word !important;';
+            doc.addEventListener('click', () => {
+              const sel = contents.window.getSelection();
+              if (!sel || sel.isCollapsed) { setSelectionToolbar(null); setWordPopover(null); }
+            });
+          });
+        }
+      });
+
+      if (!mounted) return;
+      if (!displayOk) {
+        setLoadError(true);
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(false);
+
+      // After navigating to a highlight via jumpToCfi, scroll the annotation into view
+      if (jumpToCfi && displayOk) {
+        setTimeout(() => {
+          try {
+            const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
+            const iframeDoc = iframe?.contentDocument;
+            if (iframeDoc) {
+              // epub.js renders highlights as SVG elements with the epubjs-hl class
+              const hlElements = iframeDoc.querySelectorAll('.epubjs-hl');
+              if (hlElements.length > 0) {
+                // Find the highlight matching our CFI by checking data attributes
+                let targetEl: Element | null = null;
+                for (const el of Array.from(hlElements)) {
+                  const elCfi = el.getAttribute('data-epubcfi') ?? el.closest('g')?.getAttribute('data-epubcfi') ?? '';
+                  if (elCfi === jumpToCfi) {
+                    targetEl = el;
+                    break;
+                  }
+                }
+                // Fallback: use the first highlight on the page
+                if (!targetEl) targetEl = hlElements[0];
+
+                // Scroll into view smoothly
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Add a brief pulse animation to draw attention
+                const rect = targetEl.closest('g') ?? targetEl;
+                if (rect instanceof SVGElement || rect instanceof HTMLElement) {
+                  rect.style.transition = 'opacity 0.3s';
+                  rect.style.opacity = '1';
+                  setTimeout(() => { rect.style.opacity = '0.35'; }, 1500);
+                  setTimeout(() => { rect.style.opacity = '1'; }, 2000);
+                  setTimeout(() => { rect.style.opacity = '0.35'; }, 2500);
+                }
+              }
+            }
+          } catch { /* ignore scroll-to-highlight errors */ }
+        }, 800);
+      }
+
+      setTimeout(() => {
+        if (!mounted) return;
+
+        const cacheKey = `folio_locations_${book.id}`;
+        let cachedLocations = null;
+        
+        try {
+          cachedLocations = localStorage.getItem(cacheKey);
+        } catch { /* ignore */ }
+
+        if (cachedLocations) {
+          try {
+            epubBook.locations.load(cachedLocations);
+            locationsReadyRef.current = true;
+            const currentCfi = initialProgress?.cfi;
+            if (currentCfi) {
+              const accuratePercent = Math.round(
+                (epubBook.locations.percentageFromCfi?.(currentCfi) ?? 0) * 100
+              );
+              if (accuratePercent > 0) {
+                setProgress(currentChapterIndexRef.current, currentCfi, accuratePercent);
+              }
+            }
+            return;
+          } catch (err) {
+            console.error('[Reader] Failed to load cached locations', err);
+            // Fallthrough to generation
+          }
+        }
+
+        epubBook.locations.generate(1000).then(() => {
+          if (!mounted) return;
+          try {
+            const locationsToCache = epubBook.locations.save();
+            localStorage.setItem(cacheKey, locationsToCache);
+          } catch (err) {
+            console.error('[Reader] Failed to cache locations', err);
+          }
+          
+          locationsReadyRef.current = true;
+          const currentCfi = initialProgress?.cfi;
+          if (currentCfi) {
+            const accuratePercent = Math.round(
+              (epubBook.locations.percentageFromCfi?.(currentCfi) ?? 0) * 100
+            );
+            if (accuratePercent > 0) {
+              setProgress(currentChapterIndexRef.current, currentCfi, accuratePercent);
+            }
+          }
+        }).catch(() => {
+          locationsReadyRef.current = true;
+        });
+      }, 500);
 
       for (const h of initialHighlights) {
         try {
