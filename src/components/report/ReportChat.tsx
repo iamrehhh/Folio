@@ -29,6 +29,13 @@ export default function ReportChat({ reportId, onBack, isAdmin, onResolve }: Pro
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (inputText === '' && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [inputText]);
 
   useEffect(() => {
     fetchMessages();
@@ -216,7 +223,7 @@ export default function ReportChat({ reportId, onBack, isAdmin, onResolve }: Pro
           </div>
         )}
 
-        <form onSubmit={handleSend} className="flex gap-2">
+        <form onSubmit={handleSend} className="flex gap-2 items-end">
           <input 
             type="file" 
             accept="image/*" 
@@ -233,12 +240,29 @@ export default function ReportChat({ reportId, onBack, isAdmin, onResolve }: Pro
             <ImageIcon className="w-5 h-5" />
           </button>
           
-          <input 
-            type="text" 
+          <textarea
+            ref={textareaRef}
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
+            onChange={(e) => {
+              setInputText(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (inputText.trim() || uploadFile) {
+                  handleSend(e as unknown as React.FormEvent);
+                }
+              }
+            }}
             placeholder="Type your message..."
-            className="flex-1 bg-slate-50 border border-slate-200 focus:border-red-400 focus:ring-1 focus:ring-red-400 p-3 rounded-xl text-sm outline-none transition-all"
+            rows={1}
+            className="flex-1 bg-slate-50 border border-slate-200 focus:border-red-400 focus:ring-1 focus:ring-red-400 p-3 rounded-xl text-sm outline-none transition-all resize-none appearance-none"
+            style={{
+              minHeight: '46px',
+              maxHeight: '120px'
+            }}
             disabled={sending}
           />
           

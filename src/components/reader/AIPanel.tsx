@@ -27,6 +27,13 @@ export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose 
   const [isStreaming, setIsStreaming] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (input === '' && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [input]);
 
   // Pre-fill with selected text if any
   useEffect(() => {
@@ -229,18 +236,30 @@ export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose 
 
       {/* Input */}
       <div className="p-3 border-t shrink-0" style={{ borderColor: border }}>
-        <div className="flex gap-2">
-          <input
-            type="text"
+        <div className="flex gap-2 items-end">
+          <textarea
+            ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(input);
+              }
+            }}
             placeholder="Ask about this chapter…"
-            className="flex-1 px-3 py-2 text-sm rounded-lg border outline-none"
+            rows={1}
+            className="flex-1 px-3 py-2 text-sm rounded-lg border outline-none resize-none appearance-none"
             style={{
               backgroundColor: inputBg,
               borderColor: border,
               color: textPrimary,
+              minHeight: '38px',
+              maxHeight: '120px'
             }}
           />
           <button

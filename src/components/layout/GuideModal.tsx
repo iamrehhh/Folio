@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy } from 'lucide-react';
+import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -87,6 +87,21 @@ export default function GuideModal({ onClose }: Props) {
             </div>
           </section>
 
+          {/* Scheduling & Calendar */}
+          <section>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+              <Calendar className="w-5 h-5" style={{ color: '#8B6914' }} /> Reading Schedule
+            </h3>
+            <div className="space-y-3 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <p>
+                Use the <strong>Calendar Scheduling</strong> feature to plan and track your reading habits. It provides an intuitive, visually elegant calendar where you can map out your reading goals and keep your sessions organized.
+              </p>
+              <p>
+                Setting regular schedules helps you build a strong reading habit over time by giving you a clear, synchronized overview of your reading progress and commitments.
+              </p>
+            </div>
+          </section>
+
           {/* Supported Files */}
           <section>
             <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
@@ -99,7 +114,23 @@ export default function GuideModal({ onClose }: Props) {
               <ul className="list-disc pl-5 text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
                 <li>Upload cleanly formatted EPUBs for the best AI analysis.</li>
                 <li>Add custom cover images optionally during the upload process.</li>
+                <li><strong>Note on compatibility:</strong> We currently do not support <strong>DRM-protected files</strong>, <strong>fixed-layout EPUBs</strong>, or heavily <strong>image-based files</strong> (such as comics or manga). These formats may fail to upload or render properly.</li>
               </ul>
+            </div>
+          </section>
+
+          {/* Bug Reporting */}
+          <section>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+              <Bug className="w-5 h-5" style={{ color: '#8B6914' }} /> Feedback & Bug Reporting
+            </h3>
+            <div className="space-y-3 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <p>
+                Encountered an issue or have a suggestion? Use the <strong>Report Bug</strong> feature, accessible via the app menu or sidebar.
+              </p>
+              <p>
+                You can submit error descriptions, discuss fixes via the support chat, and attach screenshots. Our system securely uses OCR (Optical Character Recognition) behind the scenes to analyze screenshot text seamlessly, helping us accurately identify and resolve your issues.
+              </p>
             </div>
           </section>
 
