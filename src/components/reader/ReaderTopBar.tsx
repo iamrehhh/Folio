@@ -19,7 +19,7 @@ const THEMES: { id: ReadingTheme; label: string; bg: string }[] = [
   { id: 'light', label: 'Light', bg: '#FAF8F4' },
   { id: 'sepia', label: 'Sepia', bg: '#F5EDD6' },
   { id: 'dark', label: 'Dark', bg: '#1A1A1A' },
-  { id: 'dark-sepia', label: 'Dark Sepia', bg: '#2C221A' },
+  { id: 'dark-sepia', label: 'Dark Sepia', bg: '#433B30' },
 ];
 
 const FONTS: { id: ReadingFontFamily; label: string; style: React.CSSProperties }[] = [
@@ -74,10 +74,10 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
     });
   }
 
-  const textColor = theme === 'dark' ? '#D4C5A0' : theme === 'dark-sepia' ? '#E8E6E3' : '#1C1C1E';
-  const borderColor = theme === 'dark' ? '#333' : theme === 'dark-sepia' ? '#4A3B2C' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
-  const bgColor = theme === 'dark' ? '#242424' : theme === 'dark-sepia' ? '#2C221A' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
-  const mutedColor = theme === 'dark' ? '#A0998C' : theme === 'dark-sepia' ? '#B8B0A5' : '#6B6860';
+  const textColor = theme === 'dark' ? '#D4C5A0' : theme === 'dark-sepia' ? '#FAECDC' : '#1C1C1E';
+  const borderColor = theme === 'dark' ? '#333' : theme === 'dark-sepia' ? '#5C5243' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
+  const bgColor = theme === 'dark' ? '#242424' : theme === 'dark-sepia' ? '#433B30' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
+  const mutedColor = theme === 'dark' ? '#A0998C' : theme === 'dark-sepia' ? '#CEC3B6' : '#6B6860';
 
   return (
     <div className="flex-none border-b z-20" style={{ backgroundColor: bgColor, borderColor, transition: 'background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease' }}>
@@ -164,7 +164,7 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
                         theme === t.id ? 'border-[#8B6914]' : '')}
                       style={{
                         backgroundColor: t.bg,
-                        color: t.id === 'dark' ? '#D4C5A0' : t.id === 'dark-sepia' ? '#E8E6E3' : '#1C1C1E',
+                        color: t.id === 'dark' ? '#D4C5A0' : t.id === 'dark-sepia' ? '#FAECDC' : '#1C1C1E',
                         borderColor: theme === t.id ? '#8B6914' : borderColor,
                       }}>
                       {t.label}

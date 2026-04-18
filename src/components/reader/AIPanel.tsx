@@ -47,11 +47,11 @@ export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose 
   }, [aiMessages]);
 
   const theme = useReaderStore((s) => s.theme);
-  const bg = theme === 'dark' ? '#242424' : theme === 'dark-sepia' ? '#2C221A' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
-  const border = theme === 'dark' ? '#333' : theme === 'dark-sepia' ? '#4A3B2C' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
-  const textPrimary = theme === 'dark' ? '#E8E6E0' : theme === 'dark-sepia' ? '#E8E6E3' : '#1C1C1E';
-  const textSecondary = theme === 'dark' ? '#A0998C' : theme === 'dark-sepia' ? '#B8B0A5' : '#6B6860';
-  const inputBg = theme === 'dark' ? '#1A1A1A' : theme === 'dark-sepia' ? '#1E1611' : '#fff';
+  const bg = theme === 'dark' ? '#242424' : theme === 'dark-sepia' ? '#433B30' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
+  const border = theme === 'dark' ? '#333' : theme === 'dark-sepia' ? '#5C5243' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
+  const textPrimary = theme === 'dark' ? '#E8E6E0' : theme === 'dark-sepia' ? '#FAECDC' : '#1C1C1E';
+  const textSecondary = theme === 'dark' ? '#A0998C' : theme === 'dark-sepia' ? '#CEC3B6' : '#6B6860';
+  const inputBg = theme === 'dark' ? '#1A1A1A' : theme === 'dark-sepia' ? '#362E25' : '#fff';
 
   async function sendMessage(content: string) {
     if (!content.trim() || isLoading) return;

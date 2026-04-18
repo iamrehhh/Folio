@@ -93,8 +93,8 @@ export default function ReaderClient({
     return () => unsub?.();
   }, []);
 
-  const themeBg = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A', 'dark-sepia': '#2C221A' }[theme] ?? '#FAF8F4';
-  const themeText = { light: '#1C1C1E', sepia: '#1C1C1E', dark: '#D4C5A0', 'dark-sepia': '#E8E6E3' }[theme] ?? '#1C1C1E';
+  const themeBg = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A', 'dark-sepia': '#433B30' }[theme] ?? '#FAF8F4';
+  const themeText = { light: '#1C1C1E', sepia: '#1C1C1E', dark: '#D4C5A0', 'dark-sepia': '#FAECDC' }[theme] ?? '#1C1C1E';
 
   // FIX 1: Use CSS variable fallback so the wrapper color matches theme immediately
   // even before JS hydration, by reading from data-theme attribute on <html>
@@ -1434,8 +1434,8 @@ export default function ReaderClient({
 }
 
 function applyTheme(rendition: any, theme: string, fontFamily: string, fontSize: number, lineHeight: number) {
-  const bg = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A', 'dark-sepia': '#2C221A' }[theme] ?? '#FAF8F4';
-  const text = theme === 'dark' ? '#D4C5A0' : theme === 'dark-sepia' ? '#E8E6E3' : '#1C1C1E';
+  const bg = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A', 'dark-sepia': '#433B30' }[theme] ?? '#FAF8F4';
+  const text = theme === 'dark' ? '#D4C5A0' : theme === 'dark-sepia' ? '#FAECDC' : '#1C1C1E';
 
   const THEME_NAME = 'folio';
 
