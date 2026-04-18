@@ -1,8 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { formatDistanceToNow, format, isToday, isYesterday } from 'date-fns';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 // Tailwind class merging utility
 export function cn(...inputs: ClassValue[]) {
@@ -85,8 +83,11 @@ export function firstName(fullName: string | null): string {
 }
 
 // Download vocabulary list as PDF
-export function downloadPDF(data: any[], filename: string) {
+export async function downloadPDF(data: any[], filename: string) {
   if (data.length === 0) return;
+
+  const { default: jsPDF } = await import('jspdf');
+  const { default: autoTable } = await import('jspdf-autotable');
 
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();

@@ -5,7 +5,6 @@ import type { Profile, BugReport } from '@/types';
 import { Loader2, Plus, AlertCircle, CheckCircle2, ChevronRight, Inbox, ShieldAlert, Image as ImageIcon, X, FileText } from 'lucide-react';
 import ReportChat from './ReportChat';
 import { createClient } from '@/lib/supabase/client';
-import Tesseract from 'tesseract.js';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -57,6 +56,7 @@ export default function ReportClient({ user }: Props) {
     setIsProcessingOcr(true);
 
     try {
+      const Tesseract = (await import('tesseract.js')).default;
       const result = await Tesseract.recognize(file, 'eng');
       const text = result.data.text.trim();
       if (text) {

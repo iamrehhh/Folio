@@ -45,7 +45,7 @@ function FeedbackCard({ f }: { f: FeedbackProps }) {
 
   return (
     <div 
-      className="flex-none w-[280px] sm:w-[320px] rounded-2xl p-6 border transition-all duration-300 hover:shadow-soft hover:-translate-y-1 snap-start relative bg-white/50 backdrop-blur-md flex flex-col"
+      className={`flex-none w-[280px] sm:w-[320px] rounded-2xl p-6 border transition-all duration-300 hover:shadow-soft hover:-translate-y-1 snap-start relative bg-white/50 backdrop-blur-md flex flex-col ${expanded ? 'h-fit' : 'h-[300px]'}`}
       style={{ 
         borderColor: 'var(--border)',
         background: 'linear-gradient(135deg, var(--bg-card, #fff) 0%, rgba(255,255,255,0.4) 100%)'
@@ -70,17 +70,19 @@ function FeedbackCard({ f }: { f: FeedbackProps }) {
         )}
       </div>
 
-      {isLong && (
-        <button 
-          onClick={() => setExpanded(!expanded)}
-          className="text-xs font-semibold mt-1 text-left opacity-70 hover:opacity-100 transition-opacity w-[fit-content]"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          {expanded ? 'Show less' : 'Read more'}
-        </button>
-      )}
+      <div className="min-h-[20px] mt-1">
+        {isLong && (
+          <button 
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs font-semibold text-left opacity-70 hover:opacity-100 transition-opacity w-[fit-content]"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            {expanded ? 'Show less' : 'Read more'}
+          </button>
+        )}
+      </div>
 
-      <div className="flex items-center gap-3 mt-auto pt-4 border-t" style={{ borderColor: 'var(--border)', marginTop: '1.25rem' }}>
+      <div className="flex items-center gap-3 mt-auto pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
         {f.user.avatar_url ? (
           <img src={f.user.avatar_url} alt={f.user.full_name ?? ''} className="w-10 h-10 rounded-full object-cover shadow-sm" />
         ) : (

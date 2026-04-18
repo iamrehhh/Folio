@@ -22,16 +22,11 @@ export default async function HighlightsPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  // Unique books for filter
-  const { data: bookRows } = await supabase
-    .from('highlights')
-    .select('book:books(id, title)')
-    .eq('user_id', user.id);
-
+  // Derive unique books from already-fetched highlights (no extra query needed)
   const uniqueBooks = Array.from(
     new Map(
-      (bookRows ?? [])
-        .map((b) => b.book as unknown as { id: string; title: string } | null)
+      (highlights ?? [])
+        .map((h: any) => h.book as { id: string; title: string } | null)
         .filter(Boolean)
         .map((b) => [b!.id, b!])
     ).values()

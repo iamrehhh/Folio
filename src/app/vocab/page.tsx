@@ -22,16 +22,11 @@ export default async function VocabPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  // Get unique books for filter dropdown
-  const { data: books } = await supabase
-    .from('vocab_words')
-    .select('book:books(id, title)')
-    .eq('user_id', user.id);
-
+  // Derive unique books from already-fetched words (no extra query needed)
   const uniqueBooks = Array.from(
     new Map(
-      (books ?? [])
-        .map((b) => b.book as unknown as { id: string; title: string } | null)
+      (words ?? [])
+        .map((w: any) => w.book as { id: string; title: string } | null)
         .filter(Boolean)
         .map((b) => [b!.id, b!])
     ).values()

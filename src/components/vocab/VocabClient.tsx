@@ -52,8 +52,8 @@ export default function VocabClient({ words: initialWords, books }: Props) {
     }
   }
 
-  function handleExport() {
-    downloadPDF(filtered, 'vocabulary.pdf');
+  async function handleExport() {
+    await downloadPDF(filtered, 'vocabulary.pdf');
   }
 
   return (
