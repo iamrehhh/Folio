@@ -39,8 +39,9 @@ function FeedbackCard({ f }: { f: FeedbackProps }) {
   const text = f.feedback || "Excellent experience on the platform.";
   const isLong = text.length > 140; // threshold for showing "Read more"
 
-  const initials = f.user.full_name
-    ? f.user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const user = f.user || { full_name: null, avatar_url: null };
+  const initials = user.full_name
+    ? user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : 'F'; // Default if no name
 
   return (
@@ -83,8 +84,8 @@ function FeedbackCard({ f }: { f: FeedbackProps }) {
       </div>
 
       <div className="flex items-center gap-3 mt-auto pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
-        {f.user.avatar_url ? (
-          <img src={f.user.avatar_url} alt={f.user.full_name ?? ''} className="w-10 h-10 rounded-full object-cover shadow-sm" />
+        {user.avatar_url ? (
+          <img src={user.avatar_url} alt={user.full_name ?? ''} className="w-10 h-10 rounded-full object-cover shadow-sm" />
         ) : (
           <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm" style={{ backgroundColor: '#F0EBE1', color: '#8B6914' }}>
             {initials}
@@ -92,7 +93,7 @@ function FeedbackCard({ f }: { f: FeedbackProps }) {
         )}
         <div>
           <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {f.user.full_name ?? 'Anonymous'}
+            {user.full_name ?? 'Anonymous'}
           </p>
           <p className="text-[10px] uppercase font-medium tracking-wider" style={{ color: 'var(--text-secondary)' }}>
             Folio Reader

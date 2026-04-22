@@ -7,6 +7,8 @@
 
 import Link from 'next/link';
 import { BookOpen, Highlighter, BookMarked, Sparkles, GraduationCap, BarChart2 } from 'lucide-react';
+import { createAdminClient } from '@/lib/supabase/server';
+import FeaturedFeedback from '@/components/home/FeaturedFeedback';
 
 export const metadata = {
   title: 'Folio | Your Intelligent Reading Companion',
@@ -47,7 +49,13 @@ const FEATURES = [
   },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const supabase = createAdminClient();
+  const { data: featuredFeedbacks } = await supabase.from('site_feedback').select('*, user:profiles(full_name, avatar_url)')
+    .eq('show_on_homepage', true)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
   return (
     <div
       className="min-h-screen relative overflow-x-hidden"
@@ -138,7 +146,7 @@ export default function LandingPage() {
             className="px-8 py-3.5 rounded-xl text-base font-semibold text-white shadow-lg transition-all hover:opacity-90 hover:-translate-y-0.5"
             style={{ backgroundColor: '#8B6914', boxShadow: '0 8px 24px rgba(139,105,20,0.3)' }}
           >
-            Start Reading Free
+            Start Reading
           </Link>
           <Link
             href="/login"
@@ -280,6 +288,13 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── FEEDBACK ── */}
+      {featuredFeedbacks && featuredFeedbacks.length > 0 && (
+        <section className="relative z-10 px-4 md:px-8 py-6 md:py-10 max-w-5xl mx-auto">
+          <FeaturedFeedback feedbacks={featuredFeedbacks as any} />
+        </section>
+      )}
+
       {/* ── CTA BANNER ── */}
       <section className="relative z-10 px-6 py-20 text-center">
         <div
@@ -302,7 +317,7 @@ export default function LandingPage() {
             className="inline-block px-8 py-3.5 rounded-xl text-base font-semibold bg-white transition-all hover:opacity-90 hover:-translate-y-0.5"
             style={{ color: '#8B6914' }}
           >
-            Create your free account
+            Create your account
           </Link>
         </div>
       </section>
