@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star } from 'lucide-react';
+import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check } from 'lucide-react';
 import { cn, truncate } from '@/lib/utils';
 import type { Book, BookSchedule } from '@/types';
 import BookUploadModal from './BookUploadModal';
@@ -14,6 +14,14 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { DatePicker } from '@/components/ui/DatePicker';
 
 type FilterTab = 'all' | 'unread' | 'reading' | 'completed' | 'scheduled';
+type SortOption = 'newest' | 'oldest' | 'title_az' | 'author_az';
+
+const SORT_OPTIONS: { id: SortOption; label: string }[] = [
+  { id: 'newest', label: 'Newest First' },
+  { id: 'oldest', label: 'Oldest First' },
+  { id: 'title_az', label: 'Title (A-Z)' },
+  { id: 'author_az', label: 'Author (A-Z)' },
+];
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
 interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; ratingsMap?: Map<string, number>; userId: string; isAdmin: boolean; }
 
@@ -32,6 +40,8 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [confirmBook, setConfirmBook] = useState<Book | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   // Realtime subscription
   useEffect(() => {
@@ -82,20 +92,36 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
     });
   }, [books, scheduleMap, progressMap]);
 
-  const filtered = useMemo(() => books.filter((book) => {
-    const pct = progressMap.get(book.id)?.progress_percent ?? 0;
-    const isScheduled = scheduleMap.has(book.id);
-    if (activeTab === 'unread' && pct > 0) return false;
-    if (activeTab === 'reading' && (pct === 0 || pct >= 100)) return false;
-    if (activeTab === 'completed' && pct < 100) return false;
-    if (activeTab === 'scheduled' && !isScheduled) return false;
-    if (selectedGenre !== 'All' && !(book.genre ?? '').split(',').map(g => g.trim()).includes(selectedGenre)) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      return book.title.toLowerCase().includes(q) || book.author.toLowerCase().includes(q);
-    }
-    return true;
-  }), [books, progressMap, scheduleMap, activeTab, selectedGenre, searchQuery]);
+  const filteredAndSorted = useMemo(() => {
+    const filtered = books.filter((book) => {
+      const pct = progressMap.get(book.id)?.progress_percent ?? 0;
+      const isScheduled = scheduleMap.has(book.id);
+      if (activeTab === 'unread' && pct > 0) return false;
+      if (activeTab === 'reading' && (pct === 0 || pct >= 100)) return false;
+      if (activeTab === 'completed' && pct < 100) return false;
+      if (activeTab === 'scheduled' && !isScheduled) return false;
+      if (selectedGenre !== 'All' && !(book.genre ?? '').split(',').map(g => g.trim()).includes(selectedGenre)) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        return book.title.toLowerCase().includes(q) || book.author.toLowerCase().includes(q);
+      }
+      return true;
+    });
+
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'title_az':
+          return a.title.localeCompare(b.title);
+        case 'author_az':
+          return a.author.localeCompare(b.author);
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'newest':
+        default:
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+  }, [books, progressMap, scheduleMap, activeTab, selectedGenre, searchQuery, sortBy]);
 
   async function handleDelete(book: Book) {
     setConfirmBook(book);
@@ -218,6 +244,34 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
               {selectedGenre !== 'All' ? selectedGenre : 'Genre'}
             </button>
 
+            {/* Sort Menu */}
+            <div className="relative">
+              <button onClick={() => setShowSortMenu(!showSortMenu)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm transition-colors hover:bg-[var(--border)]"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+                <ArrowUpDown className="w-4 h-4" />
+                <span className="hidden sm:inline">Sort</span>
+              </button>
+
+              {showSortMenu && (
+                <>
+                  <div className="fixed inset-0 z-[15]" onClick={() => setShowSortMenu(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-popover overflow-hidden z-20"
+                    style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
+                    {SORT_OPTIONS.map(opt => (
+                      <button key={opt.id}
+                        onClick={() => { setSortBy(opt.id); setShowSortMenu(false); }}
+                        className="w-full flex items-center justify-between px-3 py-2.5 text-sm transition-colors hover:bg-[var(--border)]"
+                        style={{ color: sortBy === opt.id ? '#8B6914' : 'var(--text-primary)' }}>
+                        <span className={sortBy === opt.id ? "font-semibold" : ""}>{opt.label}</span>
+                        {sortBy === opt.id && <Check className="w-4 h-4" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* Add Book */}
             <button onClick={() => setShowUploadModal(true)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 whitespace-nowrap"
@@ -231,7 +285,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
 
         {/* Book grid */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
-          {filtered.length === 0 ? (
+          {filteredAndSorted.length === 0 ? (
             <div className="text-center py-20">
               <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-20" style={{ color: 'var(--text-secondary)' }} />
               <p className="font-medium" style={{ color: 'var(--text-primary)' }}>No books found</p>
@@ -241,7 +295,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-5 md:gap-8">
-              {filtered.map(book => {
+              {filteredAndSorted.map(book => {
                 const pct = Math.round(progressMap.get(book.id)?.progress_percent ?? 0);
                 const isUnread = pct === 0;
                 const isCompleted = pct >= 100;
