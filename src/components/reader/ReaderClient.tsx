@@ -12,6 +12,7 @@ import ChapterQuiz from './ChapterQuiz';
 import type { Book, ReadingProgress, Highlight, Profile, ChapterInfo } from '@/types';
 import HighlightToolbar from './HighlightToolbar';
 import CompletionScreen from './CompletionScreen';
+import ReadingTimeEstimate from './ReadingTimeEstimate';
 import toast from 'react-hot-toast';
 
 interface Props {
@@ -53,6 +54,18 @@ export default function ReaderClient({
   const chapterTransitionRef = useRef('idle');
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isNavigatingRef = useRef(false);
+
+  // ── Reading speed estimation state ──
+  const [readingSpeed, setReadingSpeed] = useState(0); // locations per second
+  const [totalLocations, setTotalLocations] = useState(0);
+  const [currentLocationIdx, setCurrentLocationIdx] = useState(0);
+  const [chapterLocationsRemaining, setChapterLocationsRemaining] = useState(0);
+  const [isSpeedCalibrating, setIsSpeedCalibrating] = useState(true);
+  // Moving window of (timestamp, locationIndex) samples for speed calculation
+  const speedSamplesRef = useRef<{ time: number; location: number }[]>([]);
+  const speedCalcTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Cached location index where the current chapter ends (= next chapter starts)
+  const chapterEndLocRef = useRef<number>(0);
 
   // FIX 1: Track store hydration to avoid white flash on theme refresh
   const [storeHydrated, setStoreHydrated] = useState(false);
@@ -235,7 +248,7 @@ export default function ReaderClient({
           const link = doc.createElement('link');
           link.id = 'folio-gfonts';
           link.rel = 'stylesheet';
-          link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400';
+          link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Roboto:wght@300;400;500;700&family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Raleway:ital,wght@0,300;0,400;0,500;0,700;1,400&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Nunito:ital,wght@0,300;0,400;0,600;0,700;1,400';
           doc.head.appendChild(link);
         }
 
@@ -435,6 +448,31 @@ export default function ReaderClient({
                   ?? renditionRef.current.currentLocation?.()?.start?.cfi;
 
                 if (cfi) {
+                  const scrollPercent = Math.round(
+                    (epubBook.locations.percentageFromCfi?.(cfi) ?? 0) * 100
+                  );
+
+                  // ── Record scroll-based speed sample + update chapter remaining ──
+                  if (locationsReadyRef.current && epubBook.locations) {
+                    try {
+                      const locIdx = Number(epubBook.locations.locationFromCfi?.(cfi) ?? 0);
+                      setCurrentLocationIdx(locIdx);
+                      // Update chapter remaining using cached chapter boundary
+                      if (chapterEndLocRef.current > 0) {
+                        setChapterLocationsRemaining(Math.max(0, chapterEndLocRef.current - locIdx));
+                      }
+                      const now = Date.now();
+                      const samples = speedSamplesRef.current;
+                      // Throttle: only add if at least 5s since last sample
+                      if (samples.length === 0 || now - samples[samples.length - 1].time >= 5000) {
+                        samples.push({ time: now, location: locIdx });
+                        // Keep only last 15 minutes
+                        const WINDOW_MS = 15 * 60 * 1000;
+                        speedSamplesRef.current = samples.filter(s => now - s.time < WINDOW_MS);
+                      }
+                    } catch { /* ignore */ }
+                  }
+
                   fetch('/api/books/progress', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -443,9 +481,7 @@ export default function ReaderClient({
                       cfi,
                       chapterIndex: currentChapterIndexRef.current ?? 0,
                       chapterTitle: '',
-                      progressPercent: Math.round(
-                        (epubBook.locations.percentageFromCfi?.(cfi) ?? 0) * 100
-                      ),
+                      progressPercent: scrollPercent,
                     }),
                   }).catch(() => { });
                 }
@@ -504,6 +540,42 @@ export default function ReaderClient({
         const chapterTitle = chapterList[tocIdx]?.title ?? '';
         setProgress(tocIdx, cfi, percent);
         currentChapterIndexRef.current = tocIdx;
+
+        // ── Reading speed: record location sample ──
+        if (locationsReadyRef.current && epubBook.locations?.length) {
+          const locIdx = Number(epubBook.locations.locationFromCfi?.(cfi) ?? 0);
+          const totalLocs = epubBook.locations.length();
+          setTotalLocations(totalLocs);
+          setCurrentLocationIdx(locIdx);
+
+          // Estimate locations remaining in this chapter
+          // Find the next chapter's start location to compute chapter bounds
+          let nextChapterLocIdx = totalLocs; // default: rest of book
+          if (tocIdx + 1 < chapterList.length && chapterList[tocIdx + 1].href) {
+            try {
+              // Strip #fragment from href — TOC uses "chapter.xhtml#heading"
+              // but spine items are indexed by "chapter.xhtml"
+              const nextHref = chapterList[tocIdx + 1].href.split('#')[0];
+              const nextSpineItem = epubBook.spine.get(nextHref);
+              if (nextSpineItem?.cfiBase) {
+                const nextLocIdx = Number(epubBook.locations.locationFromCfi?.(nextSpineItem.cfiBase) ?? totalLocs);
+                if (nextLocIdx > locIdx) nextChapterLocIdx = nextLocIdx;
+              }
+            } catch { /* fallback to totalLocs */ }
+          }
+          // Cache the boundary so the scroll handler can update remaining too
+          chapterEndLocRef.current = nextChapterLocIdx;
+          setChapterLocationsRemaining(Math.max(0, nextChapterLocIdx - locIdx));
+
+          // Push a sample for the speed tracker
+          const now = Date.now();
+          speedSamplesRef.current.push({ time: now, location: locIdx });
+          // Keep only last 15 minutes of samples
+          const WINDOW_MS = 15 * 60 * 1000;
+          speedSamplesRef.current = speedSamplesRef.current.filter(
+            s => now - s.time < WINDOW_MS
+          );
+        }
 
         if (percent >= 100 && completionShownFor !== book.id) {
           // Progress is 100%, but we wait until the user finishes reading
@@ -692,19 +764,33 @@ export default function ReaderClient({
           cachedLocations = localStorage.getItem(cacheKey);
         } catch { /* ignore */ }
 
+        function onLocationsReady() {
+          locationsReadyRef.current = true;
+          // Initialize total locations count for the speed tracker
+          try {
+            setTotalLocations(epubBook.locations.length());
+          } catch { /* ignore */ }
+          const currentCfi = initialProgress?.cfi;
+          if (currentCfi) {
+            const accuratePercent = Math.round(
+              (epubBook.locations.percentageFromCfi?.(currentCfi) ?? 0) * 100
+            );
+            if (accuratePercent > 0) {
+              setProgress(currentChapterIndexRef.current, currentCfi, accuratePercent);
+            }
+            // Seed the first speed sample
+            try {
+              const locIdx = Number(epubBook.locations.locationFromCfi?.(currentCfi) ?? 0);
+              setCurrentLocationIdx(locIdx);
+              speedSamplesRef.current = [{ time: Date.now(), location: locIdx }];
+            } catch { /* ignore */ }
+          }
+        }
+
         if (cachedLocations) {
           try {
             epubBook.locations.load(cachedLocations);
-            locationsReadyRef.current = true;
-            const currentCfi = initialProgress?.cfi;
-            if (currentCfi) {
-              const accuratePercent = Math.round(
-                (epubBook.locations.percentageFromCfi?.(currentCfi) ?? 0) * 100
-              );
-              if (accuratePercent > 0) {
-                setProgress(currentChapterIndexRef.current, currentCfi, accuratePercent);
-              }
-            }
+            onLocationsReady();
             return;
           } catch (err) {
             console.error('[Reader] Failed to load cached locations', err);
@@ -720,17 +806,7 @@ export default function ReaderClient({
           } catch (err) {
             console.error('[Reader] Failed to cache locations', err);
           }
-          
-          locationsReadyRef.current = true;
-          const currentCfi = initialProgress?.cfi;
-          if (currentCfi) {
-            const accuratePercent = Math.round(
-              (epubBook.locations.percentageFromCfi?.(currentCfi) ?? 0) * 100
-            );
-            if (accuratePercent > 0) {
-              setProgress(currentChapterIndexRef.current, currentCfi, accuratePercent);
-            }
-          }
+          onLocationsReady();
         }).catch(() => {
           locationsReadyRef.current = true;
         });
@@ -989,6 +1065,71 @@ export default function ReaderClient({
   }
 
   const progressPercent = useReaderStore((s) => s.progressPercent);
+
+  // ── Reading speed calculation timer ──
+  // Runs every 10s using a weighted moving average: 40% recent (last 5m) + 60%
+  // overall (full 15-min window). This adapts quickly when reading speed changes
+  // (e.g. skimming → close reading) while staying smooth and non-jittery.
+  // Idle gaps (>30s between samples) are excluded from the time denominator.
+  useEffect(() => {
+    speedCalcTimerRef.current = setInterval(() => {
+      const samples = speedSamplesRef.current;
+      if (samples.length < 2) {
+        setIsSpeedCalibrating(true);
+        return;
+      }
+
+      const IDLE_THRESHOLD_MS = 30_000;
+      const RECENT_WINDOW_MS = 300_000; // "recent" = last 5 minutes
+      const now = Date.now();
+
+      // Walk all active segments, tracking overall and recent separately
+      let overallTimeS = 0;
+      let overallDelta = 0;
+      let recentTimeS = 0;
+      let recentDelta = 0;
+
+      for (let i = 1; i < samples.length; i++) {
+        const delta = Math.abs(samples[i].location - samples[i - 1].location);
+        const gapMs = samples[i].time - samples[i - 1].time;
+
+        // Skip navigation jumps or idle gaps
+        if (delta > 20 || gapMs > IDLE_THRESHOLD_MS) continue;
+
+        const segTimeS = gapMs / 1000;
+        overallTimeS += segTimeS;
+        overallDelta += delta;
+
+        // Is this segment in the recent window?
+        if (now - samples[i].time < RECENT_WINDOW_MS) {
+          recentTimeS += segTimeS;
+          recentDelta += delta;
+        }
+      }
+
+      // Need at least 45 seconds of *active* reading to be meaningful
+      if (overallTimeS < 45) {
+        setIsSpeedCalibrating(true);
+        return;
+      }
+
+      const overallSpeed = overallDelta / overallTimeS;
+
+      // If we have enough recent data, blend with heavier recent weight
+      if (recentTimeS >= 15 && recentDelta > 0) {
+        const recentSpeed = recentDelta / recentTimeS;
+        // 40% recent + 60% overall — balanced adaptation, smooth output
+        setReadingSpeed(0.4 * recentSpeed + 0.6 * overallSpeed);
+      } else {
+        setReadingSpeed(overallSpeed);
+      }
+      setIsSpeedCalibrating(false);
+    }, 10000);
+
+    return () => {
+      if (speedCalcTimerRef.current) clearInterval(speedCalcTimerRef.current);
+    };
+  }, []);
 
   // Reading timer
   useEffect(() => {
@@ -1285,6 +1426,22 @@ export default function ReaderClient({
                             {}),
               }}
             />
+
+            {/* ── Kindle-style reading time estimate ── */}
+            {!isLoading && !loadError && totalLocations > 0 && (
+              <ReadingTimeEstimate
+                chapterLocationsRemaining={chapterLocationsRemaining}
+                bookLocationsRemaining={Math.max(0, totalLocations - currentLocationIdx)}
+                locationsPerSecond={readingSpeed}
+                mutedColor={
+                  theme === 'dark' ? '#A0998C' :
+                  theme === 'dark-sepia' ? '#CEC3B6' :
+                  '#6B6860'
+                }
+                bgColor={themeBg}
+                isCalibrating={isSpeedCalibrating}
+              />
+            )}
           </div>
 
           {/* ── Chapter Nav Rail: Previous (left margin) ── */}
@@ -1440,7 +1597,7 @@ function applyTheme(rendition: any, theme: string, fontFamily: string, fontSize:
   const THEME_NAME = 'folio';
 
   // Google Fonts URL to inject into iframes so non-system fonts are available
-  const GOOGLE_FONTS_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400';
+  const GOOGLE_FONTS_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Roboto:wght@300;400;500;700&family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Raleway:ital,wght@0,300;0,400;0,500;0,700;1,400&family=PT+Serif:ital,wght@0,400;0,700;1,400&family=Nunito:ital,wght@0,300;0,400;0,600;0,700;1,400';
 
   // Step 1: Immediately paint every existing iframe so the user never sees white.
   // Also inject Google Fonts <link> into each iframe so custom fonts are available.
@@ -1470,13 +1627,28 @@ function applyTheme(rendition: any, theme: string, fontFamily: string, fontSize:
 
   // Step 2: Register + select the single named theme. Using a fixed name
   // ensures epub.js overwrites the previous rules instead of stacking.
-  const fontStyle = {
+  const fontStyle = ({
     default: "'Lora', Georgia, serif",
     inter: "'Inter', system-ui, sans-serif",
     merriweather: "'Merriweather', serif",
     'comic-sans': "'Comic Sans MS', 'Chalkboard SE', sans-serif",
-    arial: "Arial, sans-serif"
-  }[fontFamily] || "'Lora', Georgia, serif";
+    arial: "Arial, sans-serif",
+    georgia: "Georgia, serif",
+    'times-new-roman': "'Times New Roman', Times, serif",
+    verdana: "Verdana, sans-serif",
+    tahoma: "Tahoma, sans-serif",
+    'trebuchet-ms': "'Trebuchet MS', sans-serif",
+    'courier-new': "'Courier New', Courier, monospace",
+    roboto: "'Roboto', sans-serif",
+    'open-sans': "'Open Sans', sans-serif",
+    'playfair-display': "'Playfair Display', serif",
+    baskerville: "Baskerville, 'Baskerville Old Face', serif",
+    garamond: "Garamond, serif",
+    ubuntu: "'Ubuntu', sans-serif",
+    raleway: "'Raleway', sans-serif",
+    'pt-serif': "'PT Serif', serif",
+    nunito: "'Nunito', sans-serif",
+  } as Record<string, string>)[fontFamily] || "'Lora', Georgia, serif";
 
   const rules: Record<string, Record<string, string>> = {
     '*': { 'box-sizing': 'border-box' },

@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────
 
 export type ReadingTheme = 'light' | 'sepia' | 'dark' | 'dark-sepia';
-export type ReadingFontFamily = 'default' | 'inter' | 'merriweather' | 'comic-sans' | 'arial';
+export type ReadingFontFamily = 'default' | 'inter' | 'merriweather' | 'comic-sans' | 'arial' | 'georgia' | 'times-new-roman' | 'verdana' | 'tahoma' | 'trebuchet-ms' | 'courier-new' | 'roboto' | 'open-sans' | 'playfair-display' | 'baskerville' | 'garamond' | 'ubuntu' | 'raleway' | 'pt-serif' | 'nunito';
 export type HighlightColor = 'yellow' | 'blue' | 'green' | 'pink';
 
 export interface Profile {

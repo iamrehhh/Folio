@@ -150,14 +150,16 @@ export default function AppShell({ children, user }: AppShellProps) {
             </button>
 
             {/* Avatar */}
-            {user?.avatar_url ? (
-              <img src={user.avatar_url} alt={user.full_name ?? 'User'}
-                className="w-7 h-7 rounded-full object-cover" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-[#E5E0D8] flex items-center justify-center">
-                <User className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
-              </div>
-            )}
+            <Link href="/profile" className="transition-transform hover:scale-105" title="Profile">
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt={user.full_name ?? 'User'}
+                  className="w-7 h-7 rounded-full object-cover" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-[#E5E0D8] flex items-center justify-center">
+                  <User className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
+                </div>
+              )}
+            </Link>
 
             {/* Sign out — desktop only */}
             <button onClick={handleSignOut}

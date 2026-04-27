@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, SlidersHorizontal, Trophy, Book, Timer, EyeOff } from 'lucide-react';
+import { ChevronLeft, SlidersHorizontal, Trophy, Book, Timer, EyeOff, ChevronDown, Check } from 'lucide-react';
 import Link from 'next/link';
 import { useReaderStore } from '@/lib/store';
 import type { Book as BookType, ReadingTheme, ReadingFontFamily } from '@/types';
@@ -28,6 +28,21 @@ const FONTS: { id: ReadingFontFamily; label: string; style: React.CSSProperties 
   { id: 'merriweather', label: 'Merri', style: { fontFamily: "'Merriweather', serif" } },
   { id: 'comic-sans', label: 'Comic', style: { fontFamily: "'Comic Sans MS', 'Chalkboard SE', sans-serif" } },
   { id: 'arial', label: 'Arial', style: { fontFamily: "Arial, sans-serif" } },
+  { id: 'georgia', label: 'Georgia', style: { fontFamily: "Georgia, serif" } },
+  { id: 'times-new-roman', label: 'Times New Roman', style: { fontFamily: "'Times New Roman', Times, serif" } },
+  { id: 'verdana', label: 'Verdana', style: { fontFamily: "Verdana, sans-serif" } },
+  { id: 'tahoma', label: 'Tahoma', style: { fontFamily: "Tahoma, sans-serif" } },
+  { id: 'trebuchet-ms', label: 'Trebuchet MS', style: { fontFamily: "'Trebuchet MS', sans-serif" } },
+  { id: 'courier-new', label: 'Courier New', style: { fontFamily: "'Courier New', Courier, monospace" } },
+  { id: 'roboto', label: 'Roboto', style: { fontFamily: "'Roboto', sans-serif" } },
+  { id: 'open-sans', label: 'Open Sans', style: { fontFamily: "'Open Sans', sans-serif" } },
+  { id: 'playfair-display', label: 'Playfair', style: { fontFamily: "'Playfair Display', serif" } },
+  { id: 'baskerville', label: 'Baskerville', style: { fontFamily: "Baskerville, 'Baskerville Old Face', serif" } },
+  { id: 'garamond', label: 'Garamond', style: { fontFamily: "Garamond, serif" } },
+  { id: 'ubuntu', label: 'Ubuntu', style: { fontFamily: "'Ubuntu', sans-serif" } },
+  { id: 'raleway', label: 'Raleway', style: { fontFamily: "'Raleway', sans-serif" } },
+  { id: 'pt-serif', label: 'PT Serif', style: { fontFamily: "'PT Serif', serif" } },
+  { id: 'nunito', label: 'Nunito', style: { fontFamily: "'Nunito', sans-serif" } },
 ];
 
 function formatTime(seconds: number): string {
@@ -39,7 +54,9 @@ function formatTime(seconds: number): string {
 export default function ReaderTopBar({ book, chapterTitle, progressPercent, sessionSeconds, onQuiz }: Props) {
   const [showFontControls, setShowFontControls] = useState(false);
   const [timerVisible, setTimerVisible] = useState(true);
+  const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
   const fontControlsRef = useRef<HTMLDivElement>(null);
+  const fontDropdownRef = useRef<HTMLDivElement>(null);
 
   const store = useReaderStore();
   const [mounted, setMounted] = useState(false);
@@ -57,14 +74,17 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
   const { setTheme, setFontFamily, setFontSize, setLineHeight, setContinuousReading, toggleChapterSidebar } = store;
 
   useEffect(() => {
-    if (!showFontControls) return;
     function handleClick(e: MouseEvent) {
-      if (fontControlsRef.current && !fontControlsRef.current.contains(e.target as Node))
+      if (showFontControls && fontControlsRef.current && !fontControlsRef.current.contains(e.target as Node)) {
         setShowFontControls(false);
+      }
+      if (isFontDropdownOpen && fontDropdownRef.current && !fontDropdownRef.current.contains(e.target as Node)) {
+        setIsFontDropdownOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [showFontControls]);
+  }, [showFontControls, isFontDropdownOpen]);
 
   function toggleTimer() {
     setTimerVisible(v => {
@@ -172,21 +192,38 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
                   ))}
                 </div>
               </div>
-              <div className="mb-4">
+              <div className="mb-4" ref={fontDropdownRef}>
                 <p className="text-xs font-medium mb-2" style={{ color: mutedColor }}>Font</p>
-                <div className="flex flex-wrap gap-2">
-                  {FONTS.map(f => (
-                    <button key={f.id} onClick={() => setFontFamily(f.id)}
-                      className={cn('flex-1 min-w-[70px] py-1.5 rounded text-xs border transition-all',
-                        fontFamily === f.id ? 'border-[#8B6914] bg-[#8B6914]/10 text-[#8B6914] font-medium' : '')}
-                      style={{
-                        ...f.style,
-                        borderColor: fontFamily === f.id ? '#8B6914' : borderColor,
-                        color: fontFamily === f.id ? '#8B6914' : textColor,
-                      }}>
-                      {f.label}
-                    </button>
-                  ))}
+                <div className="relative">
+                  <button onClick={() => setIsFontDropdownOpen(!isFontDropdownOpen)}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded text-sm border transition-all"
+                    style={{
+                      backgroundColor: 'transparent',
+                      borderColor: borderColor,
+                      color: textColor,
+                      ...(FONTS.find(f => f.id === fontFamily)?.style || {})
+                    }}>
+                    <span>{FONTS.find(f => f.id === fontFamily)?.label || 'Default'}</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+
+                  {isFontDropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 rounded-xl border shadow-popover overflow-y-auto max-h-48 z-[60]"
+                      style={{ backgroundColor: bgColor, borderColor }}>
+                      {FONTS.map(f => (
+                        <button key={f.id} onClick={() => { setFontFamily(f.id); setIsFontDropdownOpen(false); }}
+                          className="w-full flex items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-black/5"
+                          style={{
+                            ...f.style,
+                            color: fontFamily === f.id ? '#8B6914' : textColor,
+                            backgroundColor: fontFamily === f.id ? 'rgba(139,105,20,0.05)' : 'transparent',
+                          }}>
+                          <span>{f.label}</span>
+                          {fontFamily === f.id && <Check className="w-4 h-4" style={{ color: '#8B6914' }} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="mb-4">

@@ -14,13 +14,15 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { DatePicker } from '@/components/ui/DatePicker';
 
 type FilterTab = 'all' | 'unread' | 'reading' | 'completed' | 'scheduled';
-type SortOption = 'newest' | 'oldest' | 'title_az' | 'author_az';
+type SortOption = 'newest' | 'oldest' | 'title_az' | 'author_az' | 'highest_rated' | 'lowest_rated';
 
 const SORT_OPTIONS: { id: SortOption; label: string }[] = [
   { id: 'newest', label: 'Newest First' },
   { id: 'oldest', label: 'Oldest First' },
   { id: 'title_az', label: 'Title (A-Z)' },
   { id: 'author_az', label: 'Author (A-Z)' },
+  { id: 'highest_rated', label: 'Highest Rated' },
+  { id: 'lowest_rated', label: 'Lowest Rated' },
 ];
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
 interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; ratingsMap?: Map<string, number>; userId: string; isAdmin: boolean; }
@@ -116,12 +118,22 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
           return a.author.localeCompare(b.author);
         case 'oldest':
           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'highest_rated':
+          const ratingA = ratingsMap.get(a.id) || 0;
+          const ratingB = ratingsMap.get(b.id) || 0;
+          if (ratingB !== ratingA) return ratingB - ratingA;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'lowest_rated':
+          const ratingALow = ratingsMap.get(a.id) || 0;
+          const ratingBLow = ratingsMap.get(b.id) || 0;
+          if (ratingALow !== ratingBLow) return ratingALow - ratingBLow;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'newest':
         default:
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
-  }, [books, progressMap, scheduleMap, activeTab, selectedGenre, searchQuery, sortBy]);
+  }, [books, progressMap, scheduleMap, activeTab, selectedGenre, searchQuery, sortBy, ratingsMap]);
 
   async function handleDelete(book: Book) {
     setConfirmBook(book);
