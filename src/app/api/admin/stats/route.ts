@@ -3,6 +3,23 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
 
+async function fetchAll(admin: any, table: string, select: string, modifier?: (q: any) => any) {
+  let allData: any[] = [];
+  let from = 0;
+  const step = 1000;
+  while (true) {
+    let q = admin.from(table).select(select).range(from, from + step - 1);
+    if (modifier) q = modifier(q);
+    const { data, error } = await q;
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allData = allData.concat(data);
+    if (data.length < step) break;
+    from += step;
+  }
+  return allData;
+}
+
 export async function GET() {
   try {
     const supabase = createClient();
@@ -15,51 +32,28 @@ export async function GET() {
     const admin = createAdminClient();
 
     // 1. All users (profiles)
-    const { data: profiles, error: profilesError } = await admin
-      .from('profiles')
-      .select('id, email, full_name, avatar_url, created_at, gamify_score, force_feedback_request')
-      .order('created_at', { ascending: false });
-
-    if (profilesError) throw profilesError;
+    const profiles = await fetchAll(admin, 'profiles', 'id, email, full_name, avatar_url, created_at, gamify_score, force_feedback_request', q => q.order('created_at', { ascending: false }));
 
     // 2. All books with uploader info
-    const { data: books, error: booksError } = await admin
-      .from('books')
-      .select('id, title, author, genre, uploaded_by, is_default, visibility, created_at, epub_path, cover_path')
-      .order('created_at', { ascending: false });
-
-    if (booksError) throw booksError;
+    const books = await fetchAll(admin, 'books', 'id, title, author, genre, uploaded_by, is_default, visibility, created_at, epub_path, cover_path', q => q.order('created_at', { ascending: false }));
 
     // 3. Reading progress stats
-    const { data: progressRows } = await admin
-      .from('reading_progress')
-      .select('user_id, progress_percent, last_read_at');
+    const progressRows = await fetchAll(admin, 'reading_progress', 'user_id, progress_percent, last_read_at');
 
     // 4. Reading sessions for activity
-    const { data: sessions } = await admin
-      .from('reading_sessions')
-      .select('user_id, duration_seconds, started_at');
+    const sessions = await fetchAll(admin, 'reading_sessions', 'user_id, duration_seconds, started_at');
 
     // 5. Highlights count per user
-    const { data: highlights } = await admin
-      .from('highlights')
-      .select('user_id');
+    const highlights = await fetchAll(admin, 'highlights', 'user_id');
 
     // 6. Vocab count per user
-    const { data: vocabWords } = await admin
-      .from('vocab_words')
-      .select('user_id');
+    const vocabWords = await fetchAll(admin, 'vocab_words', 'user_id');
 
     // 7. Quiz attempts
-    const { data: quizAttempts } = await admin
-      .from('quiz_attempts')
-      .select('user_id, score, completed_at')
-      .not('completed_at', 'is', null);
+    const quizAttempts = await fetchAll(admin, 'quiz_attempts', 'user_id, score, completed_at', q => q.not('completed_at', 'is', null));
 
     // 8. Quiz results (chapter quizzes)
-    const { data: quizResults } = await admin
-      .from('quiz_results')
-      .select('user_id, score, total_questions');
+    const quizResults = await fetchAll(admin, 'quiz_results', 'user_id, score, total_questions');
 
     // ── Aggregate per-user stats ──
     const userStats = (profiles ?? []).map(profile => {

@@ -51,9 +51,24 @@ export default function AppShell({ children, user }: AppShellProps) {
     };
 
     checkUnread();
-    const interval = setInterval(checkUnread, 30000); // Check every 30 seconds
-    return () => clearInterval(interval);
-  }, [user]);
+    
+    // Listen for realtime updates when admin replies (updates bug_reports)
+    const channel = supabase.channel('user-unread-reports')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'bug_reports',
+        filter: `user_id=eq.${user.id}`
+      }, () => {
+        // Re-check unread status when a report is updated
+        checkUnread();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, supabase]);
 
   const isAdmin = ADMIN_EMAILS.includes(user?.email as string);
 

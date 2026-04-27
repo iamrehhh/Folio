@@ -38,9 +38,23 @@ export default function ReportChat({ reportId, onBack, isAdmin, onResolve }: Pro
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 10000); // poor man's realtime
-    return () => clearInterval(interval);
-  }, [reportId]);
+    
+    // Realtime listener for new messages
+    const channel = supabase.channel(`chat-${reportId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'bug_report_messages',
+        filter: `report_id=eq.${reportId}`
+      }, () => {
+        fetchMessages();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [reportId, supabase]);
 
   useEffect(() => {
     // Mark as read when the user opens the chat
