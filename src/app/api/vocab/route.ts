@@ -55,12 +55,17 @@ export async function DELETE(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { id } = await req.json() as { id: string };
+    const { id, ids } = await req.json() as { id?: string; ids?: string[] };
+    const targets = ids || (id ? [id] : []);
+
+    if (targets.length === 0) {
+      return NextResponse.json({ error: 'No IDs provided' }, { status: 400 });
+    }
 
     const { error } = await supabase
       .from('vocab_words')
       .delete()
-      .eq('id', id)
+      .in('id', targets)
       .eq('user_id', user.id);
 
     if (error) throw error;

@@ -77,9 +77,12 @@ export default function AppShell({ children, user }: AppShellProps) {
     router.push('/login');
   }
 
+  const isReadingInterface = pathname?.startsWith('/read/') ?? false;
+
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg, #FAF8F4)' }}>
       {/* Top navigation bar */}
+      {!isReadingInterface && (
       <header
         className="sticky top-0 z-40 border-b"
         style={{ backgroundColor: 'var(--bg-sidebar, #F2EFE9)', borderColor: 'var(--border, #E5E0D8)' }}
@@ -236,6 +239,7 @@ export default function AppShell({ children, user }: AppShellProps) {
           </div>
         )}
       </header>
+      )}
 
       <main className="flex-1">{children}</main>
 

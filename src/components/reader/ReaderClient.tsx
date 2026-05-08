@@ -678,7 +678,7 @@ export default function ReaderClient({
 
         const fallback = epubBook.renderTo(viewerRef.current!, {
           width: '100%', height: '100%', spread: 'none',
-          flow: 'scrolled', allowScriptedContent: true,
+          flow: 'scrolled-doc', allowScriptedContent: true,
         });
         renditionRef.current = fallback;
         applyTheme(fallback, theme, fontFamily, fontSize, lineHeight);

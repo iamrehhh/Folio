@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Highlighter, Trash2, ExternalLink, Eye, X, BookOpen } from 'lucide-react';
+import { Highlighter, Trash2, ExternalLink, Eye, X, BookOpen, CheckSquare, Square, AlertCircle, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { highlightColorClass, formatReadingDate, truncate } from '@/lib/utils';
 import type { Highlight, Book, HighlightColor } from '@/types';
@@ -285,6 +285,10 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
   const [filterBook, setFilterBook] = useState('all');
   const [filterColor, setFilterColor] = useState<ColorFilter>('all');
   const [quickViewHighlight, setQuickViewHighlight] = useState<Highlight | null>(null);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDeleteIds, setConfirmDeleteIds] = useState<string[] | null>(null);
 
   const filtered = useMemo(() => {
     return highlights.filter((h) => {
@@ -308,19 +312,39 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
     return map;
   }, [filtered]);
 
-  async function handleDelete(id: string) {
+  function handleDelete(idsToDelete: string[]) {
+    if (idsToDelete.length === 0) return;
+    setConfirmDeleteIds(idsToDelete);
+  }
+
+  async function executeDelete() {
+    if (!confirmDeleteIds || confirmDeleteIds.length === 0) return;
+    
+    setIsDeleting(true);
     try {
       const res = await fetch('/api/highlights', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ ids: confirmDeleteIds }),
       });
       if (!res.ok) throw new Error();
-      setHighlights((prev) => prev.filter((h) => h.id !== id));
-      toast.success('Highlight deleted');
+      setHighlights((prev) => prev.filter((h) => !confirmDeleteIds.includes(h.id)));
+      setSelectedIds(new Set());
+      if (isSelectionMode) setIsSelectionMode(false);
+      toast.success(`Deleted ${confirmDeleteIds.length} highlight${confirmDeleteIds.length > 1 ? 's' : ''}`);
     } catch {
-      toast.error('Failed to delete highlight');
+      toast.error('Failed to delete highlight(s)');
+    } finally {
+      setIsDeleting(false);
+      setConfirmDeleteIds(null);
     }
+  }
+
+  function toggleSelection(id: string) {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
+    setSelectedIds(newSelected);
   }
 
   const COLORS: { id: ColorFilter; label: string; hex?: string }[] = [
@@ -334,16 +358,52 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
   return (
     <div className="max-w-3xl mx-auto px-8 py-10">
       {/* Header */}
-      <div className="mb-8">
-        <h1
-          className="text-2xl font-semibold"
-          style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}
-        >
-          Highlights
-        </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-          {highlights.length} highlight{highlights.length !== 1 ? 's' : ''} across {books.length} book{books.length !== 1 ? 's' : ''}
-        </p>
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1
+            className="text-2xl font-semibold"
+            style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}
+          >
+            Highlights
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+            {highlights.length} highlight{highlights.length !== 1 ? 's' : ''} across {books.length} book{books.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isSelectionMode ? (
+            <>
+              <button
+                onClick={() => {
+                  setIsSelectionMode(false);
+                  setSelectedIds(new Set());
+                }}
+                className="px-3 py-2 rounded-lg text-sm border transition-colors hover:bg-black/5"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </button>
+              {selectedIds.size > 0 && (
+                <button
+                  onClick={() => handleDelete(Array.from(selectedIds))}
+                  disabled={isDeleting}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete ({selectedIds.size})
+                </button>
+              )}
+            </>
+          ) : (
+            <button
+              onClick={() => setIsSelectionMode(true)}
+              className="px-3 py-2 rounded-lg text-sm border transition-colors hover:bg-[var(--border)]"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+            >
+              Select
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -422,9 +482,20 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
                       {chHighlights.map((h) => (
                         <div
                           key={h.id}
-                          className="group flex gap-3 rounded-xl p-4 border"
-                          style={{ backgroundColor: 'var(--bg-card, #fff)', borderColor: 'var(--border)' }}
+                          onClick={() => {
+                            if (isSelectionMode) toggleSelection(h.id);
+                          }}
+                          className={`group flex gap-3 rounded-xl p-4 border transition-all ${isSelectionMode ? 'cursor-pointer' : ''}`}
+                          style={{ 
+                            backgroundColor: selectedIds.has(h.id) ? '#8B691410' : 'var(--bg-card, #fff)', 
+                            borderColor: selectedIds.has(h.id) ? '#8B6914' : 'var(--border)' 
+                          }}
                         >
+                          {isSelectionMode && (
+                            <div className="pt-0.5 flex-none" style={{ color: selectedIds.has(h.id) ? '#8B6914' : 'var(--text-secondary)' }}>
+                              {selectedIds.has(h.id) ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+                            </div>
+                          )}
                           {/* Color indicator */}
                           <div
                             className="flex-none w-1 rounded-full self-stretch"
@@ -450,37 +521,44 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
                                 {formatReadingDate(h.created_at)}
                               </span>
                               <div className="flex items-center gap-3">
-                                {/* Quick View button */}
-                                <button
-                                  onClick={() => setQuickViewHighlight(h)}
-                                  className="flex items-center gap-1 text-xs transition-all hover:gap-1.5"
-                                  style={{ color: 'var(--text-secondary)' }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.color = '#8B6914')}
-                                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
-                                >
-                                  <Eye className="w-3 h-3" />
-                                  Quick View
-                                </button>
-                                {/* Jump to passage */}
-                                {book && (
-                                  <Link
-                                    href={`/read/${book.id}?cfi=${encodeURIComponent(h.cfi_range)}`}
-                                    className="text-xs hover:underline"
-                                    style={{ color: '#8B6914' }}
-                                  >
-                                    Jump to passage →
-                                  </Link>
+                                {!isSelectionMode && (
+                                  <>
+                                    {/* Quick View button */}
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); setQuickViewHighlight(h); }}
+                                      className="flex items-center gap-1 text-xs transition-all hover:gap-1.5"
+                                      style={{ color: 'var(--text-secondary)' }}
+                                      onMouseEnter={(e) => (e.currentTarget.style.color = '#8B6914')}
+                                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                      Quick View
+                                    </button>
+                                    {/* Jump to passage */}
+                                    {book && (
+                                      <Link
+                                        href={`/read/${book.id}?cfi=${encodeURIComponent(h.cfi_range)}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="text-xs hover:underline"
+                                        style={{ color: '#8B6914' }}
+                                      >
+                                        Jump to passage →
+                                      </Link>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             </div>
                           </div>
 
-                          <button
-                            onClick={() => handleDelete(h.id)}
-                            className="opacity-0 group-hover:opacity-100 self-start p-1.5 rounded hover:bg-red-50 transition-all"
-                          >
-                            <Trash2 className="w-4 h-4 text-red-400" />
-                          </button>
+                          {!isSelectionMode && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDelete([h.id]); }}
+                              className="opacity-0 group-hover:opacity-100 self-start p-1.5 rounded hover:bg-red-50 transition-all"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-400" />
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -498,6 +576,50 @@ export default function HighlightsClient({ highlights: initialHighlights, books 
           highlight={quickViewHighlight}
           onClose={() => setQuickViewHighlight(null)}
         />
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {confirmDeleteIds && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div 
+            className="w-full max-w-sm rounded-2xl border p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            style={{ backgroundColor: 'var(--bg-card, #fff)', borderColor: 'var(--border)' }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-none text-red-600">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+                  Delete {confirmDeleteIds.length > 1 ? 'Highlights' : 'Highlight'}
+                </h3>
+              </div>
+            </div>
+            
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+              Are you sure you want to delete {confirmDeleteIds.length === 1 ? 'this highlight' : `these ${confirmDeleteIds.length} highlights`}? This action cannot be undone.
+            </p>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDeleteIds(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-black/5 disabled:opacity-50"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeDelete}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Delete {confirmDeleteIds.length > 1 ? `(${confirmDeleteIds.length})` : ''}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
