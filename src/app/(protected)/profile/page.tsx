@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { requireUser } from '@/lib/cache';
+import { requireUser, getCachedProfile } from '@/lib/cache';
 import { createClient } from '@/lib/supabase/server';
 import ProfileClient from './ProfileClient';
 
