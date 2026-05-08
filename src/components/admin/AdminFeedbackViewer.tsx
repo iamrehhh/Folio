@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, AlertCircle, Star, MessageSquare, Filter, User, Eye, EyeOff } from 'lucide-react';
+import { Loader2, AlertCircle, Star, MessageSquare, Filter, User, Eye, EyeOff, Trash2 } from 'lucide-react';
 
 interface FeedbackItem {
   id: string;
@@ -124,6 +124,26 @@ export default function AdminFeedbackViewer() {
         prev.map(f => (f.id === id ? { ...f, show_on_homepage: currentStatus } : f))
       );
       setError('Failed to update feedback visibility.');
+    }
+  }
+
+  async function deleteFeedback(id: string) {
+    if (!confirm('Are you sure you want to delete this feedback?')) return;
+    
+    try {
+      setFeedbacks(prev => prev.filter(f => f.id !== id));
+
+      const r = await fetch('/api/admin/feedback', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+    } catch (err: any) {
+      console.error('Failed to delete feedback:', err);
+      setError('Failed to delete feedback.');
+      fetchFeedback();
     }
   }
 
@@ -314,6 +334,13 @@ export default function AdminFeedbackViewer() {
                           title={f.show_on_homepage ? "Visible on Homepage" : "Hidden from Homepage"}
                         >
                           {f.show_on_homepage ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => deleteFeedback(f.id)}
+                          className="p-1.5 rounded-md transition-colors hover:bg-red-500/10 text-gray-400 hover:text-red-500"
+                          title="Delete Feedback"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                         <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                           {formatDate(f.created_at)}

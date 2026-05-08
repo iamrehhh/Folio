@@ -98,3 +98,33 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user || !ADMIN_EMAILS.includes(user.email as string)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { id } = await req.json();
+
+    if (!id) {
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    }
+
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from('site_feedback')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error('[Admin Feedback DELETE Error]', err);
+    return NextResponse.json({ error: err.message ?? 'Internal error' }, { status: 500 });
+  }
+}

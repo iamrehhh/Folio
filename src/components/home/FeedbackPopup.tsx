@@ -104,15 +104,14 @@ export default function FeedbackPopup({ hasCompletedBooks, forceFeedback }: { ha
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { error } = await supabase
-        .from('site_feedback')
-        .upsert({
-          user_id: user.id,
-          rating,
-          feedback: feedback.trim() || null,
-        }, { onConflict: 'user_id' });
+      const res = await fetch('/api/user/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, feedback: feedback.trim() }),
+      });
 
-      if (error) throw error;
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Failed to submit feedback');
 
       if (lsKey) localStorage.setItem(lsKey, 'submitted');
       dismissForcedFeedback();
