@@ -83,6 +83,8 @@ export default function AdminFeedbackViewer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterRating, setFilterRating] = useState<number | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchFeedback();
@@ -127,16 +129,17 @@ export default function AdminFeedbackViewer() {
     }
   }
 
-  async function deleteFeedback(id: string) {
-    if (!confirm('Are you sure you want to delete this feedback?')) return;
+  async function confirmDelete() {
+    if (!itemToDelete) return;
     
+    setIsDeleting(true);
     try {
-      setFeedbacks(prev => prev.filter(f => f.id !== id));
+      setFeedbacks(prev => prev.filter(f => f.id !== itemToDelete));
 
       const r = await fetch('/api/admin/feedback', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id: itemToDelete }),
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
@@ -144,6 +147,9 @@ export default function AdminFeedbackViewer() {
       console.error('Failed to delete feedback:', err);
       setError('Failed to delete feedback.');
       fetchFeedback();
+    } finally {
+      setIsDeleting(false);
+      setItemToDelete(null);
     }
   }
 
@@ -336,7 +342,7 @@ export default function AdminFeedbackViewer() {
                           {f.show_on_homepage ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                         </button>
                         <button
-                          onClick={() => deleteFeedback(f.id)}
+                          onClick={() => setItemToDelete(f.id)}
                           className="p-1.5 rounded-md transition-colors hover:bg-red-500/10 text-gray-400 hover:text-red-500"
                           title="Delete Feedback"
                         >
@@ -369,6 +375,50 @@ export default function AdminFeedbackViewer() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {itemToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div 
+            className="w-full max-w-sm rounded-2xl border p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            style={{ backgroundColor: 'var(--bg-card, #fff)', borderColor: 'var(--border)' }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-none text-red-600">
+                <AlertCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+                  Delete Feedback
+                </h3>
+              </div>
+            </div>
+            
+            <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+              Are you sure you want to delete this feedback? This action cannot be undone.
+            </p>
+            
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setItemToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-black/5 disabled:opacity-50"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
