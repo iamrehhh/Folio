@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import { getGreeting, firstName } from '@/lib/utils';
-import AppShell from '@/components/layout/AppShell';
+import { requireUser, getCachedProfile } from '@/lib/cache';
 import CurrentlyReadingCard from '@/components/home/CurrentlyReadingCard';
 import ReadingStatsPanel from '@/components/home/ReadingStatsPanel';
 import RecentHighlights from '@/components/home/RecentHighlights';
@@ -14,27 +13,25 @@ import FeaturedFeedback from '@/components/home/FeaturedFeedback';
 import type { ReadingProgress, Highlight, VocabWord, ReadingStats, BookSchedule, Book } from '@/types';
 
 export default async function HomePage() {
+  const user = await requireUser();
+  const profile = await getCachedProfile();
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const startOfYear  = new Date(now.getFullYear(), 0, 1).toISOString();
 
   const [
-    { data: profile },
     { data: currentlyReading },
     { data: recentHighlights },
     { data: recentVocab },
     { count: completedThisMonth },
     { count: completedThisYear },
     { count: completedAllTime },
-    { data: sessions },
+    { data: sessions }, // We use an RPC for this in the future, for now fallback to just not crashing the server
     { data: upcomingSchedule },
     { data: featuredFeedbacks }
   ] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', user.id).single(),
     
     supabase.from('reading_progress').select('*, book:books(*)')
       .eq('user_id', user.id).lt('progress_percent', 100)
@@ -55,8 +52,7 @@ export default async function HomePage() {
     supabase.from('reading_progress').select('*', { count: 'exact', head: true })
       .eq('user_id', user.id).eq('progress_percent', 100),
       
-    supabase.from('reading_sessions').select('duration_seconds')
-      .eq('user_id', user.id),
+    supabase.from('reading_sessions').select('duration_seconds').eq('user_id', user.id).limit(100), // Mitigate OOM, ideally use RPC
       
     supabase.from('book_schedules').select('*, book:books(*)')
       .eq('user_id', user.id).gte('scheduled_for', new Date().toISOString().split('T')[0])
@@ -81,7 +77,7 @@ export default async function HomePage() {
   const name = firstName(profile?.full_name ?? null);
 
   return (
-    <AppShell user={profile}>
+    <>
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 md:py-10">
         {/* Greeting */}
         <div className="mb-6 md:mb-8">
@@ -123,6 +119,6 @@ export default async function HomePage() {
           forceFeedback={profile?.force_feedback_request ?? false} 
         />
       </div>
-    </AppShell>
+    </>
   );
 }

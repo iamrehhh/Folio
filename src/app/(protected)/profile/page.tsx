@@ -1,27 +1,18 @@
 import { redirect } from 'next/navigation';
+import { requireUser } from '@/lib/cache';
 import { createClient } from '@/lib/supabase/server';
 import ProfileClient from './ProfileClient';
 
-import AppShell from '@/components/layout/AppShell';
 
 export const metadata = {
   title: 'Profile | Folio',
 };
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
+  const user = await requireUser();
+  const profile = await getCachedProfile();
+  const supabase = createClient();
+  
   if (!profile) {
     redirect('/login');
   }
@@ -49,7 +40,7 @@ export default async function ProfilePage() {
   };
 
   return (
-    <AppShell user={profile}>
+    <>
       <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
         <h1 className="text-3xl font-serif text-[var(--text-primary)] mb-8" style={{ color: '#1C1C1E', fontFamily: 'Lora, Georgia, serif' }}>Profile</h1>
         <ProfileClient 
@@ -59,6 +50,6 @@ export default async function ProfilePage() {
           authProvider={user.app_metadata?.provider || 'email'}
         />
       </div>
-    </AppShell>
+    </>
   );
 }

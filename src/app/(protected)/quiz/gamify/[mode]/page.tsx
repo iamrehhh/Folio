@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Loader2, Quote, Link as LinkIcon, Check, X, ArrowLeft } from 'lucide-react';
-import AppShell from '@/components/layout/AppShell';
 import GamePracticeScreen from '@/components/quiz/GamePracticeScreen';
 import Link from 'next/link';
 
@@ -131,30 +130,30 @@ export default function GameModePage({ params }: { params: { mode: string } }) {
 
   if (loading || gameState === 'loading') {
     return (
-      <AppShell user={null}>
+      <>
         <div className="flex flex-col items-center justify-center min-h-[60vh]">
           <Loader2 className="w-12 h-12 animate-spin mb-4" style={{ color: '#8B6914' }} />
           <p className="font-serif text-xl" style={{ color: 'var(--text-primary)' }}>Preparing your set...</p>
         </div>
-      </AppShell>
+      </>
     );
   }
 
   if (error) {
     return (
-      <AppShell user={null}>
+      <>
         <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
           <h2 className="text-2xl font-bold mb-4">Something went wrong</h2>
           <p className="mb-6 opacity-70">We couldn't generate the questions. Please try again later.</p>
           <button onClick={() => router.push('/quiz')} className="px-6 py-2 bg-gray-200 rounded-lg text-black font-semibold">Go Back</button>
         </div>
-      </AppShell>
+      </>
     );
   }
 
   if (gameState === 'practice') {
     return (
-      <AppShell user={null}>
+      <>
         <div className="py-12 px-4 max-w-4xl mx-auto">
           <GamePracticeScreen
             missedWords={missedWords}
@@ -163,7 +162,7 @@ export default function GameModePage({ params }: { params: { mode: string } }) {
             onComplete={handleFinish}
           />
         </div>
-      </AppShell>
+      </>
     );
   }
 
@@ -172,7 +171,7 @@ export default function GameModePage({ params }: { params: { mode: string } }) {
   const labels = ['A', 'B', 'C', 'D'];
 
   return (
-    <AppShell user={null}>
+    <>
       <div className="max-w-3xl mx-auto px-4 py-8">
 
         {/* Progress Bar */}
@@ -304,6 +303,6 @@ export default function GameModePage({ params }: { params: { mode: string } }) {
         )}
 
       </div>
-    </AppShell>
+    </>
   );
 }

@@ -1,20 +1,14 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import AppShell from '@/components/layout/AppShell';
+import { requireUser } from '@/lib/cache';
 import LibraryClient from '@/components/library/LibraryClient';
 import type { Book } from '@/types';
 
 const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
 
 export default async function LibraryPage() {
+  const user = await requireUser();
   const supabase = createClient();
   const admin = createAdminClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles').select('*').eq('id', user.id).single();
 
   const isAdmin = ADMIN_EMAILS.includes(user.email as string);
 
@@ -35,7 +29,8 @@ export default async function LibraryPage() {
     let booksQuery = admin
       .from('books')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(500);
 
     if (assignedIds.length > 0) {
       booksQuery = booksQuery.or(
@@ -59,7 +54,8 @@ export default async function LibraryPage() {
       .select('*')
       .or(`uploaded_by.eq.${user.id},is_default.eq.true`)
       .order('is_default', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(500);
     books = legacyBooks;
   }
 
@@ -91,7 +87,7 @@ export default async function LibraryPage() {
   );
 
   return (
-    <AppShell user={profile}>
+    <>
       <LibraryClient
         books={(books as Book[]) ?? []}
         progressMap={progressMap}
@@ -100,6 +96,6 @@ export default async function LibraryPage() {
         userId={user.id}
         isAdmin={isAdmin}
       />
-    </AppShell>
+    </>
   );
 }

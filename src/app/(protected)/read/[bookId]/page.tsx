@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
+import { requireUser, getCachedProfile } from '@/lib/cache';
 import ReaderClient from '@/components/reader/ReaderClient';
 import type { Book, ReadingProgress, Highlight } from '@/types';
 
@@ -11,17 +12,10 @@ interface ReadPageProps {
 }
 
 export default async function ReadPage({ params, searchParams }: ReadPageProps) {
+  const user = await requireUser();
+  const profile = await getCachedProfile();
   const supabase = createClient();
   const admin = createAdminClient();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
 
   // Fetch book using admin to bypass RLS
   const { data: book } = await admin

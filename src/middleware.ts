@@ -27,10 +27,11 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session — IMPORTANT: do not add logic between createServerClient and getUser
+  // Refresh session — IMPORTANT: do not add logic between createServerClient and getSession
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user || null;
 
   const { pathname } = request.nextUrl;
 

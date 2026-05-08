@@ -1,21 +1,15 @@
+import { requireUser } from '@/lib/cache';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import AppShell from '@/components/layout/AppShell';
 import HighlightsClient from '@/components/highlights/HighlightsClient';
 import type { Highlight, Book } from '@/types';
 
 export default async function HighlightsPage() {
   const supabase = createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  const user = await requireUser();
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
+  
   const { data: highlights } = await supabase
     .from('highlights')
     .select('*, book:books(id, title)')
@@ -33,11 +27,11 @@ export default async function HighlightsPage() {
   );
 
   return (
-    <AppShell user={profile}>
+    <>
       <HighlightsClient
         highlights={(highlights as Highlight[]) ?? []}
         books={uniqueBooks as Pick<Book, 'id' | 'title'>[]}
       />
-    </AppShell>
+    </>
   );
 }

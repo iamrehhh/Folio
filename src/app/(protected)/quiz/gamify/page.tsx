@@ -1,4 +1,4 @@
-import AppShell from '@/components/layout/AppShell';
+import { requireUser } from '@/lib/cache';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -6,13 +6,11 @@ import { Gamepad2, ArrowLeft, BookMarked, Lightbulb } from 'lucide-react';
 
 export default async function GamifyModePage() {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  const user = await requireUser();
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-
+  
   return (
-    <AppShell user={profile}>
+    <>
       <div className="max-w-2xl mx-auto px-4 py-12 flex flex-col items-center">
         <div className="w-full mb-8">
           <Link href="/quiz" className="inline-flex items-center text-sm font-medium transition-colors hover:text-[var(--text-primary)]" style={{ color: 'var(--text-secondary)' }}>
@@ -55,6 +53,6 @@ export default async function GamifyModePage() {
           </Link>
         </div>
       </div>
-    </AppShell>
+    </>
   );
 }
