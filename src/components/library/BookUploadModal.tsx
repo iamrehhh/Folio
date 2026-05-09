@@ -5,6 +5,7 @@ import { X, Upload, BookOpen, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import ePub from 'epubjs';
 
 interface Props { onClose: () => void; }
 
@@ -67,6 +68,8 @@ export default function BookUploadModal({ onClose }: Props) {
 
   const [epubFile, setEpubFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverUrlPreview, setCoverUrlPreview] = useState<string | null>(null);
+  const [isParsing, setIsParsing] = useState(false);
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
@@ -86,6 +89,50 @@ export default function BookUploadModal({ onClose }: Props) {
     const t = setTimeout(() => { prevPct.current = currentPct; }, 50);
     return () => clearTimeout(t);
   }, [currentPct]);
+
+  useEffect(() => {
+    if (!epubFile) {
+      setCoverUrlPreview(null);
+      return;
+    }
+    
+    let isMounted = true;
+    const parse = async () => {
+      setIsParsing(true);
+      try {
+        const arrayBuffer = await epubFile.arrayBuffer();
+        const book = ePub(arrayBuffer);
+        const metadata = await book.loaded.metadata;
+        
+        if (isMounted) {
+          if (metadata?.title) setTitle(metadata.title);
+          else setTitle(epubFile.name.replace('.epub', ''));
+          
+          if (metadata?.creator) setAuthor(metadata.creator);
+        }
+        
+        try {
+          const coverUrl = await book.coverUrl();
+          if (coverUrl && isMounted) {
+            const res = await fetch(coverUrl);
+            const blob = await res.blob();
+            const file = new File([blob], 'cover.jpg', { type: blob.type });
+            setCoverFile(file);
+            setCoverUrlPreview(URL.createObjectURL(blob));
+          }
+        } catch (e) {
+          console.warn('Cover extraction failed', e);
+        }
+      } catch (e) {
+        console.warn('Failed to parse EPUB', e);
+        if (isMounted && !title) setTitle(epubFile.name.replace('.epub', ''));
+      } finally {
+        if (isMounted) setIsParsing(false);
+      }
+    };
+    parse();
+    return () => { isMounted = false; };
+  }, [epubFile]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -446,7 +493,7 @@ export default function BookUploadModal({ onClose }: Props) {
                     Title <span style={{ color: '#8B6914' }}>*</span>
                   </label>
                   <input type="text" value={title} onChange={e => setTitle(e.target.value)}
-                    placeholder="Book title"
+                    placeholder={isParsing ? "Extracting..." : "Book title"}
                     className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                     style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                 </div>
@@ -455,7 +502,7 @@ export default function BookUploadModal({ onClose }: Props) {
                     Author <span style={{ color: '#8B6914' }}>*</span>
                   </label>
                   <input type="text" value={author} onChange={e => setAuthor(e.target.value)}
-                    placeholder="Author name"
+                    placeholder={isParsing ? "Extracting..." : "Author name"}
                     className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                     style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
                 </div>
@@ -493,14 +540,27 @@ export default function BookUploadModal({ onClose }: Props) {
                 <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                   Cover Image (optional)
                 </label>
-                <button onClick={() => coverRef.current?.click()}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors hover:bg-[var(--bg)]"
-                  style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
-                  <Upload className="w-4 h-4" />
-                  {coverFile ? coverFile.name : 'Upload cover image'}
-                </button>
+                <div className="flex gap-4 items-end">
+                  {coverUrlPreview ? (
+                    <div className="relative">
+                      <img src={coverUrlPreview} alt="Cover preview" className="w-16 h-24 object-cover rounded-lg border shadow-sm" style={{ borderColor: 'var(--border)' }} />
+                      <button onClick={() => { setCoverFile(null); setCoverUrlPreview(null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow"><X className="w-3 h-3" /></button>
+                    </div>
+                  ) : null}
+                  <button onClick={() => coverRef.current?.click()}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors hover:bg-[var(--bg)]"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+                    <Upload className="w-4 h-4" />
+                    {coverFile ? 'Replace cover' : 'Upload cover image'}
+                  </button>
+                </div>
                 <input ref={coverRef} type="file" accept="image/*" className="hidden"
-                  onChange={e => setCoverFile(e.target.files?.[0] ?? null)} />
+                  onChange={e => {
+                    const file = e.target.files?.[0] ?? null;
+                    setCoverFile(file);
+                    if (file) setCoverUrlPreview(URL.createObjectURL(file));
+                    else setCoverUrlPreview(null);
+                  }} />
               </div>
             </div>
 

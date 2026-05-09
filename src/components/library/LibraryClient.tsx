@@ -3,9 +3,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn, truncate } from '@/lib/utils';
 import type { Book, BookSchedule } from '@/types';
 import BookUploadModal from './BookUploadModal';
+import BulkUploadModal from './BulkUploadModal';
 import BookEditModal from './BookEditModal';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -37,6 +39,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [schedulingBook, setSchedulingBook] = useState<Book | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -285,6 +288,14 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
             </div>
 
             {/* Add Book */}
+            {isAdmin && (
+              <button onClick={() => setShowBulkUploadModal(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--border)] whitespace-nowrap"
+                style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+                <Upload className="w-4 h-4" />
+                <span className="hidden sm:inline">Bulk Upload</span>
+              </button>
+            )}
             <button onClick={() => setShowUploadModal(true)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 whitespace-nowrap"
               style={{ backgroundColor: '#8B6914' }}>
@@ -306,7 +317,8 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-5 md:gap-8">
+            <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 xl:gap-5">
+            <AnimatePresence mode="popLayout">
               {filteredAndSorted.map(book => {
                 const pct = Math.round(progressMap.get(book.id)?.progress_percent ?? 0);
                 const isUnread = pct === 0;
@@ -314,8 +326,14 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                 const menuOpen = openMenuId === book.id;
 
                 return (
-                  <div key={book.id}
-                    className="group flex flex-col rounded-xl border overflow-hidden transition-all duration-200 hover:shadow-soft-lg"
+                  <motion.div 
+                    key={book.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, filter: 'blur(2px)' }}
+                    transition={{ duration: 0.2, layout: { type: "spring", stiffness: 350, damping: 30 } }}
+                    className="group flex flex-col rounded-xl border overflow-hidden transition-shadow duration-200 hover:shadow-soft-lg"
                     style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
 
                     {/* Cover */}
@@ -416,26 +434,30 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
-            </div>
+            </AnimatePresence>
+          </motion.div>
           )}
         </div>
       </div>
 
       {openMenuId && <div className="fixed inset-0 z-[5]" onClick={() => setOpenMenuId(null)} />}
 
-      {confirmBook && (
-        <ConfirmDialog
-          title="Delete Book"
-          message={`"${confirmBook.title}" will be permanently deleted and removed from all users' libraries.`}
-          confirmLabel="Delete"
-          onConfirm={confirmDelete}
-          onCancel={() => setConfirmBook(null)}
-        />
-      )}
+      <AnimatePresence>
+        {confirmBook && (
+          <ConfirmDialog
+            title="Delete Book"
+            message={`"${confirmBook.title}" will be permanently deleted and removed from all users' libraries.`}
+            confirmLabel="Delete"
+            onConfirm={confirmDelete}
+            onCancel={() => setConfirmBook(null)}
+          />
+        )}
+      </AnimatePresence>
       {showUploadModal && <BookUploadModal onClose={() => { setShowUploadModal(false); router.refresh(); }} />}
+      {showBulkUploadModal && <BulkUploadModal onClose={() => { setShowBulkUploadModal(false); router.refresh(); }} />}
       
       {schedulingBook && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
