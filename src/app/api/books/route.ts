@@ -16,6 +16,18 @@ export async function POST(req: NextRequest) {
 
     const adminSupabase = createAdminClient();
 
+    const { data: existingBook } = await adminSupabase
+      .from('books')
+      .select('id')
+      .eq('uploaded_by', user.id)
+      .ilike('title', title)
+      .ilike('author', author)
+      .maybeSingle();
+
+    if (existingBook) {
+      return NextResponse.json({ error: 'Book already exists in library' }, { status: 409 });
+    }
+
     const { data: book, error: dbError } = await adminSupabase
       .from('books')
       .insert({

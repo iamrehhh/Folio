@@ -184,6 +184,12 @@ export default function BookUploadModal({ onClose }: Props) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      const checkRes = await fetch(`/api/books/check?title=${encodeURIComponent(title)}&author=${encodeURIComponent(author)}`);
+      const checkData = await checkRes.json();
+      if (checkData.exists) {
+        throw new Error('Cannot be uploaded as the book already exists in the library');
+      }
+
       const timestamp = Date.now();
 
       // ── Step 1: Upload EPUB directly to Supabase Storage ──

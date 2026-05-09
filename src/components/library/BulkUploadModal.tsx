@@ -255,6 +255,12 @@ export default function BulkUploadModal({ onClose }: Props) {
       setRows(prev => prev.map((r, idx) => idx === i ? { ...r, status: 'uploading' } : r));
       
       try {
+        const checkRes = await fetch(`/api/books/check?title=${encodeURIComponent(row.title)}&author=${encodeURIComponent(row.author)}`);
+        const checkData = await checkRes.json();
+        if (checkData.exists) {
+          throw new Error('Cannot be uploaded as the book already exists in the library');
+        }
+
         const timestamp = Date.now();
         
         const epubPath = `${user.id}/${timestamp}-${sanitize(row.epubFile.name)}`;
