@@ -169,22 +169,40 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
     <div className="flex h-[calc(100vh-3.5rem)]" style={{ backgroundColor: 'var(--bg)' }}>
 
       {/* ── Genre Sidebar — desktop only ── */}
-      <aside className="hidden md:block w-48 flex-none border-r p-4 overflow-y-auto"
+      <aside className="hidden md:flex flex-col w-48 flex-none border-r"
         style={{ backgroundColor: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}>
-        <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>
-          Genre
-        </p>
-        <div className="space-y-0.5">
-          {GENRES.map(genre => (
-            <button key={genre} onClick={() => setSelectedGenre(genre)}
-              className={cn('w-full text-left px-3 py-2 rounded text-sm transition-colors',
-                selectedGenre === genre ? 'font-medium' : 'hover:bg-[var(--border)]')}
-              style={selectedGenre === genre
-                ? { backgroundColor: '#8B691420', color: '#8B6914' }
-                : { color: 'var(--text-secondary)' }}>
-              {genre}
-            </button>
-          ))}
+        <div className="p-4 overflow-y-auto flex-1">
+          <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>
+            Genre
+          </p>
+          <div className="space-y-0.5">
+            {GENRES.map(genre => (
+              <button key={genre} onClick={() => setSelectedGenre(genre)}
+                className={cn('w-full text-left px-3 py-2 rounded text-sm transition-colors',
+                  selectedGenre === genre ? 'font-medium' : 'hover:bg-[var(--border)]')}
+                style={selectedGenre === genre
+                  ? { backgroundColor: '#8B691420', color: '#8B6914' }
+                  : { color: 'var(--text-secondary)' }}>
+                {genre}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-4 mt-auto border-t" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-[var(--border)]" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0" style={{ backgroundColor: '#8B691420' }}>
+              <BookOpen className="w-4 h-4" style={{ color: '#8B6914' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold leading-none truncate" style={{ color: 'var(--text-primary)' }}>
+                {books.length}
+              </p>
+              <p className="text-[10px] font-medium uppercase tracking-wider mt-1 truncate" style={{ color: 'var(--text-secondary)' }}>
+                Total Books
+              </p>
+            </div>
+          </div>
         </div>
       </aside>
 
