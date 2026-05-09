@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check } from 'lucide-react';
+import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, truncate } from '@/lib/utils';
 import type { Book, BookSchedule } from '@/types';
@@ -431,6 +431,29 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                           title="Schedule this book"
                         >
                           <Calendar className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            try {
+                              const res = await fetch(`/api/books/${book.id}/download`);
+                              if (!res.ok) throw new Error();
+                              const { url } = await res.json();
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `${book.title}.epub`;
+                              document.body.appendChild(a);
+                              a.click();
+                              a.remove();
+                            } catch {
+                              toast.error('Failed to download book');
+                            }
+                          }}
+                          className="w-10 h-10 flex items-center justify-center rounded-lg border transition-colors hover:bg-[var(--border)]"
+                          style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                          title="Download EPUB"
+                        >
+                          <Download className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
