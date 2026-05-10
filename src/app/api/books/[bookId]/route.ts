@@ -83,12 +83,13 @@ export async function PATCH(
     }
 
     const formData = await req.formData();
-    const title  = formData.get('title')  as string;
-    const author = formData.get('author') as string;
-    const genre  = formData.get('genre')  as string;
-    const cover  = formData.get('cover')  as File | null;
+    const title    = formData.get('title')    as string;
+    const author   = formData.get('author')   as string;
+    const genre    = formData.get('genre')    as string;
+    const language = formData.get('language') as string;
+    const cover    = formData.get('cover')    as File | null;
 
-    const updates: Record<string, any> = { title, author, genre };
+    const updates: Record<string, any> = { title, author, genre, language };
 
     if (cover && cover.size > 0) {
       const ext = cover.name.split('.').pop();

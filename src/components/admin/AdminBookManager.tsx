@@ -8,6 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import BookAccessModal from './BookAccessModal';
 import BulkBookAccessModal from './BulkBookAccessModal';
+import BulkLanguageModal from './BulkLanguageModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import type { BookVisibility } from '@/types';
 
@@ -17,6 +18,7 @@ interface AdminBook {
   author: string;
   cover_url: string | null;
   genre: string | null;
+  language: string | null;
   uploaded_by: string;
   visibility: BookVisibility;
   is_default: boolean;
@@ -52,6 +54,7 @@ export default function AdminBookManager() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAccessModalOpen, setBulkAccessModalOpen] = useState(false);
+  const [bulkLanguageModalOpen, setBulkLanguageModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -183,6 +186,14 @@ export default function AdminBookManager() {
             >
               <Edit3 className="w-3.5 h-3.5" />
               Manage Access
+            </button>
+            <button
+              onClick={() => setBulkLanguageModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border bg-white transition-all hover:shadow-sm"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              Set Language
             </button>
             <button
               onClick={() => setDeleteModalOpen(true)}
@@ -334,6 +345,7 @@ export default function AdminBookManager() {
                   <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
                     {book.author}
                     {book.genre && <span> · {book.genre}</span>}
+                    {book.language && <span> · {book.language}</span>}
                     <span className="mx-1">·</span>
                     <span>by {book.uploader_name}</span>
                   </p>
@@ -384,6 +396,19 @@ export default function AdminBookManager() {
             setBulkAccessModalOpen(false);
             setSelectedIds(new Set());
             loadBooks(); // Reload list to reflect new visibilities/assignments
+          }}
+        />
+      )}
+
+      {/* Bulk language modal */}
+      {bulkLanguageModalOpen && (
+        <BulkLanguageModal
+          bookIds={Array.from(selectedIds)}
+          onClose={() => setBulkLanguageModalOpen(false)}
+          onSaved={() => {
+            setBulkLanguageModalOpen(false);
+            setSelectedIds(new Set());
+            loadBooks(); // Reload list to reflect new languages
           }}
         />
       )}

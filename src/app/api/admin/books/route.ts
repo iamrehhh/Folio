@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
     const { data: books, error: booksError } = await admin
       .from('books')
-      .select('id, title, author, cover_url, genre, uploaded_by, is_default, visibility, created_at')
+      .select('id, title, author, cover_url, genre, language, uploaded_by, is_default, visibility, created_at')
       .order('created_at', { ascending: false });
 
     if (booksError) throw booksError;
@@ -69,20 +69,30 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { bookId, bookIds, visibility } = await req.json() as { bookId?: string; bookIds?: string[]; visibility: BookVisibility };
+    const { bookId, bookIds, visibility, language } = await req.json() as { bookId?: string; bookIds?: string[]; visibility?: BookVisibility; language?: string | null };
     
     const targetIds = bookIds || (bookId ? [bookId] : []);
 
-    if (targetIds.length === 0 || !visibility) {
-      return NextResponse.json({ error: 'Missing bookId(s) or visibility' }, { status: 400 });
+    if (targetIds.length === 0) {
+      return NextResponse.json({ error: 'Missing bookId(s)' }, { status: 400 });
+    }
+
+    const updates: Record<string, any> = {};
+    if (visibility !== undefined) {
+      updates.visibility = visibility;
+      updates.is_default = visibility === 'public'; // Sync for backward compatibility
+    }
+    if (language !== undefined) {
+      updates.language = language;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
     const { error: updateError } = await admin
       .from('books')
-      .update({ 
-        visibility, 
-        is_default: visibility === 'public' // Sync for backward compatibility
-      })
+      .update(updates)
       .in('id', targetIds);
 
     if (updateError) throw updateError;

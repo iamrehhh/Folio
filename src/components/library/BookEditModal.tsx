@@ -6,6 +6,7 @@ import type { Book } from '@/types';
 import toast from 'react-hot-toast';
 
 const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
+const LANGUAGES = ['English', 'Bengali', 'Hindi', 'Spanish', 'French', 'German', 'Other'];
 
 interface Props {
   book: Book;
@@ -19,6 +20,7 @@ export default function BookEditModal({ book, onClose, onSaved }: Props) {
   const [genres, setGenres] = useState<string[]>(
     book.genre ? book.genre.split(',').map(g => g.trim()).filter(g => GENRES.includes(g)) : ['Fiction']
   );
+  const [language, setLanguage] = useState(book.language || '');
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(book.cover_url ?? null);
   const [saving, setSaving] = useState(false);
@@ -42,6 +44,7 @@ export default function BookEditModal({ book, onClose, onSaved }: Props) {
       body.append('title', title.trim());
       body.append('author', author.trim());
       body.append('genre', genres.join(', '));
+      if (language) body.append('language', language);
       if (coverFile) body.append('cover', coverFile);
 
       const res = await fetch(`/api/books/${book.id}`, { method: 'PATCH', body });
@@ -126,6 +129,22 @@ export default function BookEditModal({ book, onClose, onSaved }: Props) {
               className="w-full px-3 py-2.5 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-[#8B6914]/30"
               style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
             />
+          </div>
+
+          {/* Language */}
+          <div>
+            <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>Language</label>
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border text-sm outline-none focus:ring-2 focus:ring-[#8B6914]/30 appearance-none"
+              style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            >
+              <option value="">Select language...</option>
+              {LANGUAGES.map(lang => (
+                <option key={lang} value={lang}>{lang}</option>
+              ))}
+            </select>
           </div>
 
           {/* Genre — multi-select pills */}

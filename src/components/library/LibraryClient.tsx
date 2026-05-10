@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download } from 'lucide-react';
+import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, truncate } from '@/lib/utils';
 import type { Book, BookSchedule } from '@/types';
@@ -30,6 +30,7 @@ interface ProgressInfo { progress_percent: number; last_read_at: string; chapter
 interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; ratingsMap?: Map<string, number>; userId: string; isAdmin: boolean; }
 
 const GENRES = ['All', 'Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
+const LANGUAGES = ['All', 'English', 'Bengali', 'Hindi', 'Spanish', 'French', 'German', 'Other'];
 
 export default function LibraryClient({ books: initialBooks, progressMap, scheduleMap: initialScheduleMap, ratingsMap = new Map(), userId, isAdmin }: Props) {
   const router = useRouter();
@@ -38,6 +39,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [selectedGenre, setSelectedGenre] = useState('All');
+  const [selectedLanguage, setSelectedLanguage] = useState('All');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
@@ -47,6 +49,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
   const [confirmBook, setConfirmBook] = useState<Book | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
 
   // Realtime subscription
   useEffect(() => {
@@ -106,6 +109,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
       if (activeTab === 'completed' && pct < 100) return false;
       if (activeTab === 'scheduled' && !isScheduled) return false;
       if (selectedGenre !== 'All' && !(book.genre ?? '').split(',').map(g => g.trim()).includes(selectedGenre)) return false;
+      if (selectedLanguage !== 'All' && book.language !== selectedLanguage) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return book.title.toLowerCase().includes(q) || book.author.toLowerCase().includes(q);
@@ -136,7 +140,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
-  }, [books, progressMap, scheduleMap, activeTab, selectedGenre, searchQuery, sortBy, ratingsMap]);
+  }, [books, progressMap, scheduleMap, activeTab, selectedGenre, selectedLanguage, searchQuery, sortBy, ratingsMap]);
 
   async function handleDelete(book: Book) {
     setConfirmBook(book);
@@ -276,6 +280,38 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
               <SlidersHorizontal className="w-4 h-4" />
               {selectedGenre !== 'All' ? selectedGenre : 'Genre'}
             </button>
+
+            {/* Language Menu */}
+            <div className="relative hidden sm:block">
+              <button onClick={() => setShowLangMenu(!showLangMenu)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm transition-colors hover:bg-[var(--border)]"
+                style={{ 
+                  borderColor: 'var(--border)', 
+                  color: selectedLanguage !== 'All' ? '#8B6914' : 'var(--text-secondary)',
+                  backgroundColor: selectedLanguage !== 'All' ? '#8B691420' : undefined
+                }}>
+                <Globe className="w-4 h-4" />
+                <span>{selectedLanguage !== 'All' ? selectedLanguage : 'Language'}</span>
+              </button>
+
+              {showLangMenu && (
+                <>
+                  <div className="fixed inset-0 z-[15]" onClick={() => setShowLangMenu(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-40 rounded-xl border shadow-popover overflow-hidden z-20 max-h-60 overflow-y-auto"
+                    style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
+                    {LANGUAGES.map(lang => (
+                      <button key={lang}
+                        onClick={() => { setSelectedLanguage(lang); setShowLangMenu(false); }}
+                        className="w-full flex items-center justify-between px-3 py-2.5 text-sm transition-colors hover:bg-[var(--border)]"
+                        style={{ color: selectedLanguage === lang ? '#8B6914' : 'var(--text-primary)' }}>
+                        <span className={selectedLanguage === lang ? "font-semibold" : ""}>{lang}</span>
+                        {selectedLanguage === lang && <Check className="w-4 h-4" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Sort Menu */}
             <div className="relative">

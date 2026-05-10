@@ -34,6 +34,7 @@ export interface Book {
   uploaded_by: string; // profile id (admin)
   is_default: boolean; // Retained for backward compat
   visibility: BookVisibility;
+  language: string | null;
   created_at: string;
 }
 

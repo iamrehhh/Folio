@@ -10,6 +10,7 @@ import ePub from 'epubjs';
 interface Props { onClose: () => void; }
 
 const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
+const LANGUAGES = ['English', 'Bengali', 'Hindi', 'Spanish', 'French', 'German', 'Other'];
 
 function sanitize(name: string) {
   return name.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -73,6 +74,7 @@ export default function BookUploadModal({ onClose }: Props) {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
+  const [language, setLanguage] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStage, setUploadStage] = useState('');
   const [done, setDone] = useState(false);
@@ -233,6 +235,7 @@ export default function BookUploadModal({ onClose }: Props) {
           title,
           author,
           genre: genres.length > 0 ? genres.join(', ') : null,
+          language: language || null,
           epubPath,
           coverUrl,
           coverPath,
@@ -492,9 +495,9 @@ export default function BookUploadModal({ onClose }: Props) {
                   }} />
               </div>
 
-              {/* Title + Author */}
+              {/* Title + Author + Language */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
+                <div className="col-span-2">
                   <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
                     Title <span style={{ color: '#8B6914' }}>*</span>
                   </label>
@@ -511,6 +514,19 @@ export default function BookUploadModal({ onClose }: Props) {
                     placeholder={isParsing ? "Extracting..." : "Author name"}
                     className="w-full px-3 py-2 text-sm rounded-lg border outline-none"
                     style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                    Language
+                  </label>
+                  <select value={language} onChange={e => setLanguage(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border outline-none appearance-none"
+                    style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}>
+                    <option value="">Select language...</option>
+                    {LANGUAGES.map(lang => (
+                      <option key={lang} value={lang}>{lang}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Now receives JSON — files were uploaded directly from browser to Supabase Storage
-    const { title, author, genre, epubPath, coverUrl, coverPath, visibility } = await req.json();
+    const { title, author, genre, language, epubPath, coverUrl, coverPath, visibility } = await req.json();
 
     if (!title || !author || !epubPath) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
         cover_path:  coverPath  ?? null,
         epub_path:   epubPath,
         genre:       genre      ?? null,
+        language:    language   ?? null,
         visibility:  visibility ?? 'private',
         uploaded_by: user.id,
       })
