@@ -159,8 +159,8 @@ export default function BookUploadModal({ onClose }: Props) {
         toast.error('Please upload an .epub file');
         return;
       }
-      if (file.size > 7 * 1024 * 1024) {
-        toast.error('File exceeds 7MB limit');
+      if (file.size > 9 * 1024 * 1024) {
+        toast.error('File exceeds 9MB limit');
         setEpubFile(null);
       } else {
         setEpubFile(file);
@@ -174,8 +174,8 @@ export default function BookUploadModal({ onClose }: Props) {
       return;
     }
 
-    if (epubFile.size > 7 * 1024 * 1024) {
-      toast.error('EPUB file exceeds the 7MB size limit.');
+    if (epubFile.size > 9 * 1024 * 1024) {
+      toast.error('EPUB file exceeds the 9MB size limit.');
       return;
     }
 
@@ -479,15 +479,15 @@ export default function BookUploadModal({ onClose }: Props) {
                       <span className="font-medium" style={{ color: isDragActive ? '#8B6914' : 'var(--text-primary)' }}>
                         {isDragActive ? 'Drop .epub file here' : 'Click or drag to upload .epub file'}
                       </span>
-                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>(Max 7MB)</span>
+                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>(Max 9MB)</span>
                     </>
                   )}
                 </button>
                 <input ref={epubRef} type="file" accept=".epub" className="hidden"
                   onChange={e => {
                     const file = e.target.files?.[0];
-                    if (file && file.size > 7 * 1024 * 1024) {
-                      toast.error('File exceeds 7MB limit');
+                    if (file && file.size > 9 * 1024 * 1024) {
+                      toast.error('File exceeds 9MB limit');
                       setEpubFile(null);
                     } else {
                       setEpubFile(file ?? null);

@@ -139,8 +139,8 @@ export default function BulkUploadModal({ onClose }: Props) {
     
     for (const file of files) {
       if (!file.name.toLowerCase().endsWith('.epub')) continue;
-      if (file.size > 7 * 1024 * 1024) {
-        toast.error(`"${file.name}" exceeds 7MB limit.`);
+      if (file.size > 9 * 1024 * 1024) {
+        toast.error(`"${file.name}" exceeds 9MB limit.`);
         continue;
       }
       

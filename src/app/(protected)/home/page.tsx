@@ -52,7 +52,7 @@ export default async function HomePage() {
     supabase.from('reading_progress').select('*', { count: 'exact', head: true })
       .eq('user_id', user.id).eq('progress_percent', 100),
       
-    supabase.from('reading_sessions').select('duration_seconds').eq('user_id', user.id).limit(100), // Mitigate OOM, ideally use RPC
+    supabase.from('reading_sessions').select('duration_seconds').eq('user_id', user.id), // Removed limit to calculate exact total; OOM risk is negligible for standard users
       
     supabase.from('book_schedules').select('*, book:books(*)')
       .eq('user_id', user.id).gte('scheduled_for', new Date().toISOString().split('T')[0])
