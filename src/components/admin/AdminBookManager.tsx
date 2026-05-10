@@ -3,9 +3,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Search, BookOpen, Loader2, AlertCircle, Globe, Lock, UserCheck,
-  Edit3, ChevronDown, Filter
+  Edit3, ChevronDown, Filter, Check, Trash2
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import BookAccessModal from './BookAccessModal';
+import BulkBookAccessModal from './BulkBookAccessModal';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 import type { BookVisibility } from '@/types';
 
 interface AdminBook {
@@ -47,6 +50,10 @@ export default function AdminBookManager() {
   const [visFilter, setVisFilter] = useState<VisibilityFilter>('all');
   const [accessModal, setAccessModal] = useState<{ bookId: string; title: string; visibility: BookVisibility } | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAccessModalOpen, setBulkAccessModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadBooks();
@@ -94,6 +101,44 @@ export default function AdminBookManager() {
     ));
   }
 
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    setSelectedIds(new Set(filtered.map(b => b.id)));
+  }
+
+  function deselectAll() {
+    setSelectedIds(new Set());
+  }
+
+  async function executeBulkDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/admin/books', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookIds: Array.from(selectedIds) })
+      });
+      if (!res.ok) throw new Error('Failed to delete books');
+      
+      setBooks(prev => prev.filter(b => !selectedIds.has(b.id)));
+      setSelectedIds(new Set());
+      setDeleteModalOpen(false);
+      toast.success('Books deleted successfully');
+    } catch (err: any) {
+      toast.error(err.message ?? 'Failed to delete');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (loading) return (
     <div className="flex items-center justify-center py-20 gap-3">
       <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#8B6914' }} />
@@ -118,13 +163,53 @@ export default function AdminBookManager() {
   return (
     <div>
       {/* Header + controls */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
-        <h2
-          className="text-lg font-semibold"
-          style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}
+      {selectedIds.size > 0 ? (
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5 px-4 py-3 rounded-xl"
+          style={{ backgroundColor: '#8B691410', border: '1px solid #8B691430' }}
         >
-          All Books ({filtered.length})
-        </h2>
+          <div className="flex items-center gap-3">
+            <button onClick={deselectAll} className="text-xs font-semibold uppercase tracking-wider hover:opacity-70 transition-opacity" style={{ color: '#8B6914' }}>
+              Cancel
+            </button>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {selectedIds.size} Selected
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setBulkAccessModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border bg-white transition-all hover:shadow-sm"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              Manage Access
+            </button>
+            <button
+              onClick={() => setDeleteModalOpen(true)}
+              disabled={deleting}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border bg-white transition-all hover:shadow-sm"
+              style={{ borderColor: 'var(--border)', color: '#EF4444' }}
+            >
+              {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              Delete
+            </button>
+          </div>
+        </div>
+      ) : (
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-5">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={selectAll}
+            className="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all hover:border-[#8B6914]"
+            style={{ borderColor: 'var(--border)', backgroundColor: 'transparent' }}
+          />
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}
+          >
+            All Books ({filtered.length})
+          </h2>
+        </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* Search */}
@@ -182,6 +267,7 @@ export default function AdminBookManager() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Book list */}
       {filtered.length === 0 ? (
@@ -201,8 +287,23 @@ export default function AdminBookManager() {
               <div
                 key={book.id}
                 className="flex items-center gap-4 p-4 rounded-xl border transition-shadow hover:shadow-soft"
-                style={{ backgroundColor: 'var(--bg-card, #fff)', borderColor: 'var(--border)' }}
+                style={{
+                  backgroundColor: selectedIds.has(book.id) ? '#8B691405' : 'var(--bg-card, #fff)',
+                  borderColor: selectedIds.has(book.id) ? '#8B691450' : 'var(--border)'
+                }}
               >
+                {/* Checkbox */}
+                <button
+                  onClick={() => toggleSelect(book.id)}
+                  className="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-none transition-all duration-150"
+                  style={{
+                    borderColor: selectedIds.has(book.id) ? '#8B6914' : 'var(--border)',
+                    backgroundColor: selectedIds.has(book.id) ? '#8B6914' : 'transparent',
+                  }}
+                >
+                  {selectedIds.has(book.id) && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                </button>
+
                 {/* Cover thumbnail */}
                 <div className="w-11 h-16 rounded-lg overflow-hidden flex-none bg-[#E5E0D8] flex items-center justify-center">
                   {book.cover_url ? (
@@ -271,6 +372,29 @@ export default function AdminBookManager() {
             handleAccessSaved(accessModal.bookId, vis, count);
             setAccessModal(null);
           }}
+        />
+      )}
+
+      {/* Bulk access modal */}
+      {bulkAccessModalOpen && (
+        <BulkBookAccessModal
+          bookIds={Array.from(selectedIds)}
+          onClose={() => setBulkAccessModalOpen(false)}
+          onSaved={() => {
+            setBulkAccessModalOpen(false);
+            setSelectedIds(new Set());
+            loadBooks(); // Reload list to reflect new visibilities/assignments
+          }}
+        />
+      )}
+
+      {/* Confirm delete modal */}
+      {deleteModalOpen && (
+        <ConfirmDeleteModal
+          count={selectedIds.size}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={executeBulkDelete}
+          isDeleting={deleting}
         />
       )}
     </div>

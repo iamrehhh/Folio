@@ -69,10 +69,12 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { bookId, visibility } = await req.json() as { bookId: string; visibility: BookVisibility };
+    const { bookId, bookIds, visibility } = await req.json() as { bookId?: string; bookIds?: string[]; visibility: BookVisibility };
     
-    if (!bookId || !visibility) {
-      return NextResponse.json({ error: 'Missing bookId or visibility' }, { status: 400 });
+    const targetIds = bookIds || (bookId ? [bookId] : []);
+
+    if (targetIds.length === 0 || !visibility) {
+      return NextResponse.json({ error: 'Missing bookId(s) or visibility' }, { status: 400 });
     }
 
     const { error: updateError } = await admin
@@ -81,11 +83,119 @@ export async function PATCH(req: Request) {
         visibility, 
         is_default: visibility === 'public' // Sync for backward compatibility
       })
-      .eq('id', bookId);
+      .in('id', targetIds);
 
     if (updateError) throw updateError;
 
     return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const supabase = createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user || !ADMIN_EMAILS.includes(user.email as string)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { bookIds } = await req.json() as { bookIds: string[] };
+    if (!bookIds || !Array.isArray(bookIds) || bookIds.length === 0) {
+      return NextResponse.json({ error: 'Missing bookIds' }, { status: 400 });
+    }
+
+    // Fetch paths to delete from storage
+    const { data: booksToDelete, error: fetchError } = await admin
+      .from('books')
+      .select('id, file_path, epub_path, cover_path')
+      .in('id', bookIds);
+
+    if (fetchError) throw fetchError;
+
+    const filesToDelete: { bucket: string; path: string }[] = [];
+    booksToDelete?.forEach(book => {
+      if (book.epub_path)  filesToDelete.push({ bucket: 'books',  path: book.epub_path });
+      if (book.file_path)  filesToDelete.push({ bucket: 'books',  path: book.file_path });
+      if (book.cover_path) filesToDelete.push({ bucket: 'covers', path: book.cover_path });
+    });
+
+    // Delete from storage
+    for (const f of filesToDelete) {
+      const { error: storageErr } = await admin.storage.from(f.bucket).remove([f.path]);
+      if (storageErr) console.warn(`[DELETE] Storage removal failed for ${f.path}:`, storageErr.message);
+    }
+
+    // Delete from database
+    const { error: deleteError } = await admin
+      .from('books')
+      .delete()
+      .in('id', bookIds);
+
+    if (deleteError) throw deleteError;
+
+    return NextResponse.json({ success: true, deleted: bookIds.length });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const supabase = createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user || !ADMIN_EMAILS.includes(user.email as string)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { bookIds, userIds } = await req.json() as { bookIds: string[], userIds: string[] };
+
+    if (!Array.isArray(bookIds) || !Array.isArray(userIds)) {
+      return NextResponse.json({ error: 'Invalid bookIds or userIds array' }, { status: 400 });
+    }
+
+    if (bookIds.length === 0) {
+      return NextResponse.json({ success: true });
+    }
+
+    // 1. Remove all existing access for these books
+    const { error: removeError } = await admin
+      .from('book_access')
+      .delete()
+      .in('book_id', bookIds);
+    
+    if (removeError) throw removeError;
+
+    let totalAdded = 0;
+
+    // 2. Add new access for each book and user combo
+    if (userIds.length > 0) {
+      const rows = bookIds.flatMap(bookId => 
+        userIds.map(userId => ({
+          book_id: bookId,
+          user_id: userId,
+          granted_by: user.id
+        }))
+      );
+
+      const { error: insertError } = await admin.from('book_access').insert(rows);
+      if (insertError) throw insertError;
+      totalAdded = rows.length;
+    }
+
+    // 3. Update visibility based on assignments
+    const newVisibility = userIds.length > 0 ? 'assigned' : 'private';
+    const { error: updateError } = await admin
+      .from('books')
+      .update({ visibility: newVisibility })
+      .in('id', bookIds);
+      
+    if (updateError) throw updateError;
+
+    return NextResponse.json({ success: true, added: totalAdded });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
