@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { X, Upload, BookOpen, Check } from 'lucide-react';
+import { X, Upload, BookOpen, Check, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -78,6 +78,7 @@ export default function BookUploadModal({ onClose }: Props) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStage, setUploadStage] = useState('');
   const [done, setDone] = useState(false);
+  const [showGuidelines, setShowGuidelines] = useState(false);
 
   const [isDragActive, setIsDragActive] = useState(false);
 
@@ -303,11 +304,11 @@ export default function BookUploadModal({ onClose }: Props) {
       />
 
       <div
-        className="relative z-10 w-full max-w-lg rounded-xl border shadow-popover overflow-hidden"
+        className="relative z-10 w-full max-w-lg rounded-xl border shadow-popover overflow-hidden flex flex-col max-h-[90vh]"
         style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex-none flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <h2 className="font-semibold" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
             Add Book to Library
           </h2>
@@ -449,7 +450,41 @@ export default function BookUploadModal({ onClose }: Props) {
         {/* ──────── FORM ──────── */}
         {!isUploading && (
           <>
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+              {/* Guidelines Toggle */}
+              <div 
+                className="rounded-lg border overflow-hidden transition-all duration-300"
+                style={{ borderColor: showGuidelines ? '#8B691450' : 'var(--border)', backgroundColor: showGuidelines ? '#8B691405' : 'transparent' }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowGuidelines(!showGuidelines)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors"
+                  style={{ color: showGuidelines ? '#8B6914' : 'var(--text-secondary)' }}
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>EPUB Upload Guidelines</span>
+                  </div>
+                  {showGuidelines ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                
+                {showGuidelines && (
+                  <div className="px-4 pb-4 pt-1 text-xs space-y-2 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    <p>
+                      To ensure the best reading experience, please upload well-formatted <span className="font-medium" style={{ color: 'var(--text-primary)' }}>.epub</span> files.
+                    </p>
+                    <ul className="list-disc pl-4 space-y-1">
+                      <li><strong>PDFs or converted files</strong> may have formatting issues or missing metadata.</li>
+                      <li><strong>DRM-protected files</strong> (from Kindle, Apple Books, etc.) are not supported and will fail to open.</li>
+                    </ul>
+                    <p className="pt-2 mt-2 border-t" style={{ borderColor: 'var(--border)' }}>
+                      <strong>Where to find good EPUBs?</strong> We highly recommend downloading public domain books from <a href="https://www.gutenberg.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#8B6914] transition-colors">Project Gutenberg</a> or <a href="https://standardebooks.org" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#8B6914] transition-colors">Standard Ebooks</a>.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* EPUB */}
               <div>
                 <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>
@@ -587,7 +622,7 @@ export default function BookUploadModal({ onClose }: Props) {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t flex gap-3 justify-end" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex-none px-6 py-4 border-t flex gap-3 justify-end" style={{ borderColor: 'var(--border)' }}>
               <button onClick={onClose}
                 className="px-4 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--bg)]"
                 style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>

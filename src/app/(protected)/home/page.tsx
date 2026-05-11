@@ -52,7 +52,7 @@ export default async function HomePage() {
     supabase.from('reading_progress').select('*', { count: 'exact', head: true })
       .eq('user_id', user.id).eq('progress_percent', 100),
       
-    supabase.from('reading_sessions').select('duration_seconds').eq('user_id', user.id), // Removed limit to calculate exact total; OOM risk is negligible for standard users
+    supabase.from('reading_sessions').select('duration_seconds, started_at').eq('user_id', user.id).order('started_at', { ascending: true }), // Removed limit to calculate exact total; OOM risk is negligible for standard users
       
     supabase.from('book_schedules').select('*, book:books(*)')
       .eq('user_id', user.id).gte('scheduled_for', new Date().toISOString().split('T')[0])
@@ -64,13 +64,35 @@ export default async function HomePage() {
       .limit(10)
   ]);
 
-  const totalSecs = sessions?.reduce((s, r) => s + (r.duration_seconds ?? 0), 0) ?? 0;
+  let trueSessionCount = 0;
+  let totalSecs = 0;
+
+  if (sessions && sessions.length > 0) {
+    trueSessionCount = 1;
+    let lastSessionEnd = new Date(sessions[0].started_at).getTime() + (sessions[0].duration_seconds ?? 0) * 1000;
+    totalSecs += sessions[0].duration_seconds ?? 0;
+
+    for (let i = 1; i < sessions.length; i++) {
+      const s = sessions[i];
+      const startMs = new Date(s.started_at).getTime();
+      const durSecs = s.duration_seconds ?? 0;
+
+      // New session if gap is > 30 minutes
+      if (startMs - lastSessionEnd > 30 * 60 * 1000) {
+        trueSessionCount++;
+      }
+      
+      lastSessionEnd = Math.max(lastSessionEnd, startMs + durSecs * 1000);
+      totalSecs += durSecs;
+    }
+  }
+
   const stats: ReadingStats = {
     booksCompletedThisMonth: completedThisMonth ?? 0,
     booksCompletedThisYear:  completedThisYear  ?? 0,
     booksCompletedAllTime:   completedAllTime   ?? 0,
     totalReadingTimeMinutes: Math.round(totalSecs / 60),
-    avgSessionMinutes: sessions?.length ? Math.round(totalSecs / sessions.length / 60) : 0,
+    avgSessionMinutes: trueSessionCount > 0 ? Math.max(1, Math.round(totalSecs / trueSessionCount / 60)) : 0,
   };
 
   const greeting = getGreeting();
