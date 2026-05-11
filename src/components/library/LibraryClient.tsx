@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download, Globe } from 'lucide-react';
+import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download, Globe, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, truncate } from '@/lib/utils';
 import type { Book, BookSchedule } from '@/types';
@@ -50,6 +50,27 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const sidebarAnimReady = useRef(false);
+
+  // Read persisted state before browser paints (prevents flash on client-side navigation)
+  useLayoutEffect(() => {
+    const saved = localStorage.getItem('folio-sidebar-open');
+    if (saved !== null) {
+      setIsSidebarOpen(saved === 'true');
+    }
+    // Remove the pre-hydration CSS hint so React/Framer takes full control
+    document.documentElement.removeAttribute('data-sidebar-closed');
+    // Enable animations only after the initial state correction renders
+    requestAnimationFrame(() => { sidebarAnimReady.current = true; });
+  }, []);
+
+  // Persist changes (skip the initial correction write)
+  useEffect(() => {
+    if (sidebarAnimReady.current) {
+      localStorage.setItem('folio-sidebar-open', String(isSidebarOpen));
+    }
+  }, [isSidebarOpen]);
 
   // Realtime subscription
   useEffect(() => {
@@ -173,42 +194,52 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
     <div className="flex h-[calc(100vh-3.5rem)]" style={{ backgroundColor: 'var(--bg)' }}>
 
       {/* ── Genre Sidebar — desktop only ── */}
-      <aside className="hidden md:flex flex-col w-48 flex-none border-r"
-        style={{ backgroundColor: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}>
-        <div className="p-4 overflow-y-auto flex-1">
-          <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>
-            Genre
-          </p>
-          <div className="space-y-0.5">
-            {GENRES.map(genre => (
-              <button key={genre} onClick={() => setSelectedGenre(genre)}
-                className={cn('w-full text-left px-3 py-2 rounded text-sm transition-colors',
-                  selectedGenre === genre ? 'font-medium' : 'hover:bg-[var(--border)]')}
-                style={selectedGenre === genre
-                  ? { backgroundColor: '#8B691420', color: '#8B6914' }
-                  : { color: 'var(--text-secondary)' }}>
-                {genre}
-              </button>
-            ))}
+      <motion.aside 
+        data-genre-sidebar
+        animate={{ width: isSidebarOpen ? 192 : 0, opacity: isSidebarOpen ? 1 : 0 }}
+        transition={{ duration: sidebarAnimReady.current ? 0.3 : 0, ease: [0.25, 0.1, 0.25, 1] }}
+        className="hidden md:flex flex-col flex-none overflow-hidden"
+        style={{ 
+          backgroundColor: 'var(--bg-sidebar)', 
+          borderRight: isSidebarOpen ? '1px solid var(--border)' : 'none',
+        }}
+      >
+        <div className="w-48 flex flex-col h-full">
+          <div className="p-4 overflow-y-auto flex-1">
+            <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>
+              Genre
+            </p>
+            <div className="space-y-0.5">
+              {GENRES.map(genre => (
+                <button key={genre} onClick={() => setSelectedGenre(genre)}
+                  className={cn('w-full text-left px-3 py-2 rounded text-sm transition-colors',
+                    selectedGenre === genre ? 'font-medium' : 'hover:bg-[var(--border)]')}
+                  style={selectedGenre === genre
+                    ? { backgroundColor: '#8B691420', color: '#8B6914' }
+                    : { color: 'var(--text-secondary)' }}>
+                  {genre}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="p-4 mt-auto border-t" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-[var(--border)]" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0" style={{ backgroundColor: '#8B691420' }}>
-              <BookOpen className="w-4 h-4" style={{ color: '#8B6914' }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold leading-none truncate" style={{ color: 'var(--text-primary)' }}>
-                {books.length}
-              </p>
-              <p className="text-[10px] font-medium uppercase tracking-wider mt-1 truncate" style={{ color: 'var(--text-secondary)' }}>
-                Total Books
-              </p>
+          <div className="p-4 mt-auto border-t" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-[var(--border)]" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0" style={{ backgroundColor: '#8B691420' }}>
+                <BookOpen className="w-4 h-4" style={{ color: '#8B6914' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold leading-none truncate" style={{ color: 'var(--text-primary)' }}>
+                  {books.length}
+                </p>
+                <p className="text-[10px] font-medium uppercase tracking-wider mt-1 truncate" style={{ color: 'var(--text-secondary)' }}>
+                  Total Books
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </aside>
+      </motion.aside>
 
       {/* ── Mobile filter drawer ── */}
       {showMobileFilters && (
@@ -243,6 +274,16 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
         {/* Top bar */}
         <div className="px-4 md:px-8 py-3 border-b flex flex-wrap items-center gap-3"
           style={{ borderColor: 'var(--border)' }}>
+
+          {/* Toggle Sidebar Button */}
+          <button 
+            onClick={() => setIsSidebarOpen(prev => !prev)}
+            className="hidden md:flex items-center justify-center w-9 h-9 rounded-lg border transition-colors hover:bg-[var(--border)]"
+            style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+            title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
+          >
+            {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+          </button>
 
           {/* Search */}
           <div className="relative flex-1 min-w-0">

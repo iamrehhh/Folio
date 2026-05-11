@@ -65,6 +65,13 @@ body {
   font-family: var(--font-ui);
 }
 
+/* Hide genre sidebar on first paint when user previously closed it (pre-hydration) */
+html[data-sidebar-closed] [data-genre-sidebar] {
+  width: 0 !important;
+  opacity: 0 !important;
+  border-right: none !important;
+}
+
 /* ─── Typography Utilities ────────────────────── */
 .font-reading {
   font-family: var(--font-lora), Georgia, serif;

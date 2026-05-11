@@ -35,6 +35,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${lora.variable} ${merriweather.variable} font-sans antialiased`}>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('folio-sidebar-open');if(s==='false')document.documentElement.setAttribute('data-sidebar-closed','')}catch(e){}})();`,
+          }}
+        />
         <NavigationProgress />
         {children}
         <Toaster
