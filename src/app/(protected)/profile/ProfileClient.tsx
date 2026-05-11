@@ -2,8 +2,9 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { User, Camera, Save, X, BookOpen, CheckCircle, Highlighter, Calendar, Edit2, Shield, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Camera, Save, X, BookOpen, CheckCircle, Highlighter, Calendar, Edit2, Shield, Lock, Eye, EyeOff, KeyRound, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Cropper from 'react-easy-crop';
 import { cn } from '@/lib/utils';
@@ -285,6 +286,36 @@ export default function ProfileClient({ profile, stats, userEmail, authProvider 
           label="Total Highlights"
         />
       </div>
+
+      {/* ── Personal Vault ── */}
+      <Link
+        href="/vault"
+        className="group block p-6 md:p-8 rounded-2xl border transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+        style={{ backgroundColor: 'var(--bg-sidebar, #F2EFE9)', borderColor: 'var(--border, #E5E0D8)' }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: '#8B691418' }}
+            >
+              <KeyRound className="w-5 h-5" style={{ color: '#8B6914' }} />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                Personal Vault
+              </h2>
+              <p className="text-sm text-[var(--text-secondary)] mt-0.5">
+                Your private space for notes, reading lists, vocabulary & more
+              </p>
+            </div>
+          </div>
+          <ArrowRight
+            className="w-5 h-5 transition-transform group-hover:translate-x-1"
+            style={{ color: 'var(--text-muted)' }}
+          />
+        </div>
+      </Link>
 
       {/* ── Security / Password ── */}
       <div className="p-8 rounded-2xl border bg-white" style={{ borderColor: 'var(--border)' }}>

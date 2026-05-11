@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar, Keyboard } from 'lucide-react';
+import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar, Keyboard, KeyRound } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -141,6 +141,21 @@ export default function GuideModal({ onClose }: Props) {
               </p>
               <p>
                 Setting regular schedules helps you build a strong reading habit over time by giving you a clear, synchronized overview of your reading progress and commitments.
+              </p>
+            </div>
+          </section>
+
+          {/* Personal Vault */}
+          <section>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+              <KeyRound className="w-5 h-5" style={{ color: '#8B6914' }} /> Personal Vault
+            </h3>
+            <div className="space-y-3 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <p>
+                Your <strong>Personal Vault</strong> is a private space to store notes, reading lists, vocabulary, and quick captures — all in one place. Access it from your <strong>Profile</strong> page.
+              </p>
+              <p>
+                Organize entries with <strong>color-coded cards</strong>, pin important ones to the top, and use category tabs to filter between Notes, Reading Lists, Vocabulary, and Captures.
               </p>
             </div>
           </section>

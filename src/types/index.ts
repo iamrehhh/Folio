@@ -161,6 +161,21 @@ export interface BookRatingStats {
   total_ratings: number;
 }
 
+export type VaultCategory = 'note' | 'reading_list' | 'vocabulary' | 'quick_capture';
+export type VaultColor = 'default' | 'amber' | 'sage' | 'sky' | 'rose' | 'lavender';
+
+export interface VaultEntry {
+  id: string;
+  user_id: string;
+  category: VaultCategory;
+  title: string | null;
+  content: string;
+  color: VaultColor;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface SiteFeedback {
   id: string;
   user_id: string;
