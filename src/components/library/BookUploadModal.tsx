@@ -9,7 +9,7 @@ import ePub from 'epubjs';
 
 interface Props { onClose: () => void; }
 
-const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
+const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery/Thriller', 'Romance', 'Comedy', 'Horror', 'Other'];
 const LANGUAGES = ['English', 'Bengali', 'Hindi', 'Spanish', 'French', 'German', 'Other'];
 
 function sanitize(name: string) {

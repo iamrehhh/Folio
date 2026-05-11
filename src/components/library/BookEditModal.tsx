@@ -5,7 +5,7 @@ import { X, Upload, BookOpen } from 'lucide-react';
 import type { Book } from '@/types';
 import toast from 'react-hot-toast';
 
-const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
+const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery/Thriller', 'Romance', 'Comedy', 'Horror', 'Other'];
 const LANGUAGES = ['English', 'Bengali', 'Hindi', 'Spanish', 'French', 'German', 'Other'];
 
 interface Props {

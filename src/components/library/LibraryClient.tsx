@@ -29,7 +29,7 @@ const SORT_OPTIONS: { id: SortOption; label: string }[] = [
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
 interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; ratingsMap?: Map<string, number>; userId: string; isAdmin: boolean; }
 
-const GENRES = ['All', 'Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
+const GENRES = ['All', 'Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery/Thriller', 'Romance', 'Comedy', 'Horror', 'Other'];
 const LANGUAGES = ['All', 'English', 'Bengali', 'Hindi', 'Spanish', 'French', 'German', 'Other'];
 
 export default function LibraryClient({ books: initialBooks, progressMap, scheduleMap: initialScheduleMap, ratingsMap = new Map(), userId, isAdmin }: Props) {

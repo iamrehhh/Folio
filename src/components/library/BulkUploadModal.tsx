@@ -11,7 +11,7 @@ import type { BookVisibility } from '@/types';
 
 interface Props { onClose: () => void; }
 
-const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery', 'Romance', 'Other'];
+const GENRES = ['Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery/Thriller', 'Romance', 'Comedy', 'Horror', 'Other'];
 
 function sanitize(name: string) {
   return name.replace(/[^a-zA-Z0-9.-]/g, '_');
