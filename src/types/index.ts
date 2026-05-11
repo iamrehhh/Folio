@@ -161,6 +161,22 @@ export interface BookRatingStats {
   total_ratings: number;
 }
 
+export interface BookComment {
+  id: string;
+  book_id: string;
+  user_id: string;
+  parent_id: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  // joined
+  user?: {
+    full_name: string | null;
+    avatar_url: string | null;
+  };
+  replies?: BookComment[];
+}
+
 export type VaultCategory = 'note' | 'reading_list' | 'vocabulary' | 'quick_capture';
 export type VaultColor = 'default' | 'amber' | 'sage' | 'sky' | 'rose' | 'lavender';
 

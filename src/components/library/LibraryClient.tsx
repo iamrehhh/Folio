@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download, Globe, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download, Globe, PanelLeftClose, PanelLeftOpen, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, truncate } from '@/lib/utils';
 import type { Book, BookSchedule } from '@/types';
@@ -431,12 +431,21 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                     className="group flex flex-col rounded-xl border overflow-hidden transition-shadow duration-200 hover:shadow-soft-lg"
                     style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
 
-                    {/* Cover */}
-                    <div className="w-full aspect-[2/3] bg-[#E5E0D8] flex items-center justify-center overflow-hidden relative">
+                    {/* Cover — clickable → Discussion page */}
+                    <Link href={`/book/${book.id}/discussion`} className="block w-full aspect-[2/3] bg-[#E5E0D8] flex items-center justify-center overflow-hidden relative">
                       {book.cover_url
                         ? <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover object-top" />
                         : <BookOpen className="w-8 h-8 opacity-25" style={{ color: 'var(--text-secondary)' }} />
                       }
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100 flex flex-col items-center gap-1.5">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.9)' }}>
+                            <MessageCircle className="w-5 h-5" style={{ color: '#8B6914' }} />
+                          </div>
+                          <span className="text-white text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>Discussion</span>
+                        </div>
+                      </div>
                       {book.genre && (
                         <div className="absolute top-2 left-2 flex flex-wrap gap-1 max-w-[calc(100%-3rem)]">
                           {book.genre.split(',').map(g => g.trim()).filter(Boolean).map((g, i) => (
@@ -458,9 +467,9 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
 
                       {/* ⋮ menu */}
                       {book.uploaded_by === userId && (
-                        <div className="absolute top-2 right-2">
+                        <div className="absolute top-2 right-2" onClick={e => e.preventDefault()}>
                           <button
-                            onClick={e => { e.preventDefault(); setOpenMenuId(menuOpen ? null : book.id); }}
+                            onClick={e => { e.preventDefault(); e.stopPropagation(); setOpenMenuId(menuOpen ? null : book.id); }}
                             className="w-7 h-7 rounded-full flex items-center justify-center transition-opacity md:opacity-0 md:group-hover:opacity-100 opacity-100"
                             style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
                             <MoreVertical className="w-4 h-4 text-white" />
@@ -483,7 +492,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                           )}
                         </div>
                       )}
-                    </div>
+                    </Link>
 
                     {/* Info */}
                     <div className="flex flex-col flex-1 p-4 md:p-5">
