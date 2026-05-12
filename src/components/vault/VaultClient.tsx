@@ -291,6 +291,7 @@ export default function VaultClient({ initialEntries }: VaultClientProps) {
           onClose={handleCloseModal}
           onSave={editingEntry ? handleSaveEdit : handleCreate}
           editingEntry={editingEntry}
+          defaultCategory={activeTab !== 'all' ? activeTab : undefined}
         />
       )}
     </div>

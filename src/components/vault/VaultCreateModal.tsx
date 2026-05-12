@@ -10,6 +10,7 @@ interface VaultCreateModalProps {
   onClose: () => void;
   onSave: (data: { category: VaultCategory; title?: string; content: string; color?: string }) => Promise<void>;
   editingEntry: VaultEntry | null;
+  defaultCategory?: VaultCategory;
 }
 
 const CATEGORY_OPTIONS: { key: VaultCategory; label: string; icon: React.ElementType }[] = [
@@ -35,8 +36,8 @@ const PLACEHOLDERS: Record<VaultCategory, string> = {
   quick_capture: 'Jot something down...',
 };
 
-export default function VaultCreateModal({ onClose, onSave, editingEntry }: VaultCreateModalProps) {
-  const [category, setCategory] = useState<VaultCategory>(editingEntry?.category || 'note');
+export default function VaultCreateModal({ onClose, onSave, editingEntry, defaultCategory }: VaultCreateModalProps) {
+  const [category, setCategory] = useState<VaultCategory>(editingEntry?.category || defaultCategory || 'note');
   const [title, setTitle] = useState(editingEntry?.title || '');
   const [content, setContent] = useState(editingEntry?.content || '');
   const [color, setColor] = useState<VaultColor>(editingEntry?.color || 'default');

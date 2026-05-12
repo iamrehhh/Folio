@@ -432,44 +432,46 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                     style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
 
                     {/* Cover — clickable → Discussion page */}
-                    <Link href={`/book/${book.id}/discussion`} className="block w-full aspect-[2/3] bg-[#E5E0D8] flex items-center justify-center overflow-hidden relative">
-                      {book.cover_url
-                        ? <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover object-top" />
-                        : <BookOpen className="w-8 h-8 opacity-25" style={{ color: 'var(--text-secondary)' }} />
-                      }
-                      {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100 flex flex-col items-center gap-1.5">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.9)' }}>
-                            <MessageCircle className="w-5 h-5" style={{ color: '#8B6914' }} />
+                    <div className="relative">
+                      <Link href={`/book/${book.id}/discussion`} className="block w-full aspect-[2/3] bg-[#E5E0D8] flex items-center justify-center overflow-hidden relative">
+                        {book.cover_url
+                          ? <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover object-top" />
+                          : <BookOpen className="w-8 h-8 opacity-25" style={{ color: 'var(--text-secondary)' }} />
+                        }
+                        {/* Hover overlay */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100 flex flex-col items-center gap-1.5">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.9)' }}>
+                              <MessageCircle className="w-5 h-5" style={{ color: '#8B6914' }} />
+                            </div>
+                            <span className="text-white text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>Discussion</span>
                           </div>
-                          <span className="text-white text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>Discussion</span>
                         </div>
-                      </div>
-                      {book.genre && (
-                        <div className="absolute top-2 left-2 flex flex-wrap gap-1 max-w-[calc(100%-3rem)]">
-                          {book.genre.split(',').map(g => g.trim()).filter(Boolean).map((g, i) => (
-                            <span key={i} className="px-2 py-0.5 rounded text-[10px] font-medium leading-tight"
-                              style={{ backgroundColor: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}>
-                              {g}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {scheduleMap.has(book.id) && (
-                        <span className="absolute bottom-2 left-2 px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5 shadow-sm"
-                          style={{ backgroundColor: '#8B6914', color: '#fff' }}>
-                          <Calendar className="w-3 h-3" />
-                          {new Date(scheduleMap.get(book.id)!.scheduled_for).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })}
-                        </span>
-                      )}
+                        {book.genre && (
+                          <div className="absolute top-2 left-2 flex flex-wrap gap-1 max-w-[calc(100%-3rem)]">
+                            {book.genre.split(',').map(g => g.trim()).filter(Boolean).map((g, i) => (
+                              <span key={i} className="px-2 py-0.5 rounded text-[10px] font-medium leading-tight"
+                                style={{ backgroundColor: 'rgba(0,0,0,0.55)', color: '#fff', backdropFilter: 'blur(4px)' }}>
+                                {g}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {scheduleMap.has(book.id) && (
+                          <span className="absolute bottom-2 left-2 px-2 py-1 rounded text-xs font-medium flex items-center gap-1.5 shadow-sm"
+                            style={{ backgroundColor: '#8B6914', color: '#fff' }}>
+                            <Calendar className="w-3 h-3" />
+                            {new Date(scheduleMap.get(book.id)!.scheduled_for).toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                          </span>
+                        )}
+                      </Link>
 
-                      {/* ⋮ menu */}
+                      {/* ⋮ menu — outside Link to prevent navigation/loading bar */}
                       {book.uploaded_by === userId && (
-                        <div className="absolute top-2 right-2" onClick={e => e.preventDefault()}>
+                        <div className="absolute top-2 right-2 z-10">
                           <button
-                            onClick={e => { e.preventDefault(); e.stopPropagation(); setOpenMenuId(menuOpen ? null : book.id); }}
+                            onClick={() => setOpenMenuId(menuOpen ? null : book.id)}
                             className="w-7 h-7 rounded-full flex items-center justify-center transition-opacity md:opacity-0 md:group-hover:opacity-100 opacity-100"
                             style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
                             <MoreVertical className="w-4 h-4 text-white" />
@@ -478,13 +480,13 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                             <div className="absolute right-0 top-8 w-36 rounded-lg border shadow-popover overflow-hidden z-20"
                               style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
                               <button
-                                onClick={e => { e.preventDefault(); e.stopPropagation(); setEditingBook(book); setOpenMenuId(null); }}
+                                onClick={() => { setEditingBook(book); setOpenMenuId(null); }}
                                 className="w-full flex items-center gap-2 px-3 py-3 text-sm hover:bg-[var(--border)] transition-colors"
                                 style={{ color: 'var(--text-primary)' }}>
                                 <Pencil className="w-3.5 h-3.5" /> Edit book
                               </button>
                               <button
-                                onClick={e => { e.preventDefault(); e.stopPropagation(); handleDelete(book); }}
+                                onClick={() => handleDelete(book)}
                                 className="w-full flex items-center gap-2 px-3 py-3 text-sm hover:bg-red-50 transition-colors text-red-500">
                                 <Trash2 className="w-3.5 h-3.5" /> Delete book
                               </button>
@@ -492,7 +494,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                           )}
                         </div>
                       )}
-                    </Link>
+                    </div>
 
                     {/* Info */}
                     <div className="flex flex-col flex-1 p-4 md:p-5">
