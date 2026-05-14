@@ -242,7 +242,7 @@ export default function VaultClient({ initialEntries }: VaultClientProps) {
           {filteredEntries.map((entry, i) => (
             <div
               key={entry.id}
-              className="animate-float-up"
+              className="animate-float-up h-full"
               style={{ animationDelay: `${Math.min(i * 40, 300)}ms`, animationFillMode: 'both' }}
             >
               <VaultEntryCard

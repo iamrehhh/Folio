@@ -6,7 +6,11 @@ import { Loader2, AlertCircle, CheckCircle2, ChevronRight, Inbox, Trash2 } from 
 import ReportChat from '../report/ReportChat';
 import toast from 'react-hot-toast';
 
-export default function AdminReportsViewer() {
+interface AdminReportsViewerProps {
+  onUnreadChange?: (count: number) => void;
+}
+
+export default function AdminReportsViewer({ onUnreadChange }: AdminReportsViewerProps) {
   const [activeTab, setActiveTab] = useState<'active' | 'resolved'>('active');
   const [reports, setReports] = useState<BugReport[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,11 +77,34 @@ export default function AdminReportsViewer() {
     try {
       const r = await fetch(`/api/admin/reports?status=${status}`);
       const d = await r.json();
-      setReports(d.reports || []);
+      const rpts = d.reports || [];
+      setReports(rpts);
+      // Notify parent of unread count
+      if (onUnreadChange) {
+        const unread = rpts.filter((r: BugReport) => r.has_unread_user_message).length;
+        onUnreadChange(unread);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function markAsRead(reportId: string) {
+    try {
+      await fetch(`/api/admin/reports/${reportId}/read`, { method: 'PATCH' });
+      // Update local state
+      setReports(prev => prev.map(r => 
+        r.id === reportId ? { ...r, has_unread_user_message: false } : r
+      ));
+      // Notify parent of new unread count
+      if (onUnreadChange) {
+        const remaining = reports.filter(r => r.has_unread_user_message && r.id !== reportId).length;
+        onUnreadChange(remaining);
+      }
+    } catch (err) {
+      console.error('Failed to mark report as read:', err);
     }
   }
 
@@ -221,7 +248,10 @@ export default function AdminReportsViewer() {
                     />
                   </div>
                   <button
-                    onClick={() => setSelectedReportId(report.id)}
+                    onClick={() => {
+                      if (report.has_unread_user_message) markAsRead(report.id);
+                      setSelectedReportId(report.id);
+                    }}
                     className="flex-1 text-left px-4 py-4 flex items-center justify-between"
                   >
                     <div>
@@ -231,7 +261,13 @@ export default function AdminReportsViewer() {
                         ) : (
                           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                         )}
-                        <span className="font-semibold text-slate-900">{report.subject}</span>
+                        <span className={`font-semibold ${report.has_unread_user_message ? 'text-slate-900' : 'text-slate-700'}`}>{report.subject}</span>
+                        {report.has_unread_user_message && (
+                          <span className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-slate-500 flex items-center gap-2">
                         <span>Reported by: <strong>{report.user?.full_name || report.user?.email || 'Unknown User'}</strong></span>

@@ -60,7 +60,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       .from('bug_reports')
       .update({ 
         updated_at: new Date().toISOString(),
-        ...(isAdmin ? { has_unread_admin_message: true } : {})
+        ...(isAdmin 
+          ? { has_unread_admin_message: true } 
+          : { has_unread_user_message: true })
       })
       .eq('id', params.id);
 

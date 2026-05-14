@@ -184,6 +184,7 @@ export interface BugReport {
   subject: string;
   status: 'active' | 'resolved';
   has_unread_admin_message: boolean;
+  has_unread_user_message: boolean;
   created_at: string;
   updated_at: string;
   // joined optional

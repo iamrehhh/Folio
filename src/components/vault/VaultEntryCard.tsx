@@ -75,13 +75,16 @@ export default function VaultEntryCard({
   const colors = COLOR_MAP[entry.color] || COLOR_MAP.default;
   const CatIcon = cat.icon;
 
-  // Always truncate on card — 3 lines max
-  const isLong = entry.content.length > 150 || entry.content.split('\n').length > 3;
-  const previewContent = entry.content.length > 150
-    ? entry.content.slice(0, 150) + '…'
-    : entry.content.split('\n').length > 3
-      ? entry.content.split('\n').slice(0, 3).join('\n') + '…'
-      : entry.content;
+  // Always truncate on card — 4 lines max, then 120 char cap
+  const lines = entry.content.split('\n');
+  const isLong = entry.content.length > 120 || lines.length > 4;
+  let previewContent = entry.content;
+  if (lines.length > 4) {
+    previewContent = lines.slice(0, 4).join('\n') + '…';
+  }
+  if (previewContent.length > 120) {
+    previewContent = previewContent.slice(0, 120) + '…';
+  }
 
   // Close menu on outside click
   useEffect(() => {
@@ -119,7 +122,7 @@ export default function VaultEntryCard({
     <>
       {/* ── Card (compact preview) ── */}
       <div
-        className="group relative rounded-xl border overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+        className="group relative rounded-xl border overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer h-full"
         style={{
           backgroundColor: colors.bg,
           borderColor: colors.border === 'var(--border)' ? 'var(--border)' : `${colors.border}30`,
@@ -185,8 +188,8 @@ export default function VaultEntryCard({
 
           {/* Content preview */}
           <div
-            className="text-sm leading-relaxed whitespace-pre-wrap break-words"
-            style={{ color: 'var(--text-secondary)' }}
+            className="text-sm leading-relaxed whitespace-pre-wrap break-words overflow-hidden"
+            style={{ color: 'var(--text-secondary)', maxHeight: '5.5em' }}
           >
             {previewContent}
           </div>

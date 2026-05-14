@@ -265,6 +265,7 @@ export default function AdminDashboard() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [filterUploaders, setFilterUploaders] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const [unreadReportsCount, setUnreadReportsCount] = useState(0);
 
   useEffect(() => {
     fetch('/api/admin/stats')
@@ -275,6 +276,12 @@ export default function AdminDashboard() {
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
+
+    // Fetch unread reports count for the badge
+    fetch('/api/admin/reports/unread')
+      .then(r => r.json())
+      .then(d => setUnreadReportsCount(d.count || 0))
+      .catch(() => {});
   }, []);
 
   if (loading) return (
@@ -367,20 +374,34 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Tab navigation */}
-      <div className="flex items-center gap-1 mb-8 border-b" style={{ borderColor: 'var(--border)' }}>
+      <div className="flex items-center gap-1 mb-8 border-b overflow-x-auto" style={{ borderColor: 'var(--border)' }}>
         {TABS.map(tab => {
           const active = activeTab === tab.id;
           const TabIcon = tab.icon;
+          const showBadge = tab.id === 'reports' && unreadReportsCount > 0;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className="flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative"
+              className="flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative whitespace-nowrap"
               style={{ color: active ? '#8B6914' : 'var(--text-secondary)' }}
             >
               <TabIcon className="w-4 h-4" />
               {tab.label}
+              {showBadge && (
+                <span className="relative flex items-center justify-center">
+                  <span
+                    className="animate-ping absolute inline-flex h-4 w-4 rounded-full opacity-50"
+                    style={{ backgroundColor: '#EF4444' }}
+                  />
+                  <span
+                    className="relative inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-[10px] font-bold text-white"
+                    style={{ backgroundColor: '#EF4444' }}
+                  >
+                    {unreadReportsCount > 9 ? '9+' : unreadReportsCount}
+                  </span>
+                </span>
+              )}
               {active && (
                 <span
                   className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
@@ -485,7 +506,7 @@ export default function AdminDashboard() {
 
       {/* ── Reports Tab ── */}
       {activeTab === 'reports' && (
-        <AdminReportsViewer />
+        <AdminReportsViewer onUnreadChange={(count) => setUnreadReportsCount(count)} />
       )}
     </div>
   );

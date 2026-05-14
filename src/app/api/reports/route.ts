@@ -49,7 +49,8 @@ export async function POST(req: Request) {
       .from('bug_reports')
       .insert({
         user_id: user.id,
-        subject
+        subject,
+        has_unread_user_message: true
       })
       .select()
       .single();
