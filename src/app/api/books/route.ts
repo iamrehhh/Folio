@@ -46,6 +46,12 @@ export async function POST(req: NextRequest) {
 
     if (dbError) throw dbError;
 
+    // Auto-add the uploaded book to the user's personal library
+    await adminSupabase
+      .from('user_library')
+      .upsert({ user_id: user.id, book_id: book.id }, { onConflict: 'user_id,book_id' })
+      .throwOnError();
+
     return NextResponse.json({ book });
   } catch (err) {
     console.error('[Books API Error]', err);

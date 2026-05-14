@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download, Globe, PanelLeftClose, PanelLeftOpen, MessageCircle } from 'lucide-react';
+import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download, Globe, PanelLeftClose, PanelLeftOpen, MessageCircle, Users, ChevronDown, Plus, BookMarked, Library } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, truncate } from '@/lib/utils';
 import type { Book, BookSchedule } from '@/types';
@@ -17,6 +17,7 @@ import { DatePicker } from '@/components/ui/DatePicker';
 
 type FilterTab = 'all' | 'unread' | 'reading' | 'completed' | 'scheduled';
 type SortOption = 'newest' | 'oldest' | 'title_az' | 'author_az' | 'highest_rated' | 'lowest_rated';
+type LibraryMode = 'my_library' | 'public';
 
 const SORT_OPTIONS: { id: SortOption; label: string }[] = [
   { id: 'newest', label: 'Newest First' },
@@ -27,12 +28,12 @@ const SORT_OPTIONS: { id: SortOption; label: string }[] = [
   { id: 'lowest_rated', label: 'Lowest Rated' },
 ];
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
-interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; ratingsMap?: Map<string, number>; userId: string; isAdmin: boolean; }
+interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; ratingsMap?: Map<string, number>; userLibraryBookIds: string[]; userId: string; isAdmin: boolean; }
 
 const GENRES = ['All', 'Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery/Thriller', 'Romance', 'Comedy', 'Horror', 'Other'];
 const LANGUAGES = ['All', 'English', 'Bengali', 'Hindi', 'Spanish', 'French', 'German', 'Other'];
 
-export default function LibraryClient({ books: initialBooks, progressMap, scheduleMap: initialScheduleMap, ratingsMap = new Map(), userId, isAdmin }: Props) {
+export default function LibraryClient({ books: initialBooks, progressMap, scheduleMap: initialScheduleMap, ratingsMap = new Map(), userLibraryBookIds: initialLibraryIds, userId, isAdmin }: Props) {
   const router = useRouter();
   const [books, setBooks] = useState(initialBooks);
   const [scheduleMap, setScheduleMap] = useState<Map<string, BookSchedule>>(initialScheduleMap ?? new Map());
@@ -52,6 +53,15 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const sidebarAnimReady = useRef(false);
+
+  // New state: Library mode, Author filter, Sidebar sections
+  const [libraryMode, setLibraryMode] = useState<LibraryMode>('my_library');
+  const [myLibraryIds, setMyLibraryIds] = useState<Set<string>>(new Set(initialLibraryIds));
+  const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
+  const [authorSearch, setAuthorSearch] = useState('');
+  const [genreSectionOpen, setGenreSectionOpen] = useState(true);
+  const [authorSectionOpen, setAuthorSectionOpen] = useState(false);
+  const [addingToLibrary, setAddingToLibrary] = useState<string | null>(null);
 
   // Read persisted state before browser paints (prevents flash on client-side navigation)
   useLayoutEffect(() => {
@@ -121,8 +131,54 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
     });
   }, [books, scheduleMap, progressMap]);
 
+  // Derive unique authors with book counts from current book set
+  const authorStats = useMemo(() => {
+    const map = new Map<string, number>();
+    books.forEach(b => {
+      const name = b.author.trim();
+      if (name) map.set(name, (map.get(name) ?? 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [books]);
+
+  // Filtered author list for sidebar search
+  const filteredAuthors = useMemo(() => {
+    if (!authorSearch) return authorStats;
+    const q = authorSearch.toLowerCase();
+    return authorStats.filter(([name]) => name.toLowerCase().includes(q));
+  }, [authorStats, authorSearch]);
+
+  // Count books in each mode for badges
+  const myLibraryCount = useMemo(() => books.filter(b => myLibraryIds.has(b.id) || b.uploaded_by === userId).length, [books, myLibraryIds, userId]);
+  const publicCount = useMemo(() => books.length, [books]);
+
+  // Add a book to user's personal library
+  async function handleAddToLibrary(bookId: string) {
+    setAddingToLibrary(bookId);
+    try {
+      const res = await fetch('/api/library', { method: 'POST', body: JSON.stringify({ book_id: bookId }) });
+      if (!res.ok) throw new Error();
+      setMyLibraryIds(prev => { const next = new Set(Array.from(prev)); next.add(bookId); return next; });
+      toast.success('Added to My Library');
+    } catch { toast.error('Failed to add to library'); }
+    finally { setAddingToLibrary(null); }
+  }
+
+  // Remove a book from user's personal library
+  async function handleRemoveFromLibrary(bookId: string) {
+    try {
+      const res = await fetch(`/api/library?book_id=${bookId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      setMyLibraryIds(prev => { const next = new Set(prev); next.delete(bookId); return next; });
+      toast.success('Removed from My Library');
+    } catch { toast.error('Failed to remove from library'); }
+  }
+
   const filteredAndSorted = useMemo(() => {
     const filtered = books.filter((book) => {
+      // Library mode filter
+      if (libraryMode === 'my_library' && !(myLibraryIds.has(book.id) || book.uploaded_by === userId)) return false;
+
       const pct = progressMap.get(book.id)?.progress_percent ?? 0;
       const isScheduled = scheduleMap.has(book.id);
       if (activeTab === 'unread' && pct > 0) return false;
@@ -131,6 +187,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
       if (activeTab === 'scheduled' && !isScheduled) return false;
       if (selectedGenre !== 'All' && !(book.genre ?? '').split(',').map(g => g.trim()).includes(selectedGenre)) return false;
       if (selectedLanguage !== 'All' && book.language !== selectedLanguage) return false;
+      if (selectedAuthor && book.author.trim() !== selectedAuthor) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         return book.title.toLowerCase().includes(q) || book.author.toLowerCase().includes(q);
@@ -161,7 +218,8 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
-  }, [books, progressMap, scheduleMap, activeTab, selectedGenre, selectedLanguage, searchQuery, sortBy, ratingsMap]);
+  }, [books, progressMap, scheduleMap, activeTab, selectedGenre, selectedLanguage, searchQuery, sortBy, ratingsMap, libraryMode, myLibraryIds, userId, selectedAuthor]);
+
 
   async function handleDelete(book: Book) {
     setConfirmBook(book);
@@ -193,10 +251,10 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
   return (
     <div className="flex h-[calc(100vh-3.5rem)]" style={{ backgroundColor: 'var(--bg)' }}>
 
-      {/* ── Genre Sidebar — desktop only ── */}
+      {/* ── Sidebar — desktop only ── */}
       <motion.aside 
         data-genre-sidebar
-        animate={{ width: isSidebarOpen ? 192 : 0, opacity: isSidebarOpen ? 1 : 0 }}
+        animate={{ width: isSidebarOpen ? 220 : 0, opacity: isSidebarOpen ? 1 : 0 }}
         transition={{ duration: sidebarAnimReady.current ? 0.3 : 0, ease: [0.25, 0.1, 0.25, 1] }}
         className="hidden md:flex flex-col flex-none overflow-hidden"
         style={{ 
@@ -204,36 +262,171 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
           borderRight: isSidebarOpen ? '1px solid var(--border)' : 'none',
         }}
       >
-        <div className="w-48 flex flex-col h-full">
-          <div className="p-4 overflow-y-auto flex-1">
-            <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: 'var(--text-secondary)' }}>
-              Genre
-            </p>
-            <div className="space-y-0.5">
-              {GENRES.map(genre => (
-                <button key={genre} onClick={() => setSelectedGenre(genre)}
-                  className={cn('w-full text-left px-3 py-2 rounded text-sm transition-colors',
-                    selectedGenre === genre ? 'font-medium' : 'hover:bg-[var(--border)]')}
-                  style={selectedGenre === genre
-                    ? { backgroundColor: '#8B691420', color: '#8B6914' }
-                    : { color: 'var(--text-secondary)' }}>
-                  {genre}
-                </button>
-              ))}
+        <div className="flex flex-col h-full" style={{ width: 220 }}>
+          {/* ── Library Mode Toggle ── */}
+          <div className="p-3 pb-0">
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={() => setLibraryMode('my_library')}
+                className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all',
+                  libraryMode === 'my_library' ? '' : 'hover:bg-[var(--border)]')}
+                style={libraryMode === 'my_library'
+                  ? { backgroundColor: '#8B691418', color: '#8B6914', borderLeft: '3px solid #8B6914' }
+                  : { color: 'var(--text-secondary)', borderLeft: '3px solid transparent' }}
+              >
+                <BookMarked className="w-4 h-4" />
+                <span className="flex-1 text-left">My Library</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: libraryMode === 'my_library' ? '#8B691425' : 'var(--border)' }}>
+                  {myLibraryCount}
+                </span>
+              </button>
+              <button
+                onClick={() => setLibraryMode('public')}
+                className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all',
+                  libraryMode === 'public' ? '' : 'hover:bg-[var(--border)]')}
+                style={libraryMode === 'public'
+                  ? { backgroundColor: '#8B691418', color: '#8B6914', borderLeft: '3px solid #8B6914' }
+                  : { color: 'var(--text-secondary)', borderLeft: '3px solid transparent' }}
+              >
+                <Library className="w-4 h-4" />
+                <span className="flex-1 text-left">Public Library</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ backgroundColor: libraryMode === 'public' ? '#8B691425' : 'var(--border)' }}>
+                  {publicCount}
+                </span>
+              </button>
             </div>
           </div>
 
-          <div className="p-4 mt-auto border-t" style={{ borderColor: 'var(--border)' }}>
-            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors hover:bg-[var(--border)]" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+          {/* ── Divider ── */}
+          <div className="mx-3 my-2 border-t" style={{ borderColor: 'var(--border)' }} />
+
+          <div className="p-3 pt-0 overflow-y-auto flex-1">
+
+            {/* ── Genre Section ── */}
+            <button
+              onClick={() => setGenreSectionOpen(prev => !prev)}
+              className="w-full flex items-center justify-between px-2 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-[var(--border)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <span className="flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5" />
+                Genre
+              </span>
+              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform duration-200', genreSectionOpen ? '' : '-rotate-90')} />
+            </button>
+            <AnimatePresence initial={false}>
+              {genreSectionOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-0.5 pt-1 pb-2">
+                    {GENRES.map(genre => (
+                      <button key={genre} onClick={() => { setSelectedGenre(genre); setSelectedAuthor(null); }}
+                        className={cn('w-full text-left px-3 py-1.5 rounded text-sm transition-colors',
+                          selectedGenre === genre && !selectedAuthor ? 'font-medium' : 'hover:bg-[var(--border)]')}
+                        style={selectedGenre === genre && !selectedAuthor
+                          ? { backgroundColor: '#8B691420', color: '#8B6914' }
+                          : { color: 'var(--text-secondary)' }}>
+                        {genre}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* ── Divider ── */}
+            <div className="my-2 border-t" style={{ borderColor: 'var(--border)' }} />
+
+            {/* ── Authors Section ── */}
+            <button
+              onClick={() => setAuthorSectionOpen(prev => !prev)}
+              className="w-full flex items-center justify-between px-2 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors hover:bg-[var(--border)]"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <span className="flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                Authors
+                <span className="text-[10px] font-normal normal-case px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+                  {authorStats.length}
+                </span>
+              </span>
+              <ChevronDown className={cn('w-3.5 h-3.5 transition-transform duration-200', authorSectionOpen ? '' : '-rotate-90')} />
+            </button>
+            <AnimatePresence initial={false}>
+              {authorSectionOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-1 pb-2">
+                    {/* Author search */}
+                    {authorStats.length > 5 && (
+                      <div className="relative mb-2 px-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 pointer-events-none" style={{ color: 'var(--text-secondary)' }} />
+                        <input
+                          type="text"
+                          placeholder="Search authors…"
+                          value={authorSearch}
+                          onChange={e => setAuthorSearch(e.target.value)}
+                          className="w-full pl-7 pr-2 py-1.5 text-xs rounded-md border outline-none"
+                          style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                        />
+                      </div>
+                    )}
+                    {/* "All Authors" reset */}
+                    <button
+                      onClick={() => setSelectedAuthor(null)}
+                      className={cn('w-full text-left px-3 py-1.5 rounded text-sm transition-colors',
+                        !selectedAuthor ? 'font-medium' : 'hover:bg-[var(--border)]')}
+                      style={!selectedAuthor
+                        ? { backgroundColor: '#8B691420', color: '#8B6914' }
+                        : { color: 'var(--text-secondary)' }}
+                    >
+                      All Authors
+                    </button>
+                    {/* Author list */}
+                    <div className="space-y-0.5 mt-0.5">
+                      {filteredAuthors.map(([author, count]) => (
+                        <button key={author} onClick={() => { setSelectedAuthor(author); setSelectedGenre('All'); }}
+                          className={cn('w-full text-left px-3 py-1.5 rounded text-sm transition-colors flex items-center justify-between gap-1',
+                            selectedAuthor === author ? 'font-medium' : 'hover:bg-[var(--border)]')}
+                          style={selectedAuthor === author
+                            ? { backgroundColor: '#8B691420', color: '#8B6914' }
+                            : { color: 'var(--text-secondary)' }}
+                        >
+                          <span className="truncate">{author}</span>
+                          <span className="text-[10px] flex-shrink-0 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--border)' }}>{count}</span>
+                        </button>
+                      ))}
+                      {filteredAuthors.length === 0 && (
+                        <p className="text-xs px-3 py-2" style={{ color: 'var(--text-secondary)' }}>No authors found</p>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="p-3 mt-auto border-t" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl" style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)' }}>
               <div className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0" style={{ backgroundColor: '#8B691420' }}>
                 <BookOpen className="w-4 h-4" style={{ color: '#8B6914' }} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold leading-none truncate" style={{ color: 'var(--text-primary)' }}>
-                  {books.length}
+                  {filteredAndSorted.length}
                 </p>
                 <p className="text-[10px] font-medium uppercase tracking-wider mt-1 truncate" style={{ color: 'var(--text-secondary)' }}>
-                  Total Books
+                  {libraryMode === 'my_library' ? 'In My Library' : 'Total Books'}
                 </p>
               </div>
             </div>
@@ -245,22 +438,44 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
       {showMobileFilters && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowMobileFilters(false)} />
-          <div className="absolute bottom-0 left-0 right-0 rounded-t-2xl p-5"
+          <div className="absolute bottom-0 left-0 right-0 rounded-t-2xl p-5 max-h-[70vh] overflow-y-auto"
             style={{ backgroundColor: 'var(--bg-sidebar)' }}>
             <div className="flex items-center justify-between mb-4">
-              <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Filter by Genre</p>
+              <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Filters</p>
               <button onClick={() => setShowMobileFilters(false)}>
                 <X className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            {/* Genre */}
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-secondary)' }}>Genre</p>
+            <div className="grid grid-cols-3 gap-2 mb-4">
               {GENRES.map(genre => (
-                <button key={genre} onClick={() => { setSelectedGenre(genre); setShowMobileFilters(false); }}
+                <button key={genre} onClick={() => { setSelectedGenre(genre); setSelectedAuthor(null); setShowMobileFilters(false); }}
                   className="px-3 py-2 rounded-lg text-sm transition-colors text-center"
-                  style={selectedGenre === genre
+                  style={selectedGenre === genre && !selectedAuthor
                     ? { backgroundColor: '#8B6914', color: '#fff' }
                     : { backgroundColor: 'var(--border)', color: 'var(--text-primary)' }}>
                   {genre}
+                </button>
+              ))}
+            </div>
+            {/* Authors */}
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-secondary)' }}>Authors</p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => { setSelectedAuthor(null); setShowMobileFilters(false); }}
+                className="px-3 py-1.5 rounded-full text-sm transition-colors"
+                style={!selectedAuthor
+                  ? { backgroundColor: '#8B6914', color: '#fff' }
+                  : { backgroundColor: 'var(--border)', color: 'var(--text-primary)' }}>
+                All
+              </button>
+              {authorStats.map(([author, count]) => (
+                <button key={author} onClick={() => { setSelectedAuthor(author); setSelectedGenre('All'); setShowMobileFilters(false); }}
+                  className="px-3 py-1.5 rounded-full text-sm transition-colors"
+                  style={selectedAuthor === author
+                    ? { backgroundColor: '#8B6914', color: '#fff' }
+                    : { backgroundColor: 'var(--border)', color: 'var(--text-primary)' }}>
+                  {author} <span className="opacity-60">({count})</span>
                 </button>
               ))}
             </div>
@@ -294,6 +509,14 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
               className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border outline-none"
               style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
           </div>
+
+          {selectedAuthor && (
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#8B691420', color: '#8B6914' }}>
+              <Users className="w-3 h-3" />
+              {selectedAuthor}
+              <button onClick={() => setSelectedAuthor(null)} className="ml-0.5 hover:opacity-70"><X className="w-3 h-3" /></button>
+            </div>
+          )}
 
           {/* Filter tabs — scrollable on mobile */}
           <div className="flex items-center gap-1 overflow-x-auto">
@@ -406,10 +629,25 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
           {filteredAndSorted.length === 0 ? (
             <div className="text-center py-20">
               <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-20" style={{ color: 'var(--text-secondary)' }} />
-              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>No books found</p>
-              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                {books.length === 0 ? 'Upload your first EPUB to get started.' : 'Try adjusting your filters.'}
+              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                {libraryMode === 'my_library' ? 'Your library is empty' : 'No books found'}
               </p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                {libraryMode === 'my_library' && myLibraryCount === 0
+                  ? 'Browse the Public Library to add books to your collection.'
+                  : books.length === 0
+                    ? 'Upload your first EPUB to get started.'
+                    : 'Try adjusting your filters.'}
+              </p>
+              {libraryMode === 'my_library' && myLibraryCount === 0 && (
+                <button
+                  onClick={() => setLibraryMode('public')}
+                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-90 text-white"
+                  style={{ backgroundColor: '#8B6914' }}
+                >
+                  <Library className="w-4 h-4" /> Browse Public Library
+                </button>
+              )}
             </div>
           ) : (
             <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 xl:gap-5">
@@ -468,8 +706,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                       </Link>
 
                       {/* ⋮ menu — outside Link to prevent navigation/loading bar */}
-                      {book.uploaded_by === userId && (
-                        <div className="absolute top-2 right-2 z-10">
+                      <div className="absolute top-2 right-2 z-10">
                           <button
                             onClick={() => setOpenMenuId(menuOpen ? null : book.id)}
                             className="w-7 h-7 rounded-full flex items-center justify-center transition-opacity md:opacity-0 md:group-hover:opacity-100 opacity-100"
@@ -477,23 +714,42 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                             <MoreVertical className="w-4 h-4 text-white" />
                           </button>
                           {menuOpen && (
-                            <div className="absolute right-0 top-8 w-36 rounded-lg border shadow-popover overflow-hidden z-20"
+                            <div className="absolute right-0 top-9 w-48 rounded-xl border shadow-lg overflow-hidden z-20 backdrop-blur-sm"
                               style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
-                              <button
-                                onClick={() => { setEditingBook(book); setOpenMenuId(null); }}
-                                className="w-full flex items-center gap-2 px-3 py-3 text-sm hover:bg-[var(--border)] transition-colors"
-                                style={{ color: 'var(--text-primary)' }}>
-                                <Pencil className="w-3.5 h-3.5" /> Edit book
-                              </button>
-                              <button
-                                onClick={() => handleDelete(book)}
-                                className="w-full flex items-center gap-2 px-3 py-3 text-sm hover:bg-red-50 transition-colors text-red-500">
-                                <Trash2 className="w-3.5 h-3.5" /> Delete book
-                              </button>
+                              {book.uploaded_by === userId && (
+                                <>
+                                  <button
+                                    onClick={() => { setEditingBook(book); setOpenMenuId(null); }}
+                                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm hover:bg-[var(--border)] transition-colors"
+                                    style={{ color: 'var(--text-primary)' }}>
+                                    <Pencil className="w-3.5 h-3.5 opacity-60" /> Edit book
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(book)}
+                                    className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm hover:bg-red-50 transition-colors text-red-500">
+                                    <Trash2 className="w-3.5 h-3.5 opacity-70" /> Delete book
+                                  </button>
+                                </>
+                              )}
+                              {myLibraryIds.has(book.id) && book.uploaded_by !== userId && (
+                                <button
+                                  onClick={() => { handleRemoveFromLibrary(book.id); setOpenMenuId(null); }}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm hover:bg-red-50 transition-colors"
+                                  style={{ color: 'var(--text-secondary)' }}>
+                                  <BookMarked className="w-3.5 h-3.5 opacity-60" /> Remove from library
+                                </button>
+                              )}
+                              {!myLibraryIds.has(book.id) && book.uploaded_by !== userId && (
+                                <button
+                                  onClick={() => { handleAddToLibrary(book.id); setOpenMenuId(null); }}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm hover:bg-[var(--border)] transition-colors"
+                                  style={{ color: '#8B6914' }}>
+                                  <Plus className="w-3.5 h-3.5" /> Add to My Library
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
-                      )}
                     </div>
 
                     {/* Info */}
@@ -524,43 +780,59 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                           </p>
                         </div>
                       )}
-                      <div className="mt-auto pt-2 flex gap-2">
-                        <Link href={`/read/${book.id}`}
-                          className="flex-1 block text-center py-2.5 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
-                          style={{ backgroundColor: '#8B6914' }}>
-                          {isUnread ? 'Start' : isCompleted ? 'Again' : 'Continue'}
-                        </Link>
-                        <button 
-                          onClick={() => setSchedulingBook(book)}
-                          className="w-10 h-10 flex items-center justify-center rounded-lg border transition-colors hover:bg-[var(--border)]"
-                          style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
-                          title="Schedule this book"
-                        >
-                          <Calendar className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={async (e) => {
-                            e.preventDefault();
-                            try {
-                              const res = await fetch(`/api/books/${book.id}/download`);
-                              if (!res.ok) throw new Error();
-                              const { url } = await res.json();
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `${book.title}.epub`;
-                              document.body.appendChild(a);
-                              a.click();
-                              a.remove();
-                            } catch {
-                              toast.error('Failed to download book');
-                            }
-                          }}
-                          className="w-10 h-10 flex items-center justify-center rounded-lg border transition-colors hover:bg-[var(--border)]"
-                          style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
-                          title="Download EPUB"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
+                      <div className="mt-auto pt-2">
+                        {!myLibraryIds.has(book.id) && book.uploaded_by !== userId ? (
+                          <button
+                            onClick={() => handleAddToLibrary(book.id)}
+                            disabled={addingToLibrary === book.id}
+                            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium transition-all hover:opacity-90 text-white"
+                            style={{ backgroundColor: '#8B6914' }}>
+                            {addingToLibrary === book.id ? (
+                              <span className="animate-pulse">Adding…</span>
+                            ) : (
+                              <><Plus className="w-3.5 h-3.5" /> Add to My Library</>
+                            )}
+                          </button>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Link href={`/read/${book.id}`}
+                              className="flex-1 block text-center py-2.5 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
+                              style={{ backgroundColor: '#8B6914' }}>
+                              {isUnread ? 'Start' : isCompleted ? 'Again' : 'Continue'}
+                            </Link>
+                            <button 
+                              onClick={() => setSchedulingBook(book)}
+                              className="w-10 h-10 flex items-center justify-center rounded-lg border transition-colors hover:bg-[var(--border)]"
+                              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                              title="Schedule this book"
+                            >
+                              <Calendar className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={async (e) => {
+                                e.preventDefault();
+                                try {
+                                  const res = await fetch(`/api/books/${book.id}/download`);
+                                  if (!res.ok) throw new Error();
+                                  const { url } = await res.json();
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `${book.title}.epub`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  a.remove();
+                                } catch {
+                                  toast.error('Failed to download book');
+                                }
+                              }}
+                              className="w-10 h-10 flex items-center justify-center rounded-lg border transition-colors hover:bg-[var(--border)]"
+                              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                              title="Download EPUB"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>

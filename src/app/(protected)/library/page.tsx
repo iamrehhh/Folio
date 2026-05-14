@@ -86,6 +86,14 @@ export default async function LibraryPage() {
     (ratingsData ?? []).map(r => [r.book_id, r.rating])
   );
 
+  // Fetch the user's personal library entries
+  const { data: userLibraryData } = await supabase
+    .from('user_library')
+    .select('book_id')
+    .eq('user_id', user.id);
+
+  const userLibraryBookIds = (userLibraryData ?? []).map(r => r.book_id);
+
   return (
     <>
       <LibraryClient
@@ -93,6 +101,7 @@ export default async function LibraryPage() {
         progressMap={progressMap}
         scheduleMap={scheduleMap}
         ratingsMap={ratingsMap}
+        userLibraryBookIds={userLibraryBookIds}
         userId={user.id}
         isAdmin={isAdmin}
       />

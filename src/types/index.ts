@@ -177,6 +177,13 @@ export interface BookComment {
   replies?: BookComment[];
 }
 
+export interface UserLibraryEntry {
+  id: string;
+  user_id: string;
+  book_id: string;
+  added_at: string;
+}
+
 export type VaultCategory = 'note' | 'reading_list' | 'vocabulary' | 'quick_capture';
 export type VaultColor = 'default' | 'amber' | 'sage' | 'sky' | 'rose' | 'lavender';
 

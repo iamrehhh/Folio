@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar, Keyboard, KeyRound, MessageCircle } from 'lucide-react';
+import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar, Keyboard, KeyRound, MessageCircle, BookMarked, Library, Users } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -62,11 +62,49 @@ export default function GuideModal({ onClose }: Props) {
             </h3>
             <div className="space-y-3 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
               <p>
-                Folio is designed to enhance your reading experience. Start by navigating to the <strong>Library</strong> section to upload your favorite books.
+                Folio is designed to enhance your reading experience. Start by navigating to the <strong>Library</strong> section to browse the public catalog or curate your personal collection.
               </p>
               <p>
                 While reading, you can highlight text, save vocabulary words, and interact with the AI assistant to ask questions, summarize chapters, or get explanations for complex concepts.
                 Your progress, highlights, and vocabulary are automatically saved and can be accessed from the sidebar.
+              </p>
+            </div>
+          </section>
+
+          {/* My Library & Public Library */}
+          <section>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+              <BookMarked className="w-5 h-5" style={{ color: '#8B6914' }} /> My Library & Public Library
+            </h3>
+            <div className="space-y-3 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <p>
+                Your library is split into two views, accessible from the <strong>sidebar</strong>:
+              </p>
+              <div className="p-4 rounded-xl border bg-white/50 space-y-3" style={{ borderColor: 'var(--border)' }}>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: '#8B691418' }}>
+                    <BookMarked className="w-4 h-4" style={{ color: '#8B6914' }} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>My Library</p>
+                    <p className="text-sm">Contains books you've <strong>uploaded</strong> and books you've explicitly <strong>added</strong> from the public catalog. This is your personal, curated collection.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: '#8B691418' }}>
+                    <Library className="w-4 h-4" style={{ color: '#8B6914' }} />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>Public Library</p>
+                    <p className="text-sm">Shows all books available on the platform. Browse and discover new reads from the full catalog.</p>
+                  </div>
+                </div>
+              </div>
+              <p>
+                To <strong>add a book</strong> to your personal library, browse the Public Library and click the <strong>"+ Add to My Library"</strong> button on any book card. To <strong>remove</strong> a book, click the <strong>⋮ menu</strong> on the book cover and select <strong>"Remove from library"</strong>.
+              </p>
+              <p>
+                Use the <strong>Authors</strong> section in the sidebar to filter books by a specific author — great for quickly finding titles in a growing collection.
               </p>
             </div>
           </section>
