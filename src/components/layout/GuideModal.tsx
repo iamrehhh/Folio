@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar, Keyboard, KeyRound, MessageCircle, BookMarked, Library, Users } from 'lucide-react';
+import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar, Keyboard, KeyRound, BookMarked, Library, Users } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -179,21 +179,6 @@ export default function GuideModal({ onClose }: Props) {
               </p>
               <p>
                 Setting regular schedules helps you build a strong reading habit over time by giving you a clear, synchronized overview of your reading progress and commitments.
-              </p>
-            </div>
-          </section>
-
-          {/* Book Discussion */}
-          <section>
-            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
-              <MessageCircle className="w-5 h-5" style={{ color: '#8B6914' }} /> Book Discussion
-            </h3>
-            <div className="space-y-3 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              <p>
-                Click on any <strong>book cover</strong> in the Library to open its <strong>Discussion</strong> page — a dedicated space for community ratings and conversations around that book.
-              </p>
-              <p>
-                Rate books with a <strong>5-star system</strong> and see how others have rated them with an aggregate breakdown. Leave <strong>comments</strong>, <strong>reply</strong> to other readers' thoughts, and <strong>delete</strong> your own comments whenever you need to. It's a seamless, threaded discussion built right into your library.
               </p>
             </div>
           </section>

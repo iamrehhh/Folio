@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, SlidersHorizontal, Trophy, Book, Timer, EyeOff, ChevronDown, Check } from 'lucide-react';
+import { ChevronLeft, SlidersHorizontal, Trophy, Book, Timer, EyeOff, ChevronDown, Check, PanelTopClose } from 'lucide-react';
 import Link from 'next/link';
 import { useReaderStore } from '@/lib/store';
 import type { Book as BookType, ReadingTheme, ReadingFontFamily } from '@/types';
@@ -13,6 +13,8 @@ interface Props {
   progressPercent: number;
   sessionSeconds: number;
   onQuiz: () => void;
+  onToggleTopBar?: () => void;
+  isTopBarHidden?: boolean;
 }
 
 const THEMES: { id: ReadingTheme; label: string; bg: string }[] = [
@@ -51,7 +53,7 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function ReaderTopBar({ book, chapterTitle, progressPercent, sessionSeconds, onQuiz }: Props) {
+export default function ReaderTopBar({ book, chapterTitle, progressPercent, sessionSeconds, onQuiz, onToggleTopBar, isTopBarHidden }: Props) {
   const [showFontControls, setShowFontControls] = useState(false);
   const [timerVisible, setTimerVisible] = useState(true);
   const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
@@ -259,6 +261,17 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
             </div>
           )}
         </div>
+
+        {/* Hide top bar toggle */}
+        {onToggleTopBar && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleTopBar(); }}
+            className="flex-none p-2 rounded hover:bg-black/5 transition-colors"
+            title="Hide toolbar (T)"
+          >
+            <PanelTopClose className="w-4 h-4" style={{ color: mutedColor }} />
+          </button>
+        )}
       </div>
 
       {/* Mobile progress strip */}

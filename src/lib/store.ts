@@ -16,6 +16,7 @@ export const useReaderStore = create<ReaderState>()(
       isAIPanelOpen: false,
       isHighlightsPanelOpen: false,
       isAIPanelPinned: false,
+      isTopBarHidden: false,
 
       // Reading preferences
       theme: 'light' as ReadingTheme,
@@ -57,6 +58,9 @@ export const useReaderStore = create<ReaderState>()(
           isAIPanelOpen: s.isHighlightsPanelOpen ? s.isAIPanelOpen : false,
         })),
 
+      toggleTopBar: () =>
+        set((s) => ({ isTopBarHidden: !s.isTopBarHidden })),
+
       setSelectedText: (selectedText: string | null, selectedCfiRange: string | null) =>
         set({ selectedText, selectedCfiRange }),
 
@@ -87,6 +91,7 @@ export const useReaderStore = create<ReaderState>()(
         lineHeight: state.lineHeight,
         continuousReading: state.continuousReading,
         isChapterSidebarOpen: state.isChapterSidebarOpen,
+        isTopBarHidden: state.isTopBarHidden,
       }),
       // FIX: onRehydrateStorage lets us know when the store is done loading from localStorage
       onRehydrateStorage: () => (state) => {

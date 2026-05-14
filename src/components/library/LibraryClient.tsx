@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download, Globe, PanelLeftClose, PanelLeftOpen, MessageCircle, Users, ChevronDown, Plus, BookMarked, Library } from 'lucide-react';
+import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download, Globe, PanelLeftClose, PanelLeftOpen, Users, ChevronDown, Plus, BookMarked, Library } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, truncate } from '@/lib/utils';
 import type { Book, BookSchedule } from '@/types';
@@ -16,24 +16,22 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { DatePicker } from '@/components/ui/DatePicker';
 
 type FilterTab = 'all' | 'unread' | 'reading' | 'completed' | 'scheduled';
-type SortOption = 'newest' | 'oldest' | 'title_az' | 'author_az' | 'highest_rated' | 'lowest_rated';
+type SortOption = 'newest' | 'oldest' | 'title_az' | 'author_az';
 type LibraryMode = 'my_library' | 'public';
 
 const SORT_OPTIONS: { id: SortOption; label: string }[] = [
-  { id: 'newest', label: 'Newest First' },
+  { id: 'newest', label: 'Recently Added' },
   { id: 'oldest', label: 'Oldest First' },
   { id: 'title_az', label: 'Title (A-Z)' },
   { id: 'author_az', label: 'Author (A-Z)' },
-  { id: 'highest_rated', label: 'Highest Rated' },
-  { id: 'lowest_rated', label: 'Lowest Rated' },
 ];
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
-interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; ratingsMap?: Map<string, number>; userLibraryBookIds: string[]; userId: string; isAdmin: boolean; }
+interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; userLibraryBookIds: string[]; userId: string; isAdmin: boolean; }
 
 const GENRES = ['All', 'Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery/Thriller', 'Romance', 'Comedy', 'Horror', 'Other'];
 const LANGUAGES = ['All', 'English', 'Bengali', 'Hindi', 'Spanish', 'French', 'German', 'Other'];
 
-export default function LibraryClient({ books: initialBooks, progressMap, scheduleMap: initialScheduleMap, ratingsMap = new Map(), userLibraryBookIds: initialLibraryIds, userId, isAdmin }: Props) {
+export default function LibraryClient({ books: initialBooks, progressMap, scheduleMap: initialScheduleMap, userLibraryBookIds: initialLibraryIds, userId, isAdmin }: Props) {
   const router = useRouter();
   const [books, setBooks] = useState(initialBooks);
   const [scheduleMap, setScheduleMap] = useState<Map<string, BookSchedule>>(initialScheduleMap ?? new Map());
@@ -203,22 +201,12 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
           return a.author.localeCompare(b.author);
         case 'oldest':
           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        case 'highest_rated':
-          const ratingA = ratingsMap.get(a.id) || 0;
-          const ratingB = ratingsMap.get(b.id) || 0;
-          if (ratingB !== ratingA) return ratingB - ratingA;
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'lowest_rated':
-          const ratingALow = ratingsMap.get(a.id) || 0;
-          const ratingBLow = ratingsMap.get(b.id) || 0;
-          if (ratingALow !== ratingBLow) return ratingALow - ratingBLow;
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'newest':
         default:
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       }
     });
-  }, [books, progressMap, scheduleMap, activeTab, selectedGenre, selectedLanguage, searchQuery, sortBy, ratingsMap, libraryMode, myLibraryIds, userId, selectedAuthor]);
+  }, [books, progressMap, scheduleMap, activeTab, selectedGenre, selectedLanguage, searchQuery, sortBy, libraryMode, myLibraryIds, userId, selectedAuthor]);
 
 
   async function handleDelete(book: Book) {
@@ -669,22 +657,15 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                     className="group flex flex-col rounded-xl border overflow-hidden transition-shadow duration-200 hover:shadow-soft-lg"
                     style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)' }}>
 
-                    {/* Cover — clickable → Discussion page */}
+                    {/* Cover — clickable → Read Book */}
                     <div className="relative">
-                      <Link href={`/book/${book.id}/discussion`} className="block w-full aspect-[2/3] bg-[#E5E0D8] flex items-center justify-center overflow-hidden relative">
+                      <Link href={`/read/${book.id}`} className="block w-full aspect-[2/3] bg-[#E5E0D8] flex items-center justify-center overflow-hidden relative group/cover cursor-pointer">
                         {book.cover_url
-                          ? <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover object-top" />
-                          : <BookOpen className="w-8 h-8 opacity-25" style={{ color: 'var(--text-secondary)' }} />
+                          ? <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover/cover:scale-105" />
+                          : <BookOpen className="w-8 h-8 opacity-25 transition-transform duration-700 ease-out group-hover/cover:scale-110" style={{ color: 'var(--text-secondary)' }} />
                         }
-                        {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                          <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-75 group-hover:scale-100 flex flex-col items-center gap-1.5">
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.9)' }}>
-                              <MessageCircle className="w-5 h-5" style={{ color: '#8B6914' }} />
-                            </div>
-                            <span className="text-white text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>Discussion</span>
-                          </div>
-                        </div>
+                        
+                        <div className="absolute inset-0 bg-black/0 group-hover/cover:bg-black/5 transition-colors duration-300" />
                         {book.genre && (
                           <div className="absolute top-2 left-2 flex flex-wrap gap-1 max-w-[calc(100%-3rem)]">
                             {book.genre.split(',').map(g => g.trim()).filter(Boolean).map((g, i) => (
@@ -762,13 +743,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                       <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                         {truncate(book.author, 25)}
                       </p>
-                      {ratingsMap.has(book.id) && (
-                        <div className="flex items-center gap-0.5 mt-1.5 pt-0.5">
-                          {Array.from({ length: ratingsMap.get(book.id)! }).map((_, i) => (
-                            <Star key={i} className="w-3.5 h-3.5" style={{ color: '#8B6914', fill: '#8B6914' }} />
-                          ))}
-                        </div>
-                      )}
+
                       {!isUnread && (
                         <div className="mt-2">
                           <div className="w-full h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border)' }}>
@@ -795,18 +770,14 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                           </button>
                         ) : (
                           <div className="flex gap-2">
-                            <Link href={`/read/${book.id}`}
-                              className="flex-1 block text-center py-2.5 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
-                              style={{ backgroundColor: '#8B6914' }}>
-                              {isUnread ? 'Start' : isCompleted ? 'Again' : 'Continue'}
-                            </Link>
                             <button 
                               onClick={() => setSchedulingBook(book)}
-                              className="w-10 h-10 flex items-center justify-center rounded-lg border transition-colors hover:bg-[var(--border)]"
-                              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                              className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all active:scale-95 hover:opacity-80"
+                              style={{ backgroundColor: '#8B691412', color: '#8B6914' }}
                               title="Schedule this book"
                             >
-                              <Calendar className="w-4 h-4" />
+                              <Calendar className="w-3.5 h-3.5" />
+                              Schedule
                             </button>
                             <button
                               onClick={async (e) => {
@@ -825,11 +796,12 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                                   toast.error('Failed to download book');
                                 }
                               }}
-                              className="w-10 h-10 flex items-center justify-center rounded-lg border transition-colors hover:bg-[var(--border)]"
-                              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                              className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all active:scale-95 hover:opacity-80"
+                              style={{ backgroundColor: '#8B691412', color: '#8B6914' }}
                               title="Download EPUB"
                             >
-                              <Download className="w-4 h-4" />
+                              <Download className="w-3.5 h-3.5" />
+                              Download
                             </button>
                           </div>
                         )}

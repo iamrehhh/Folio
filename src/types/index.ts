@@ -146,36 +146,7 @@ export interface SystemNotification {
   created_at: string;
 }
 
-export interface BookRating {
-  id: string;
-  user_id: string;
-  book_id: string;
-  rating: number;
-  created_at: string;
-  updated_at: string;
-}
 
-export interface BookRatingStats {
-  book_id: string;
-  average_rating: number;
-  total_ratings: number;
-}
-
-export interface BookComment {
-  id: string;
-  book_id: string;
-  user_id: string;
-  parent_id: string | null;
-  content: string;
-  created_at: string;
-  updated_at: string;
-  // joined
-  user?: {
-    full_name: string | null;
-    avatar_url: string | null;
-  };
-  replies?: BookComment[];
-}
 
 export interface UserLibraryEntry {
   id: string;
@@ -296,6 +267,7 @@ export interface ReaderState {
   isAIPanelOpen: boolean;
   isHighlightsPanelOpen: boolean;
   isAIPanelPinned: boolean;
+  isTopBarHidden: boolean;
 
   // Reading preferences (also in DB via profile)
   theme: ReadingTheme;
@@ -319,6 +291,7 @@ export interface ReaderState {
   toggleChapterSidebar: () => void;
   toggleAIPanel: () => void;
   toggleHighlightsPanel: () => void;
+  toggleTopBar: () => void;
   setSelectedText: (text: string | null, cfi: string | null) => void;
   addAIMessage: (msg: AIMessage) => void;
   updateLastAIMessage: (content: string) => void;

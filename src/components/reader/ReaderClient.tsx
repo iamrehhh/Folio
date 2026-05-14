@@ -80,9 +80,9 @@ export default function ReaderClient({
 
   const {
     theme, fontFamily, fontSize, lineHeight, continuousReading,
-    isChapterSidebarOpen, isAIPanelOpen,
+    isChapterSidebarOpen, isAIPanelOpen, isTopBarHidden,
     currentChapterIndex, setProgress,
-    toggleChapterSidebar, toggleAIPanel,
+    toggleChapterSidebar, toggleAIPanel, toggleTopBar,
   } = useReaderStore();
 
   // FIX 1: Wait for Zustand persisted store to rehydrate before rendering
@@ -891,11 +891,18 @@ export default function ReaderClient({
       if (e.key === 'ArrowLeft' || e.key === '[') navigateChapter('prev');
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); toggleChapterSidebar(); }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'i') { e.preventDefault(); toggleAIPanel(); }
+      if (e.key.toLowerCase() === 't' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Only toggle if not typing in an input/textarea
+        const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+        if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
+          toggleTopBar();
+        }
+      }
       if (e.key === 'Escape') { setSelectionToolbar(null); setWordPopover(null); }
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [toggleChapterSidebar, toggleAIPanel]);
+  }, [toggleChapterSidebar, toggleAIPanel, toggleTopBar]);
 
   async function goToChapter(chapter: ChapterInfo) {
     if (!renditionRef.current || !bookRef.current) return;
@@ -1326,15 +1333,116 @@ export default function ReaderClient({
           from { opacity: 0; transform: translateY(20px) translateX(-50%); }
           to   { opacity: 1; transform: translateY(0) translateX(-50%); }
         }
+
+        /* ── Top Bar slide animation ── */
+        .topbar-wrapper {
+          overflow: hidden;
+          transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                      opacity 0.3s ease;
+        }
+        .topbar-wrapper.topbar-visible {
+          max-height: 56px; /* h-12 = 48px + 0.5 progress strip + a tiny buffer */
+          opacity: 1;
+        }
+        .topbar-wrapper.topbar-hidden {
+          max-height: 0px;
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        /* ── Reveal handle when bar is hidden ── */
+        .topbar-reveal-handle {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 25;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          opacity: 0;
+          pointer-events: none;
+        }
+        .topbar-reveal-handle.handle-active {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .topbar-reveal-handle .handle-pill {
+          width: 48px;
+          height: 5px;
+          border-radius: 0 0 6px 6px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .topbar-reveal-handle:hover .handle-pill {
+          width: 110px;
+          height: 28px;
+          border-radius: 0 0 14px 14px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .topbar-reveal-handle .handle-label {
+          position: absolute;
+          font-size: 11px;
+          font-weight: 500;
+          letter-spacing: 0.02em;
+          opacity: 0;
+          transform: translateY(-4px);
+          transition: all 0.25s ease;
+          white-space: nowrap;
+        }
+        .topbar-reveal-handle:hover .handle-label {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        .topbar-reveal-handle .handle-chevron {
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          transition: all 0.25s ease;
+          opacity: 0.6;
+        }
+        .topbar-reveal-handle:hover .handle-chevron {
+          opacity: 0;
+        }
       `}</style>
 
-      <ReaderTopBar
-        book={book}
-        chapterTitle={chapters[currentChapterIndex]?.title ?? ''}
-        progressPercent={progressPercent}
-        sessionSeconds={sessionSeconds}
-        onQuiz={() => setShowQuiz(true)}
-      />
+      {/* ── Top Bar with slide animation ── */}
+      <div className={cn('topbar-wrapper', isTopBarHidden ? 'topbar-hidden' : 'topbar-visible')}>
+        <ReaderTopBar
+          book={book}
+          chapterTitle={chapters[currentChapterIndex]?.title ?? ''}
+          progressPercent={progressPercent}
+          sessionSeconds={sessionSeconds}
+          onQuiz={() => setShowQuiz(true)}
+          onToggleTopBar={toggleTopBar}
+          isTopBarHidden={isTopBarHidden}
+        />
+      </div>
+
+      {/* ── Reveal handle (visible when top bar is hidden) ── */}
+      <div
+        className={cn('topbar-reveal-handle', isTopBarHidden && 'handle-active')}
+        onClick={(e) => { e.stopPropagation(); toggleTopBar(); }}
+        title="Show toolbar (T)"
+      >
+        <div
+          className="handle-pill"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(212,197,160,0.15)' :
+              theme === 'dark-sepia' ? 'rgba(250,236,220,0.15)' :
+              theme === 'sepia' ? 'rgba(139,105,20,0.12)' :
+              'rgba(139,105,20,0.1)',
+            backdropFilter: 'blur(8px)',
+          }}
+        />
+        <svg className="handle-chevron" viewBox="0 0 10 6" fill="none" style={{ color: theme === 'dark' ? '#D4C5A0' : theme === 'dark-sepia' ? '#FAECDC' : '#8B6914' }}>
+          <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span className="handle-label" style={{ color: theme === 'dark' ? '#D4C5A0' : theme === 'dark-sepia' ? '#FAECDC' : '#8B6914' }}>
+          Show Bar
+        </span>
+      </div>
 
       <div className="flex flex-1 overflow-hidden relative">
         {isChapterSidebarOpen && (

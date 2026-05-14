@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Star, ArrowLeft, RotateCcw } from 'lucide-react';
+import { BookOpen, ArrowLeft, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import type { Book } from '@/types';
 import toast from 'react-hot-toast';
@@ -79,31 +79,9 @@ function Confetti() {
 }
 
 export default function CompletionScreen({ book, onContinueReading }: Props) {
-  const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [rated, setRated] = useState(false);
-
   const completedDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
-
-  async function submitRating(stars: number) {
-    setRating(stars);
-    setRated(true);
-    try {
-      const res = await fetch('/api/books/rate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookId: book.id, rating: stars }),
-      });
-      if (!res.ok) throw new Error('Failed to submit rating');
-      toast.success('Thank you for rating!');
-    } catch (error) {
-      toast.error('Failed to save rating');
-      setRated(false);
-      setRating(0);
-    }
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center"
@@ -142,27 +120,7 @@ export default function CompletionScreen({ book, onContinueReading }: Props) {
         <p className="text-sm mb-1" style={{ color: '#A0998C' }}>{book.author}</p>
         <p className="text-xs mb-8" style={{ color: '#555' }}>Finished · {completedDate}</p>
 
-        {/* Star rating */}
-        <div className="mb-8">
-          <p className="text-xs uppercase tracking-widest mb-3" style={{ color: '#6B6860' }}>
-            {rated ? `You rated this ${rating} star${rating !== 1 ? 's' : ''}` : 'Rate this book'}
-          </p>
-          <div className="flex justify-center gap-1.5">
-            {[1, 2, 3, 4, 5].map(star => (
-              <button key={star} onClick={() => submitRating(star)}
-                onMouseEnter={() => !rated && setHoverRating(star)}
-                onMouseLeave={() => setHoverRating(0)}
-                disabled={rated}
-                className="transition-transform hover:scale-110 active:scale-95">
-                <Star className="w-9 h-9" style={{
-                  color: star <= (hoverRating || rating) ? '#FFD700' : '#2A2A2A',
-                  fill: star <= (hoverRating || rating) ? '#FFD700' : 'transparent',
-                  transition: 'color 0.12s, fill 0.12s',
-                }} />
-              </button>
-            ))}
-          </div>
-        </div>
+
 
         {/* Actions */}
         <div className="flex flex-col gap-3 px-2">
