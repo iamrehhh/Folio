@@ -339,9 +339,6 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
               <span className="flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5" />
                 Authors
-                <span className="text-[10px] font-normal normal-case px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--border)', color: 'var(--text-secondary)' }}>
-                  {authorStats.length}
-                </span>
               </span>
               <ChevronDown className={cn('w-3.5 h-3.5 transition-transform duration-200', authorSectionOpen ? '' : '-rotate-90')} />
             </button>

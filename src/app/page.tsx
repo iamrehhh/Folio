@@ -6,7 +6,7 @@
 //   (unauthenticated users at '/' will just see the landing page naturally)
 
 import Link from 'next/link';
-import { BookOpen, Highlighter, BookMarked, Sparkles, GraduationCap, BarChart2 } from 'lucide-react';
+import { BookOpen, Highlighter, BookMarked, Sparkles, GraduationCap, BarChart2, Library, Archive } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/server';
 import FeaturedFeedback from '@/components/home/FeaturedFeedback';
 
@@ -18,9 +18,14 @@ export const metadata = {
 
 const FEATURES = [
   {
+    icon: Library,
+    title: 'Public & Private Library',
+    desc: 'Browse a growing community library of books, curate your own personal collection, and seamlessly upload your own EPUBs up to 9MB.',
+  },
+  {
     icon: BookOpen,
-    title: 'Distraction-Free Reading',
-    desc: 'A clean, customizable EPUB reader with light, sepia, and dark themes. Adjust font size and line height for your perfect reading experience.',
+    title: 'Immersive Reader',
+    desc: 'A distraction-free, customizable EPUB reader with light, sepia, and dark themes. Hide the top bar for deeper focus.',
   },
   {
     icon: Sparkles,
@@ -28,24 +33,19 @@ const FEATURES = [
     desc: 'Ask questions about any chapter, request summaries, or explore themes — powered by AI that knows exactly what you are reading.',
   },
   {
-    icon: Highlighter,
-    title: 'Smart Highlights',
-    desc: 'Highlight passages in four colors, add notes, and revisit all your highlights in one clean, organized view.',
-  },
-  {
-    icon: BookMarked,
-    title: 'Vocabulary Builder',
-    desc: 'Tap any word to get a contextual AI-powered definition. Save words to your personal vocabulary list and export as CSV.',
+    icon: Archive,
+    title: 'Personal Vault',
+    desc: 'A central, organized space to filter and manage all your saved vocabulary words, color-coded highlights, and notes.',
   },
   {
     icon: GraduationCap,
     title: 'Daily Quizzes',
-    desc: 'Learn 5 advanced vocabulary words or idioms every day — with definitions, examples, fill-in-the-blank quizzes, and reading passages.',
+    desc: 'Learn advanced vocabulary every day with definitions, examples, fill-in-the-blank quizzes, and reading passages.',
   },
   {
     icon: BarChart2,
-    title: 'Reading Stats & Streaks',
-    desc: 'Track your reading streak, session lengths, books completed this month and year, and schedule upcoming reads.',
+    title: 'Stats & Scheduling',
+    desc: 'Track your reading streak, session lengths, books completed, and schedule upcoming reads with automatic reminders.',
   },
 ];
 
@@ -137,7 +137,7 @@ export default async function LandingPage() {
           style={{ color: '#6B6860' }}
         >
           Folio is your personal reading companion — a beautiful EPUB reader with an AI assistant,
-          vocabulary builder, smart highlights, and daily quizzes to help you deeply absorb what you read.
+          a public library, a personal vault for vocabulary and highlights, and daily quizzes.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -153,7 +153,7 @@ export default async function LandingPage() {
             className="px-8 py-3.5 rounded-xl text-base font-medium border transition-colors hover:bg-[#E5E0D8]"
             style={{ borderColor: '#E5E0D8', color: '#6B6860' }}
           >
-            Sign in to your library →
+            Browse Public Library →
           </Link>
         </div>
 
@@ -309,8 +309,8 @@ export default async function LandingPage() {
             Start your reading journey today
           </h2>
           <p className="text-white/80 mb-8 leading-relaxed max-w-md mx-auto">
-            Upload your EPUB books and get access to AI assistance, vocabulary building,
-            smart highlights, and more — completely free.
+            Browse the community library or upload your own EPUBs. Get access to AI assistance,
+            your Personal Vault, daily quizzes, and more — completely free.
           </p>
           <Link
             href="/login"
