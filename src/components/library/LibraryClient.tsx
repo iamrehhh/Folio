@@ -255,7 +255,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
           <div className="p-3 pb-0">
             <div className="flex flex-col gap-1">
               <button
-                onClick={() => setLibraryMode('my_library')}
+                onClick={() => { setLibraryMode('my_library'); }}
                 className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all',
                   libraryMode === 'my_library' ? '' : 'hover:bg-[var(--border)]')}
                 style={libraryMode === 'my_library'
@@ -269,7 +269,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                 </span>
               </button>
               <button
-                onClick={() => setLibraryMode('public')}
+                onClick={() => { setLibraryMode('public'); setActiveTab('all'); }}
                 className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all',
                   libraryMode === 'public' ? '' : 'hover:bg-[var(--border)]')}
                 style={libraryMode === 'public'
@@ -489,12 +489,19 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
           </button>
 
           {/* Search */}
-          <div className="relative flex-1 min-w-0">
+          <div className={cn(
+            "relative min-w-0 transition-all duration-300",
+            libraryMode === 'public'
+              ? "flex-1 md:flex-none w-full max-w-[16rem] sm:max-w-sm md:w-[400px] lg:w-[500px] xl:w-[600px] md:mx-auto"
+              : "flex-1 max-w-[16rem] sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl"
+          )}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
               style={{ color: 'var(--text-secondary)' }} />
-            <input type="text" placeholder="Search books…" value={searchQuery}
+            <input type="text" 
+              placeholder={libraryMode === 'public' ? "Search public library…" : "Search your library…"} 
+              value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border outline-none"
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-lg border outline-none transition-all hover:shadow-sm focus:shadow-sm"
               style={{ backgroundColor: 'var(--bg-card,#fff)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} />
           </div>
 
@@ -506,32 +513,36 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
             </div>
           )}
 
-          {/* Filter tabs — scrollable on mobile */}
-          <div className="flex items-center gap-1 overflow-x-auto">
-            {tabs.map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={cn('px-3 py-1.5 rounded text-sm font-medium transition-colors whitespace-nowrap',
-                  activeTab === tab.id ? 'text-white' : 'hover:bg-[var(--border)]')}
-                style={activeTab === tab.id
-                  ? { backgroundColor: '#8B6914', color: '#fff' }
-                  : { color: 'var(--text-secondary)' }}>
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          {/* Filter tabs — scrollable on mobile, only shown in My Library */}
+          {libraryMode === 'my_library' && (
+            <div className="flex items-center gap-1 overflow-x-auto">
+              {tabs.map(tab => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                  className={cn('px-3 py-1.5 rounded text-sm font-medium transition-colors whitespace-nowrap',
+                    activeTab === tab.id ? 'text-white' : 'hover:bg-[var(--border)]')}
+                  style={activeTab === tab.id
+                    ? { backgroundColor: '#8B6914', color: '#fff' }
+                    : { color: 'var(--text-secondary)' }}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-          <div className="flex items-center gap-2 ml-auto">
-            {/* Genre filter button — mobile only */}
-            <button onClick={() => setShowMobileFilters(true)}
-              className="md:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm"
-              style={{
-                borderColor: 'var(--border)',
-                backgroundColor: selectedGenre !== 'All' ? '#8B691420' : undefined,
-                color: selectedGenre !== 'All' ? '#8B6914' : 'var(--text-secondary)',
-              }}>
-              <SlidersHorizontal className="w-4 h-4" />
-              {selectedGenre !== 'All' ? selectedGenre : 'Genre'}
-            </button>
+          <div className={cn("flex items-center gap-2", libraryMode === 'public' ? "ml-auto md:ml-0" : "ml-auto")}>
+            {/* Genre filter button — mobile only, My Library only */}
+            {libraryMode === 'my_library' && (
+              <button onClick={() => setShowMobileFilters(true)}
+                className="md:hidden flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm"
+                style={{
+                  borderColor: 'var(--border)',
+                  backgroundColor: selectedGenre !== 'All' ? '#8B691420' : undefined,
+                  color: selectedGenre !== 'All' ? '#8B6914' : 'var(--text-secondary)',
+                }}>
+                <SlidersHorizontal className="w-4 h-4" />
+                {selectedGenre !== 'All' ? selectedGenre : 'Genre'}
+              </button>
+            )}
 
             {/* Language Menu */}
             <div className="relative hidden sm:block">
@@ -593,22 +604,26 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
               )}
             </div>
 
-            {/* Add Book */}
-            {isAdmin && (
-              <button onClick={() => setShowBulkUploadModal(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--border)] whitespace-nowrap"
-                style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
-                <Upload className="w-4 h-4" />
-                <span className="hidden sm:inline">Bulk Upload</span>
-              </button>
+            {/* Add Book — My Library only */}
+            {libraryMode === 'my_library' && (
+              <>
+                {isAdmin && (
+                  <button onClick={() => setShowBulkUploadModal(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--border)] whitespace-nowrap"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+                    <Upload className="w-4 h-4" />
+                    <span className="hidden sm:inline">Bulk Upload</span>
+                  </button>
+                )}
+                <button onClick={() => setShowUploadModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 whitespace-nowrap"
+                  style={{ backgroundColor: '#8B6914' }}>
+                  <Upload className="w-4 h-4" />
+                  <span className="hidden sm:inline">Add Book</span>
+                  <span className="sm:hidden">Add</span>
+                </button>
+              </>
             )}
-            <button onClick={() => setShowUploadModal(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 whitespace-nowrap"
-              style={{ backgroundColor: '#8B6914' }}>
-              <Upload className="w-4 h-4" />
-              <span className="hidden sm:inline">Add Book</span>
-              <span className="sm:hidden">Add</span>
-            </button>
           </div>
         </div>
 
@@ -639,7 +654,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
             </div>
           ) : (
             <motion.div layout className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 xl:gap-5">
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence>
               {filteredAndSorted.map(book => {
                 const pct = Math.round(progressMap.get(book.id)?.progress_percent ?? 0);
                 const isUnread = pct === 0;
@@ -768,17 +783,23 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                               <><Plus className="w-3.5 h-3.5" /> Add to My Library</>
                             )}
                           </button>
+                        ) : libraryMode === 'public' ? (
+                          <div className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-medium"
+                            style={{ backgroundColor: '#8B691412', color: '#8B6914' }}>
+                            <Check className="w-4 h-4" /> Added to Library
+                          </div>
                         ) : (
-                          <div className="flex gap-2">
+                          <div className="flex rounded-lg overflow-hidden border transition-all hover:shadow-sm" style={{ borderColor: 'var(--border)' }}>
                             <button 
                               onClick={() => setSchedulingBook(book)}
-                              className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all active:scale-95 hover:opacity-80"
-                              style={{ backgroundColor: '#8B691412', color: '#8B6914' }}
+                              className="flex-1 h-[34px] flex items-center justify-center gap-1.5 text-xs font-medium transition-colors hover:bg-[#8B691408] group/btn"
+                              style={{ color: 'var(--text-secondary)' }}
                               title="Schedule this book"
                             >
-                              <Calendar className="w-3.5 h-3.5" />
-                              Schedule
+                              <Calendar className="w-3.5 h-3.5 transition-colors group-hover/btn:text-[#8B6914]" />
+                              <span className="transition-colors group-hover/btn:text-[#8B6914]">Schedule</span>
                             </button>
+                            <div className="w-[1px] h-4 my-auto" style={{ backgroundColor: 'var(--border)' }} />
                             <button
                               onClick={async (e) => {
                                 e.preventDefault();
@@ -796,12 +817,12 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                                   toast.error('Failed to download book');
                                 }
                               }}
-                              className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all active:scale-95 hover:opacity-80"
-                              style={{ backgroundColor: '#8B691412', color: '#8B6914' }}
+                              className="flex-1 h-[34px] flex items-center justify-center gap-1.5 text-xs font-medium transition-colors hover:bg-[#8B691408] group/btn"
+                              style={{ color: 'var(--text-secondary)' }}
                               title="Download EPUB"
                             >
-                              <Download className="w-3.5 h-3.5" />
-                              Download
+                              <Download className="w-3.5 h-3.5 transition-colors group-hover/btn:text-[#8B6914]" />
+                              <span className="transition-colors group-hover/btn:text-[#8B6914]">Download</span>
                             </button>
                           </div>
                         )}
