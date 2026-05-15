@@ -81,10 +81,15 @@ export default async function LibraryPage() {
   // Fetch the user's personal library entries
   const { data: userLibraryData } = await supabase
     .from('user_library')
-    .select('book_id')
+    .select('book_id, added_at')
     .eq('user_id', user.id);
-
+  
   const userLibraryBookIds = (userLibraryData ?? []).map(r => r.book_id);
+
+  const userLibraryAddedAt: Record<string, string> = {};
+  (userLibraryData ?? []).forEach(r => {
+    userLibraryAddedAt[r.book_id] = r.added_at;
+  });
 
   return (
     <>
@@ -93,6 +98,7 @@ export default async function LibraryPage() {
         progressMap={progressMap}
         scheduleMap={scheduleMap}
         userLibraryBookIds={userLibraryBookIds}
+        userLibraryAddedAt={userLibraryAddedAt}
         userId={user.id}
         isAdmin={isAdmin}
       />

@@ -26,12 +26,12 @@ const SORT_OPTIONS: { id: SortOption; label: string }[] = [
   { id: 'author_az', label: 'Author (A-Z)' },
 ];
 interface ProgressInfo { progress_percent: number; last_read_at: string; chapter_title?: string; }
-interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; userLibraryBookIds: string[]; userId: string; isAdmin: boolean; }
+interface Props { books: Book[]; progressMap: Map<string, ProgressInfo>; scheduleMap: Map<string, BookSchedule>; userLibraryBookIds: string[]; userLibraryAddedAt: Record<string, string>; userId: string; isAdmin: boolean; }
 
 const GENRES = ['All', 'Fiction', 'Non-Fiction', 'Science', 'History', 'Biography', 'Philosophy', 'Fantasy', 'Mystery/Thriller', 'Romance', 'Comedy', 'Horror', 'Other'];
 const LANGUAGES = ['All', 'English', 'Bengali', 'Hindi', 'Spanish', 'French', 'German', 'Other'];
 
-export default function LibraryClient({ books: initialBooks, progressMap, scheduleMap: initialScheduleMap, userLibraryBookIds: initialLibraryIds, userId, isAdmin }: Props) {
+export default function LibraryClient({ books: initialBooks, progressMap, scheduleMap: initialScheduleMap, userLibraryBookIds: initialLibraryIds, userLibraryAddedAt: initialUserLibraryAddedAt, userId, isAdmin }: Props) {
   const router = useRouter();
   const [books, setBooks] = useState(initialBooks);
   const [scheduleMap, setScheduleMap] = useState<Map<string, BookSchedule>>(initialScheduleMap ?? new Map());
@@ -55,6 +55,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
   // New state: Library mode, Author filter, Sidebar sections
   const [libraryMode, setLibraryMode] = useState<LibraryMode>('my_library');
   const [myLibraryIds, setMyLibraryIds] = useState<Set<string>>(new Set(initialLibraryIds));
+  const [myLibraryAddedAt, setMyLibraryAddedAt] = useState<Record<string, string>>(initialUserLibraryAddedAt || {});
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [authorSearch, setAuthorSearch] = useState('');
   const [genreSectionOpen, setGenreSectionOpen] = useState(true);
@@ -157,6 +158,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
       const res = await fetch('/api/library', { method: 'POST', body: JSON.stringify({ book_id: bookId }) });
       if (!res.ok) throw new Error();
       setMyLibraryIds(prev => { const next = new Set(Array.from(prev)); next.add(bookId); return next; });
+      setMyLibraryAddedAt(prev => ({ ...prev, [bookId]: new Date().toISOString() }));
       toast.success('Added to My Library');
     } catch { toast.error('Failed to add to library'); }
     finally { setAddingToLibrary(null); }
@@ -199,14 +201,26 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
           return a.title.localeCompare(b.title);
         case 'author_az':
           return a.author.localeCompare(b.author);
-        case 'oldest':
+        case 'oldest': {
+          if (libraryMode === 'my_library') {
+            const timeA = new Date(myLibraryAddedAt[a.id] || a.created_at).getTime();
+            const timeB = new Date(myLibraryAddedAt[b.id] || b.created_at).getTime();
+            return timeA - timeB;
+          }
           return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        }
         case 'newest':
-        default:
+        default: {
+          if (libraryMode === 'my_library') {
+            const timeA = new Date(myLibraryAddedAt[a.id] || a.created_at).getTime();
+            const timeB = new Date(myLibraryAddedAt[b.id] || b.created_at).getTime();
+            return timeB - timeA;
+          }
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        }
       }
     });
-  }, [books, progressMap, scheduleMap, activeTab, selectedGenre, selectedLanguage, searchQuery, sortBy, libraryMode, myLibraryIds, userId, selectedAuthor]);
+  }, [books, progressMap, scheduleMap, activeTab, selectedGenre, selectedLanguage, searchQuery, sortBy, libraryMode, myLibraryIds, myLibraryAddedAt, userId, selectedAuthor]);
 
 
   async function handleDelete(book: Book) {

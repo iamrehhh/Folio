@@ -1336,18 +1336,21 @@ export default function ReaderClient({
 
         /* ── Top Bar slide animation ── */
         .topbar-wrapper {
-          overflow: hidden;
+          position: relative;
+          z-index: 50;
           transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
                       opacity 0.3s ease;
         }
         .topbar-wrapper.topbar-visible {
           max-height: 56px; /* h-12 = 48px + 0.5 progress strip + a tiny buffer */
           opacity: 1;
+          overflow: visible;
         }
         .topbar-wrapper.topbar-hidden {
           max-height: 0px;
           opacity: 0;
           pointer-events: none;
+          overflow: hidden;
         }
 
         /* ── Reveal handle when bar is hidden ── */
