@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X, BookMarked, Sparkles, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { motion } from 'framer-motion';
 import type { DictionaryEntry } from '@/types';
 
 interface Props {
@@ -25,6 +26,12 @@ export default function WordPopover({
   const [aiContext, setAIContext] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 200);
+  };
 
   // Position: keep within viewport horizontally
   const posX = Math.min(Math.max(10, x - 160), typeof window !== 'undefined' ? window.innerWidth - 340 : x);
@@ -78,9 +85,12 @@ export default function WordPopover({
       if (!res.ok) throw new Error();
       setIsSaved(true);
       toast.success(`"${word}" saved to vocabulary`);
+      
+      setTimeout(() => {
+        handleClose();
+      }, 800);
     } catch {
       toast.error('Failed to save word');
-    } finally {
       setIsSaving(false);
     }
   }
@@ -89,12 +99,20 @@ export default function WordPopover({
   const firstDef = firstMeaning?.definitions?.[0];
 
   return (
-    <div
-      className="word-popover fixed z-50 w-80 rounded-xl border shadow-popover overflow-hidden"
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+      animate={{ 
+        opacity: isClosing ? 0 : 1, 
+        y: isClosing ? 10 : 0, 
+        scale: isClosing ? 0.95 : 1 
+      }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className="word-popover fixed z-50 w-80 rounded-xl border shadow-popover overflow-hidden flex flex-col"
       style={{
         left: posX,
         top: topPos,
         bottom: bottomPos,
+        maxHeight: typeof window !== 'undefined' ? Math.max(isBottomHalf ? y - 30 : window.innerHeight - y - 30, 200) : 400,
         backgroundColor: 'var(--bg-card, #fff)',
         borderColor: 'var(--border)',
         boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
@@ -102,7 +120,7 @@ export default function WordPopover({
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="flex items-start justify-between px-4 pt-4 pb-2">
+      <div className="flex items-start justify-between px-4 pt-4 pb-2 shrink-0">
         <div>
           <span
             className="text-lg font-semibold leading-none"
@@ -122,7 +140,7 @@ export default function WordPopover({
           )}
         </div>
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="p-1 rounded hover:bg-[var(--border)] transition-colors"
         >
           <X className="w-4 h-4" style={{ color: 'var(--text-secondary)' }} />
@@ -130,7 +148,7 @@ export default function WordPopover({
       </div>
 
       {/* Body */}
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4 overflow-y-auto" style={{ flex: 1 }}>
         {isLoading ? (
           <div className="flex items-center gap-2 py-3">
             <Loader2 className="w-4 h-4 animate-spin" style={{ color: '#8B6914' }} />
@@ -201,6 +219,6 @@ export default function WordPopover({
           </>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
