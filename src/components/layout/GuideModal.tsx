@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar, Keyboard, KeyRound, BookMarked, Library, Users } from 'lucide-react';
+import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar, Keyboard, KeyRound, BookMarked, Library, Users, Bookmark } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -105,6 +105,21 @@ export default function GuideModal({ onClose }: Props) {
               </p>
               <p>
                 Use the <strong>Authors</strong> section in the sidebar to filter books by a specific author — great for quickly finding titles in a growing collection.
+              </p>
+            </div>
+          </section>
+
+          {/* Bookmarks */}
+          <section>
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+              <Bookmark className="w-5 h-5" style={{ color: '#8B6914' }} /> Bookmarks
+            </h3>
+            <div className="space-y-3 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <p>
+                Keep track of your favorite passages, important scenes, or simply where you left off using the <strong>Bookmark</strong> feature inside the Reader.
+              </p>
+              <p>
+                Click the bookmark icon in the top navigation bar while reading to save your exact position. You can view all your saved bookmarks in the <strong>Sidebar</strong> under the "Bookmarks" tab, allowing you to easily jump back to specific sections within the book.
               </p>
             </div>
           </section>
