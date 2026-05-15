@@ -9,7 +9,7 @@ import SelectionToolbar from './SelectionToolbar';
 import WordPopover from './WordPopover';
 import AIPanel from './AIPanel';
 import ChapterQuiz from './ChapterQuiz';
-import type { Book, ReadingProgress, Highlight, Profile, ChapterInfo } from '@/types';
+import type { Book, ReadingProgress, Highlight, Profile, ChapterInfo, Bookmark } from '@/types';
 import HighlightToolbar from './HighlightToolbar';
 import CompletionScreen from './CompletionScreen';
 import ReadingTimeEstimate from './ReadingTimeEstimate';
@@ -20,13 +20,14 @@ interface Props {
   epubUrl: string;
   initialProgress: ReadingProgress | null;
   initialHighlights: Highlight[];
+  initialBookmarks: Bookmark[];
   profile: Profile | null;
   userId: string;
   jumpToCfi?: string;
 }
 
 export default function ReaderClient({
-  book, epubUrl, initialProgress, initialHighlights, profile, userId, jumpToCfi
+  book, epubUrl, initialProgress, initialHighlights, initialBookmarks, profile, userId, jumpToCfi
 }: Props) {
   const viewerRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<any>(null);
@@ -54,6 +55,9 @@ export default function ReaderClient({
   const chapterTransitionRef = useRef('idle');
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isNavigatingRef = useRef(false);
+
+  // ── Bookmark state ──
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>(initialBookmarks);
 
   // ── Reading speed estimation state ──
   const [readingSpeed, setReadingSpeed] = useState(0); // locations per second
@@ -898,6 +902,13 @@ export default function ReaderClient({
           toggleTopBar();
         }
       }
+      // M key: save a new bookmark
+      if (e.key.toLowerCase() === 'm' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const tag = (e.target as HTMLElement)?.tagName?.toLowerCase();
+        if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
+          saveBookmark();
+        }
+      }
       if (e.key === 'Escape') { setSelectionToolbar(null); setWordPopover(null); }
     }
     window.addEventListener('keydown', onKeyDown);
@@ -1072,6 +1083,127 @@ export default function ReaderClient({
   }
 
   const progressPercent = useReaderStore((s) => s.progressPercent);
+
+  // ── Bookmark functions ──
+  async function saveBookmark() {
+    if (!renditionRef.current || !bookRef.current) return;
+    try {
+      // Get the current reading position
+      const location = renditionRef.current.currentLocation?.();
+      let cfi = location?.start?.cfi;
+      
+      // Try to get a more precise CFI from the visible area
+      const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
+      if (iframe?.contentDocument && iframe.contentWindow) {
+        const wind = iframe.contentWindow;
+        const doc = iframe.contentDocument;
+        const viewHeight = wind.innerHeight ?? 600;
+        const el = doc.elementFromPoint(wind.innerWidth / 2, viewHeight * 0.3);
+        if (el) {
+          try {
+            const { EpubCFI } = await import('epubjs');
+            if (EpubCFI) {
+              const baseMatch = location?.start?.cfi?.match(/^(epubcfi\([^!]+!)/);
+              if (baseMatch) {
+                const cfiObj = new EpubCFI(el, baseMatch[1]);
+                cfi = cfiObj.toString();
+              }
+            }
+          } catch (e) {
+            console.error('Precise CFI generation failed:', e);
+          }
+        }
+      }
+
+      if (!cfi) {
+        toast.error('Unable to capture position');
+        return;
+      }
+
+      const chapterIdx = currentChapterIndexRef.current;
+      const chapterTitle = chapters[chapterIdx]?.title ?? '';
+      const percent = useReaderStore.getState().progressPercent;
+
+      const res = await fetch('/api/books/bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookId: book.id,
+          cfi,
+          chapterIndex: chapterIdx,
+          chapterTitle,
+          progressPercent: percent,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setBookmarks(prev => [data.bookmark, ...prev]);
+      toast.success(`Bookmark saved — ${chapterTitle || 'Current position'}`, { icon: '🔖' });
+    } catch {
+      toast.error('Failed to save bookmark');
+    }
+  }
+
+  async function jumpToBookmarkCfi(cfi: string) {
+    if (!renditionRef.current) return;
+    try {
+      // Strip range part from CFI if present (keep only start position)
+      const cfiForDisplay = (c: string): string => {
+        if (!c) return c;
+        const rangeMatch = c.match(/^(epubcfi\([^,]+),([^,]+),([^)]+\))$/);
+        if (rangeMatch) {
+          return rangeMatch[1] + rangeMatch[2] + ')';
+        }
+        return c;
+      };
+
+      const displayCfi = cfiForDisplay(cfi);
+      await renditionRef.current.display(displayCfi);
+
+      // After display, wait for content to render then scroll to the exact position
+      setTimeout(async () => {
+        try {
+          const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
+          const iframeDoc = iframe?.contentDocument;
+          if (iframeDoc) {
+            const { EpubCFI } = await import('epubjs');
+            if (EpubCFI) {
+              const cfiObj = new EpubCFI(displayCfi);
+              const range = cfiObj.toRange(iframeDoc);
+              if (range) {
+                let el = range.startContainer.nodeType === Node.ELEMENT_NODE
+                  ? range.startContainer as HTMLElement
+                  : range.startContainer.parentElement;
+                
+                if (el) {
+                  // Adjust scroll slightly to give some breathing room at the top
+                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  const wind = iframe?.contentWindow;
+                  if (wind) {
+                    wind.scrollBy({ top: -40, behavior: 'smooth' }); // small offset for top padding
+                  }
+                }
+              }
+            }
+          }
+        } catch { /* ignore scroll errors */ }
+      }, 300);
+
+      toast.success('Jumped to bookmark', { icon: '🔖' });
+    } catch {
+      toast.error('Failed to jump to bookmark');
+    }
+  }
+
+  async function deleteBookmark(bookmarkId: string) {
+    try {
+      await fetch(`/api/books/bookmarks?id=${bookmarkId}`, { method: 'DELETE' });
+      setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
+      toast.success('Bookmark removed');
+    } catch {
+      toast.error('Failed to remove bookmark');
+    }
+  }
 
   // ── Reading speed calculation timer ──
   // Runs every 10s using a weighted moving average: 40% recent (last 5m) + 60%
@@ -1420,6 +1552,8 @@ export default function ReaderClient({
           onQuiz={() => setShowQuiz(true)}
           onToggleTopBar={toggleTopBar}
           isTopBarHidden={isTopBarHidden}
+          hasBookmarks={bookmarks.length > 0}
+          onSaveBookmark={saveBookmark}
         />
       </div>
 
@@ -1474,6 +1608,10 @@ export default function ReaderClient({
               }
             }}
             onQuiz={() => setShowQuiz(true)}
+            bookmarks={bookmarks}
+            onJumpToBookmark={(cfi) => jumpToBookmarkCfi(cfi)}
+            onDeleteBookmark={deleteBookmark}
+            onSaveBookmark={saveBookmark}
           />
         </div>
 

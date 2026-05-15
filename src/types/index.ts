@@ -129,6 +129,18 @@ export interface BookSchedule {
   created_at: string;
 }
 
+export interface Bookmark {
+  id: string;
+  user_id: string;
+  book_id: string;
+  cfi: string; // EPUB CFI — exact position
+  chapter_index: number;
+  chapter_title: string | null;
+  progress_percent: number;
+  label: string | null;
+  created_at: string;
+}
+
 export interface GamifyMastery {
   id: string;
   user_id: string;

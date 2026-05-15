@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, SlidersHorizontal, Trophy, Book, Timer, EyeOff, ChevronDown, Check, PanelTopClose } from 'lucide-react';
+import { ChevronLeft, SlidersHorizontal, Trophy, Book, Timer, EyeOff, ChevronDown, Check, PanelTopClose, Bookmark, BookmarkCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useReaderStore } from '@/lib/store';
 import type { Book as BookType, ReadingTheme, ReadingFontFamily } from '@/types';
@@ -15,6 +15,8 @@ interface Props {
   onQuiz: () => void;
   onToggleTopBar?: () => void;
   isTopBarHidden?: boolean;
+  hasBookmarks: boolean;
+  onSaveBookmark: () => void;
 }
 
 const THEMES: { id: ReadingTheme; label: string; bg: string }[] = [
@@ -53,10 +55,11 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function ReaderTopBar({ book, chapterTitle, progressPercent, sessionSeconds, onQuiz, onToggleTopBar, isTopBarHidden }: Props) {
+export default function ReaderTopBar({ book, chapterTitle, progressPercent, sessionSeconds, onQuiz, onToggleTopBar, isTopBarHidden, hasBookmarks, onSaveBookmark }: Props) {
   const [showFontControls, setShowFontControls] = useState(false);
   const [timerVisible, setTimerVisible] = useState(true);
   const [isFontDropdownOpen, setIsFontDropdownOpen] = useState(false);
+  const [bookmarkAnimating, setBookmarkAnimating] = useState(false);
   const fontControlsRef = useRef<HTMLDivElement>(null);
   const fontDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +99,12 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
     });
   }
 
+  function handleSaveBookmark() {
+    setBookmarkAnimating(true);
+    onSaveBookmark();
+    setTimeout(() => setBookmarkAnimating(false), 600);
+  }
+
   const textColor = theme === 'dark' ? '#D4C5A0' : theme === 'dark-sepia' ? '#FAECDC' : '#1C1C1E';
   const borderColor = theme === 'dark' ? '#333' : theme === 'dark-sepia' ? '#5C5243' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
   const bgColor = theme === 'dark' ? '#242424' : theme === 'dark-sepia' ? '#433B30' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
@@ -103,6 +112,18 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
 
   return (
     <div className="flex-none border-b z-20" style={{ backgroundColor: bgColor, borderColor, transition: 'background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease' }}>
+      <style>{`
+        @keyframes bookmarkPop {
+          0% { transform: scale(1); }
+          30% { transform: scale(1.35); }
+          60% { transform: scale(0.9); }
+          100% { transform: scale(1); }
+        }
+        .bookmark-animate {
+          animation: bookmarkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+      `}</style>
+
       <div className="h-12 flex items-center px-2 md:px-4 gap-1 md:gap-2">
 
         {/* Back */}
@@ -161,6 +182,22 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
           </div>
           <span className="text-xs" style={{ color: mutedColor }}>{progressPercent}%</span>
         </div>
+
+        {/* Bookmark — save current position */}
+        <button
+          onClick={(e) => { e.stopPropagation(); handleSaveBookmark(); }}
+          className={cn(
+            'flex-none p-2 rounded hover:bg-black/5 transition-colors',
+            bookmarkAnimating && 'bookmark-animate'
+          )}
+          title="Add bookmark (M)"
+        >
+          {hasBookmarks ? (
+            <BookmarkCheck className="w-4 h-4" style={{ color: '#8B6914', fill: '#8B6914', fillOpacity: 0.15 }} />
+          ) : (
+            <Bookmark className="w-4 h-4" style={{ color: textColor }} />
+          )}
+        </button>
 
         {/* Quiz */}
         <button onClick={onQuiz} className="flex-none p-2 rounded hover:bg-black/5 transition-colors" title="Quiz">

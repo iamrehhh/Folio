@@ -2,7 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import { requireUser, getCachedProfile } from '@/lib/cache';
 import ReaderClient from '@/components/reader/ReaderClient';
-import type { Book, ReadingProgress, Highlight } from '@/types';
+import type { Book, ReadingProgress, Highlight, Bookmark } from '@/types';
 
 const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
 
@@ -67,6 +67,14 @@ export default async function ReadPage({ params, searchParams }: ReadPageProps) 
     .eq('book_id', params.bookId)
     .order('created_at', { ascending: true });
 
+  // Fetch bookmarks for this book+user
+  const { data: bookmarks } = await supabase
+    .from('bookmarks')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('book_id', params.bookId)
+    .order('created_at', { ascending: false });
+
   // Extract jump-to CFI from URL query params (from "Jump to passage" links)
   const jumpToCfi = typeof searchParams.cfi === 'string' ? searchParams.cfi : undefined;
 
@@ -76,6 +84,7 @@ export default async function ReadPage({ params, searchParams }: ReadPageProps) 
       epubUrl={signedUrlData.signedUrl}
       initialProgress={(progress as ReadingProgress) ?? null}
       initialHighlights={(highlights as Highlight[]) ?? []}
+      initialBookmarks={(bookmarks as Bookmark[]) ?? []}
       profile={profile}
       userId={user.id}
       jumpToCfi={jumpToCfi}
