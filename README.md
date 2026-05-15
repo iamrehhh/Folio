@@ -19,51 +19,48 @@
 
 ## What is Folio?
 
-Folio is a full-stack web reading platform designed to transform how you engage with books. It combines the clean, distraction-free reading experience of a Kindle with the intelligence of an AI assistant — letting you read, highlight, define words in context, take vocabulary notes, test your comprehension, and actively build your English language skills, all in one place.
+Folio is a full-stack web reading platform designed to transform how you engage with books. It combines the clean, distraction-free reading experience of a premium e-reader with the intelligence of an AI assistant — letting you read, highlight, define words in context, take vocabulary notes, test your comprehension, and actively build your English language skills, all in one place.
 
-Built for readers who want more than just a page-turner. Every book you read in Folio becomes a learning experience.
+Built for readers who want more than just a page-turner. Every book you read in Folio becomes an engaging learning experience.
 
 ---
 
 ## Features
 
 ### Reading Experience
-- **EPUB reader** with smooth scrolling, sepia/light/dark themes, and adjustable font size & line height
-- **Chapter navigation** with a collapsible sidebar showing full nested TOC including parts and sections
-- **Exact reading position restored** — returns to the precise paragraph where you left off, not just the chapter
-- **Book completion celebration** — confetti screen with star rating when you genuinely finish a book
-- **Session timer** — tracks time spent reading per session, hideable from the top bar
-- **Highlight management** — add highlights in 4 colours, remove them directly from the reader
+- **EPUB reader** with smooth scrolling, sepia/light/dark themes, adjustable font size, and line height.
+- **Distraction-Free Mode** — Toggle the top navigation bar to hide distractions, easily bringing it back with an intuitive reveal handle.
+- **Chapter navigation** with a collapsible sidebar showing full nested TOC including parts and sections.
+- **Exact reading position restored** — returns to the precise paragraph where you left off, not just the chapter.
+- **Direct Book Interaction** — No more clunky buttons; simply tap a book cover to smoothly transition into your reading session.
+- **Session timer** — tracks time spent reading per session.
+- **Highlight management** — add highlights in 4 colours, remove them directly from the reader.
 
 ### Intelligence Layer
-- **AI Reading Assistant** — ask questions about the book, get summaries, explore themes
-- **Contextual word definitions** — click any word to see its meaning in the context of the sentence
-- **AI-ranked standard definitions** — when a word has multiple meanings, AI picks the most contextually appropriate one
-- **Chapter Quiz** — AI-generated 10-question multiple choice quiz to test comprehension of any chapter
+- **AI Reading Assistant** — ask questions about the book, get summaries, explore themes directly alongside the text.
+- **Contextual Dictionary Popover** — click any word to see its standard definition alongside an AI-driven contextual meaning tailored to the sentence. Features an automatic animated close sequence upon saving a word.
+- **Chapter Quiz** — AI-generated 10-question multiple choice quiz to test comprehension of any chapter.
 
 ### Daily Quiz — Vocabulary & Idioms
-- **Daily Vocabulary Set** — 5 advanced words each day tuned for IPMAT/JIPMAT level, with definitions, formal and conversational examples, and synonyms
-- **Daily Idioms Set** — 5 idioms per day in the same format, building idiomatic fluency
-- **Game Mode (Gamify)** — fully adaptive, infinitely generated MCQ quiz targeting your weak words (spaced repetition) with a global Top 5 Leaderboard
-- **Fill-in-the-blank quiz** — randomised questions with a word bank; accepts grammatically adjusted forms (-ed, -ing, -s)
-- **AI answer checking** — evaluates each answer and gives per-question feedback with an overall score
-- **Reading passage** — AI-generated 200-word passage in a varied genre (mystery, fantasy, romance, science, etc.) using all 5 words naturally
-- **No repeats within 7 days** — same daily set shared across all users; words and idioms rotate to avoid repetition
+- **Daily Vocabulary Set** — 5 advanced words each day (IPMAT/JIPMAT level), with definitions, formal and conversational examples, and synonyms.
+- **Daily Idioms Set** — 5 idioms per day in the same format, building idiomatic fluency.
+- **Game Mode (Gamify)** — fully adaptive, infinitely generated MCQ quiz targeting your weak words (spaced repetition) with a Top 5 Leaderboard.
+- **Fill-in-the-blank quiz** — randomised questions with a word bank; accepts grammatically adjusted forms (-ed, -ing, -s).
+- **Reading passage** — AI-generated 200-word passage in varied genres naturally using all 5 words.
 
 ### Library & Organisation
-- **Personal library** with genre filtering, search, and reading status tabs (All / In Progress / Unread / Completed)
-- **Curated collection** — books uploaded by the admin are available to all users automatically
-- **Real-time updates** — new books appear instantly without page refresh via Supabase Realtime
-- **Book covers** — upload custom covers or add them later via the edit modal
-- **Highlights library** — all your highlights in one place, colour-coded, with jump-to-location
-- **Vocabulary notebook** — save words with definitions, pronunciation, part of speech, and AI context
+- **My Library** — Your personal collection with seamless sorting by newest/oldest additions.
+- **Public Library** — A clean, minimalist curated collection available to all users with centered search and dynamic filter elements.
+- **Personal Vault** — A centralized hub for your Notes, Reading Lists, Vocabulary, and Quick Captures. Features pinning, colored cards, and full searchability.
+- **Highlights Library** — all your highlights in one place, colour-coded, with jump-to-location.
+- **Vocabulary Notebook** — save words with definitions, pronunciation, part of speech, and AI context.
 
 ### Platform
-- **Google Sign-In** via Supabase Auth
-- **Fully responsive** — works on desktop, tablet, and mobile
-- **Direct-to-storage uploads** — EPUBs upload directly to Supabase Storage, bypassing Vercel size limits
-- **Navigation progress bar** — smooth gold loading indicator on every page transition
-- **Admin-only uploads** — only the designated admin can add books; other users can request via email
+- **Support Reports** — In-app user reporting system with real-time, pulsing red badge notifications for admins on unread messages.
+- **Google Sign-In** via Supabase Auth.
+- **Fully responsive** — tailored layouts for desktop, tablet, and mobile.
+- **Direct-to-storage uploads** — EPUBs upload directly to Supabase Storage, bypassing server size limits.
+- **Admin-only uploads** — designated admins manage the public catalog; personal libraries remain private.
 
 ---
 
@@ -71,15 +68,16 @@ Built for readers who want more than just a page-turner. Every book you read in 
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 14 (App Router) |
-| Database & Auth | Supabase (PostgreSQL + RLS) |
-| Storage | Supabase Storage |
-| AI | OpenAI GPT-4o Mini |
-| EPUB Rendering | epub.js |
-| Dictionary | Free Dictionary API |
-| State Management | Zustand |
-| Styling | Tailwind CSS |
-| Hosting | Vercel |
+| **Framework** | Next.js 14 (App Router) |
+| **Database & Auth** | Supabase (PostgreSQL + RLS) |
+| **Storage** | Supabase Storage |
+| **AI** | OpenAI GPT-4o Mini |
+| **EPUB Rendering** | epub.js |
+| **Dictionary API** | Free Dictionary API |
+| **State Management** | Zustand |
+| **Animations** | Framer Motion |
+| **Styling** | Tailwind CSS |
+| **Hosting** | Vercel |
 
 ---
 
@@ -118,40 +116,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ### Supabase Setup
 
-**Database:** Run `supabase/schema.sql` in your Supabase SQL Editor, then also run:
-
-```sql
--- Daily quiz sets (shared across all users)
-CREATE TABLE daily_quiz_sets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  type TEXT NOT NULL,
-  date DATE NOT NULL,
-  items JSONB NOT NULL,
-  fill_blanks JSONB NOT NULL,
-  passage TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(type, date)
-);
-
--- User quiz attempts
-CREATE TABLE quiz_attempts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  quiz_set_id UUID REFERENCES daily_quiz_sets(id) ON DELETE CASCADE,
-  stage TEXT NOT NULL DEFAULT 'learn',
-  answers JSONB,
-  score INTEGER,
-  feedback JSONB,
-  completed_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(user_id, quiz_set_id)
-);
-
-ALTER TABLE daily_quiz_sets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE quiz_attempts ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "anyone can read quiz sets" ON daily_quiz_sets FOR SELECT TO authenticated USING (true);
-CREATE POLICY "users manage own attempts" ON quiz_attempts FOR ALL TO authenticated USING (user_id = auth.uid());
-```
+**Database:** Run `supabase/schema.sql` and `supabase_optimizations.sql` in your Supabase SQL Editor. Also ensure all migrations for personal vaults, report notifications, and daily quizzes are run.
 
 **Storage Buckets:**
 
@@ -159,19 +124,6 @@ CREATE POLICY "users manage own attempts" ON quiz_attempts FOR ALL TO authentica
 |---|---|---|
 | `books` | Private | EPUB files |
 | `covers` | Public | Cover images |
-
-**Storage Policies:**
-```sql
-CREATE POLICY "users can upload own books"
-ON storage.objects FOR INSERT TO authenticated
-WITH CHECK (bucket_id = 'books' AND (storage.foldername(name))[1] = auth.uid()::text);
-
-CREATE POLICY "users can read own books"
-ON storage.objects FOR SELECT TO authenticated
-USING (bucket_id = 'books' AND (storage.foldername(name))[1] = auth.uid()::text);
-
-ALTER TABLE books REPLICA IDENTITY FULL;
-```
 
 **Google OAuth:** Enable in Supabase → Authentication → Providers → Google. Add your OAuth credentials and set the redirect URL to `https://your-project.supabase.co/auth/v1/callback`.
 
@@ -191,36 +143,27 @@ Open [http://localhost:3000](http://localhost:3000)
 src/
 ├── app/
 │   ├── login/              # Authentication
-│   ├── home/               # Personal dashboard
-│   ├── library/            # Book library
-│   ├── read/[bookId]/      # Reading interface
-│   ├── vocab/              # Vocabulary notebook
-│   ├── highlights/         # Highlights collection
-│   ├── quiz/               # Daily quiz hub
-│   │   ├── vocabulary/     # Vocabulary quiz flow
-│   │   └── idioms/         # Idioms quiz flow
+│   ├── (protected)/        # Authenticated areas
+│   │   ├── home/           # Dashboard
+│   │   ├── library/        # Personal & Public Library
+│   │   ├── read/[bookId]/  # Distraction-free Reader
+│   │   ├── vault/          # Personal Vault
+│   │   ├── vocab/          # Vocabulary notebook
+│   │   ├── highlights/     # Highlights collection
+│   │   ├── quiz/           # Daily quizzes
+│   │   ├── report/         # Support Reports
+│   │   └── admin/          # Admin Dashboard
 │   └── api/                # API routes
-│       ├── ai/             # AI assistant
-│       ├── quiz/           # Chapter quiz generation
-│       ├── quiz-sets/      # Daily vocabulary & idiom sets
-│       ├── dictionary/     # Word definitions
-│       ├── books/          # Book metadata & progress
-│       ├── highlights/     # Highlights CRUD
-│       ├── vocab/          # Vocabulary CRUD
-│       └── sessions/       # Reading sessions
 ├── components/
-│   ├── layout/             # Navigation, progress bar
-│   ├── home/               # Dashboard widgets
-│   ├── library/            # Library grid, upload, edit modals
-│   ├── reader/             # Reader UI (9 components)
-│   ├── quiz/               # Daily quiz client
-│   ├── vocab/              # Vocabulary client
-│   └── highlights/         # Highlights client
+│   ├── layout/             # Navigation & Context
+│   ├── library/            # Library grids & cards
+│   ├── reader/             # Core EPUB UI components
+│   ├── vault/              # Vault UI and modal components
+│   └── ...                 # Feature-specific components
 └── lib/
-    ├── supabase/           # Client & server Supabase instances
-    ├── openai.ts           # OpenAI client & prompt templates
-    ├── store.ts            # Zustand reader state
-    └── utils.ts            # Shared utilities
+    ├── supabase/           # Client & Server instances
+    ├── openai.ts           # OpenAI configuration
+    └── store.ts            # Zustand global state
 ```
 
 ---
@@ -233,7 +176,7 @@ src/
 | `←` or `[` | Previous chapter |
 | `Ctrl + B` | Toggle chapter sidebar |
 | `Ctrl + I` | Toggle AI assistant |
-| `Esc` | Close panels |
+| `Esc` | Close panels / Settings |
 
 ---
 
