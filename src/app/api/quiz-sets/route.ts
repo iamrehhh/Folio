@@ -41,18 +41,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ set: targetSet, attempt: userAttempt });
     }
 
-    // Generate new set — get last 7 days of used words to avoid repeats
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const { data: recentSets } = await admin
+    // Generate new set — get ALL past used words to avoid repeats and create a unique set each time
+    const { data: pastSets } = await admin
       .from('daily_quiz_sets')
       .select('items')
-      .eq('type', type)
-      .gte('date', sevenDaysAgo.toISOString().split('T')[0]);
+      .eq('type', type);
 
     const usedWords: string[] = [];
-    for (const s of recentSets ?? []) {
+    for (const s of pastSets ?? []) {
       const items = s.items as any[];
       items?.forEach((item: any) => usedWords.push(item.word));
     }

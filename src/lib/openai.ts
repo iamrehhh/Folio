@@ -83,9 +83,9 @@ export function buildVocabSetPrompt(usedWords: string[]): string {
   const avoidList = usedWords.length > 0
     ? `\nDo NOT use any of these recently used words: ${usedWords.join(', ')}`
     : '';
-  return `You are an expert English vocabulary teacher preparing students for IPMAT and JIPMAT entrance exams.
+  return `You are an expert English vocabulary teacher preparing students for highly competitive IPMAT and JIPMAT entrance exams.
 
-Generate exactly 5 advanced English vocabulary words appropriate for IPMAT/JIPMAT level.
+Generate exactly 5 highly advanced, challenging English vocabulary words appropriate for IPMAT/JIPMAT level. Do NOT use basic or common words. Focus on difficult, high-level vocabulary that tests true mastery of the English language.
 ${avoidList}
 
 For each word provide:
@@ -114,9 +114,9 @@ export function buildIdiomSetPrompt(usedIdioms: string[]): string {
   const avoidList = usedIdioms.length > 0
     ? `\nDo NOT use any of these recently used idioms: ${usedIdioms.join(', ')}`
     : '';
-  return `You are an expert English language teacher preparing students for IPMAT and JIPMAT entrance exams.
+  return `You are an expert English language teacher preparing students for highly competitive IPMAT and JIPMAT entrance exams.
 
-Generate exactly 5 English idioms appropriate for IPMAT/JIPMAT level.
+Generate exactly 5 advanced, difficult, and less common English idioms appropriate for IPMAT/JIPMAT level. Avoid easy or widely known idioms; focus on challenging idioms that test true mastery of the language.
 ${avoidList}
 
 For each idiom provide:
