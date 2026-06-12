@@ -1932,7 +1932,7 @@ function applyTheme(rendition: any, theme: string, fontFamily: string, fontSize:
       'line-height': String(lineHeight),
       'width': '100%',
       'margin': '0 auto !important',
-      'padding': '0',
+      'padding': '64px 0 64px 0 !important',
       'box-sizing': 'border-box',
       'overflow-x': 'hidden',
       'word-wrap': 'break-word',
