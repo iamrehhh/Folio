@@ -84,8 +84,8 @@ export default function AppShell({ children, user }: AppShellProps) {
       {/* Top navigation bar */}
       {!isReadingInterface && (
       <header
-        className="sticky top-0 z-40 border-b"
-        style={{ backgroundColor: 'var(--bg-sidebar, #F2EFE9)', borderColor: 'var(--border, #E5E0D8)' }}
+        className="sticky top-0 z-40 border-b backdrop-blur-md transition-all duration-300"
+        style={{ backgroundColor: 'var(--bg-sidebar)', borderColor: 'var(--border, #E5E0D8)' }}
       >
         <div className="w-full px-4 md:px-8 h-14 flex items-center relative">
           {/* Logo */}
@@ -93,10 +93,10 @@ export default function AppShell({ children, user }: AppShellProps) {
             <Link
               href="/home"
               className="flex items-center gap-2 text-xl font-semibold tracking-tight"
-              style={{ color: '#1C1C1E', fontFamily: 'Lora, Georgia, serif' }}
+              style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}
             >
-              <div className="inline-flex items-center justify-center w-8 h-8 rounded-[10px]"
-                style={{ backgroundColor: '#8B6914' }}>
+              <div className="inline-flex items-center justify-center w-8 h-8 rounded-[10px] shadow-soft"
+                style={{ backgroundColor: 'var(--accent)' }}>
                 <BookOpen className="w-[18px] h-[18px] text-white" strokeWidth={2.5} />
               </div>
               Folio
@@ -109,7 +109,7 @@ export default function AppShell({ children, user }: AppShellProps) {
               const active = pathname === href;
               const isReport = href === '/report';
               return (
-                <Link key={href} href={href}
+                <Link key={href} href={href} prefetch={true}
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors relative',
                     active ? 'text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border)]'
@@ -188,7 +188,7 @@ export default function AppShell({ children, user }: AppShellProps) {
               const active = pathname === href;
               const isReport = href === '/report';
               return (
-                <Link key={href} href={href}
+                <Link key={href} href={href} prefetch={true}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',

@@ -17,18 +17,18 @@ function ProgressBar() {
     // When pathname changes (page fully loaded), sweep to 100% and fade out
     function finish() {
       if (timer) clearInterval(timer);
-      bar!.style.transition = 'width 0.35s ease-out';
+      bar!.style.transition = 'width 0.1s ease-out';
       bar!.style.width = '100%';
       spinner!.style.opacity = '0';
 
       setTimeout(() => {
-        bar!.style.transition = 'opacity 0.3s ease';
+        bar!.style.transition = 'opacity 0.15s ease';
         bar!.style.opacity = '0';
         setTimeout(() => {
           bar!.style.transition = 'none';
           bar!.style.width = '0%';
-        }, 300);
-      }, 350);
+        }, 150);
+      }, 100);
     }
 
     // Call finish on mount/route change

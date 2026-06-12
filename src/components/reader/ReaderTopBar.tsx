@@ -107,11 +107,11 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
 
   const textColor = theme === 'dark' ? '#D4C5A0' : theme === 'dark-sepia' ? '#FAECDC' : '#1C1C1E';
   const borderColor = theme === 'dark' ? '#333' : theme === 'dark-sepia' ? '#5C5243' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
-  const bgColor = theme === 'dark' ? '#242424' : theme === 'dark-sepia' ? '#433B30' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
+  const bgColor = theme === 'dark' ? 'rgba(36, 36, 36, 0.75)' : theme === 'dark-sepia' ? 'rgba(67, 59, 48, 0.75)' : theme === 'sepia' ? 'rgba(238, 228, 196, 0.75)' : 'rgba(242, 239, 233, 0.75)';
   const mutedColor = theme === 'dark' ? '#A0998C' : theme === 'dark-sepia' ? '#CEC3B6' : '#6B6860';
 
   return (
-    <div className="flex-none border-b z-20" style={{ backgroundColor: bgColor, borderColor, transition: 'background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease' }}>
+    <div className="flex-none border-b z-20 backdrop-blur-md" style={{ backgroundColor: bgColor, borderColor, transition: 'background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease' }}>
       <style>{`
         @keyframes bookmarkPop {
           0% { transform: scale(1); }
@@ -140,7 +140,7 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
 
         {/* Title — center */}
         <div className="flex-1 min-w-0 text-center px-1">
-          <p className="text-sm font-medium truncate" style={{ color: textColor, fontFamily: 'Lora, Georgia, serif' }}>
+          <p className="text-sm font-medium truncate" style={{ color: textColor, fontFamily: 'var(--font-heading)' }}>
             {book.title}
           </p>
           {chapterTitle && (

@@ -14,19 +14,19 @@ const config: Config = {
         light: {
           bg: '#FAF8F4',
           text: '#1C1C1E',
-          sidebar: '#F2EFE9',
+          sidebar: 'rgba(242, 239, 233, 0.75)', // Glassmorphic
           border: '#E5E0D8',
         },
         sepia: {
           bg: '#F5EDD6',
           text: '#1C1C1E',
-          sidebar: '#EEE4C4',
+          sidebar: 'rgba(238, 228, 196, 0.75)', // Glassmorphic
           border: '#DDD0A8',
         },
         dark: {
           bg: '#1A1A1A',
           text: '#E8E6E0',
-          sidebar: '#242424',
+          sidebar: 'rgba(36, 36, 36, 0.75)', // Glassmorphic
           border: '#333333',
         },
         // Brand accent
@@ -45,8 +45,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        serif: ['Lora', 'Georgia', 'serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-playfair)', 'Lora', 'Georgia', 'serif'],
+        sans: ['var(--font-outfit)', 'Inter', 'system-ui', 'sans-serif'],
+        reading: ['var(--font-lora)', 'Georgia', 'serif'],
       },
       fontSize: {
         'reading-sm': '14px',
@@ -71,6 +72,7 @@ const config: Config = {
         'slide-out-right': 'slideOutRight 0.25s ease-in',
         'fade-in': 'fadeIn 0.15s ease-out',
         'float-up': 'floatUp 0.2s ease-out',
+        'spring-up': 'springUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
       },
       keyframes: {
         slideInRight: {
@@ -89,15 +91,22 @@ const config: Config = {
           '0%': { opacity: '0', transform: 'translateY(4px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        springUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       borderRadius: {
-        DEFAULT: '6px',
-        md: '8px',
+        DEFAULT: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '24px',
       },
       boxShadow: {
-        soft: '0 2px 8px rgba(0,0,0,0.08)',
-        'soft-lg': '0 4px 20px rgba(0,0,0,0.10)',
-        popover: '0 8px 30px rgba(0,0,0,0.12)',
+        soft: '0 4px 12px rgba(0,0,0,0.05)',
+        'soft-lg': '0 8px 24px rgba(0,0,0,0.08)',
+        popover: '0 12px 40px rgba(0,0,0,0.12)',
+        glass: '0 4px 30px rgba(0, 0, 0, 0.1)',
       },
     },
   },

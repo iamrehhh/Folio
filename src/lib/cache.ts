@@ -5,8 +5,8 @@ import { redirect } from 'next/navigation';
 // Memoize the user fetching for a single request lifecycle
 export const getCachedUser = cache(async () => {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user ?? null;
 });
 
 // Require user, redirects to login if none

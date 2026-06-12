@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { BookOpen, Highlighter, BookMarked, Sparkles, GraduationCap, BarChart2, Library, Archive } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/server';
 import FeaturedFeedback from '@/components/home/FeaturedFeedback';
+import FadeIn from '@/components/ui/FadeIn';
 
 export const metadata = {
   title: 'Folio | Your Intelligent Reading Companion',
@@ -116,51 +117,58 @@ export default async function LandingPage() {
 
       {/* ── HERO ── */}
       <section className="relative z-10 text-center px-6 pt-16 pb-20 md:pt-24 md:pb-28">
-        <div
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-medium mb-8"
-          style={{ backgroundColor: '#8B691410', borderColor: '#8B691430', color: '#8B6914' }}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          AI-Powered Reading Companion
-        </div>
-
-        <h1
-          className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6 mx-auto max-w-4xl"
-          style={{ fontFamily: 'Lora, Georgia, serif', color: '#1C1C1E' }}
-        >
-          Read smarter.<br />
-          <span style={{ color: '#8B6914' }}>Remember more.</span>
-        </h1>
-
-        <p
-          className="text-lg md:text-xl leading-relaxed mb-10 mx-auto max-w-xl"
-          style={{ color: '#6B6860' }}
-        >
-          Folio is your personal reading companion — a beautiful EPUB reader with an AI assistant,
-          a public library, a personal vault for vocabulary and highlights, and daily quizzes.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
-            href="/login"
-            className="px-8 py-3.5 rounded-xl text-base font-semibold text-white shadow-lg transition-all hover:opacity-90 hover:-translate-y-0.5"
-            style={{ backgroundColor: '#8B6914', boxShadow: '0 8px 24px rgba(139,105,20,0.3)' }}
+        <FadeIn delay={0.1}>
+          <div
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-medium mb-8"
+            style={{ backgroundColor: '#8B691410', borderColor: '#8B691430', color: '#8B6914' }}
           >
-            Start Reading
-          </Link>
-          <Link
-            href="/login"
-            className="px-8 py-3.5 rounded-xl text-base font-medium border transition-colors hover:bg-[#E5E0D8]"
-            style={{ borderColor: '#E5E0D8', color: '#6B6860' }}
+            <Sparkles className="w-3.5 h-3.5" />
+            AI-Powered Reading Companion
+          </div>
+        </FadeIn>
+
+        <FadeIn delay={0.2}>
+          <h1
+            className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6 mx-auto max-w-4xl"
+            style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
           >
-            Browse Public Library →
-          </Link>
-        </div>
+            Read smarter.<br />
+            <span style={{ color: 'var(--accent)' }}>Remember more.</span>
+          </h1>
+        </FadeIn>
+
+        <FadeIn delay={0.3}>
+          <p
+            className="text-lg md:text-xl leading-relaxed mb-10 mx-auto max-w-xl"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            Folio is your personal reading companion — a beautiful EPUB reader with an AI assistant,
+            a public library, a personal vault for vocabulary and highlights, and daily quizzes.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link
+              href="/login"
+              className="group relative px-8 py-3.5 rounded-xl text-base font-semibold text-white transition-all hover:-translate-y-0.5"
+            >
+              <div className="absolute inset-0 w-full h-full rounded-xl bg-gradient-to-r from-[#8B6914] to-[#A07D20] shadow-[0_8px_24px_rgba(139,105,20,0.3)] group-hover:shadow-[0_12px_32px_rgba(139,105,20,0.4)] transition-all" />
+              <span className="relative z-10 flex items-center gap-2">Start Reading <Sparkles className="w-4 h-4" /></span>
+            </Link>
+            <Link
+              href="/login"
+              className="px-8 py-3.5 rounded-xl text-base font-medium border backdrop-blur-md transition-all hover:bg-white/50 shadow-soft"
+              style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+            >
+              Browse Public Library →
+            </Link>
+          </div>
+        </FadeIn>
 
         {/* Mock reader window */}
+        <FadeIn delay={0.5} direction="up">
         <div
-          className="relative mt-16 mx-auto max-w-4xl rounded-2xl border overflow-hidden shadow-2xl"
-          style={{ borderColor: '#E5E0D8' }}
+          className="relative mt-16 mx-auto max-w-4xl rounded-2xl border overflow-hidden shadow-glass"
+          style={{ borderColor: 'var(--border)' }}
         >
           {/* Browser chrome */}
           <div
@@ -238,51 +246,55 @@ export default async function LandingPage() {
               </div>
               <div
                 className="rounded-lg p-2.5 text-xs leading-relaxed"
-                style={{ backgroundColor: '#8B6914', color: '#fff' }}
+                style={{ backgroundColor: 'var(--accent)', color: '#fff' }}
               >
                 Chapter II introduces Winston's daily life under the Party's oppressive rule...
               </div>
             </div>
           </div>
         </div>
+        </FadeIn>
       </section>
 
       {/* ── FEATURES ── */}
       <section className="relative z-10 px-6 md:px-12 py-20">
         <div className="max-w-5xl mx-auto">
-          <h2
-            className="text-3xl md:text-4xl font-bold text-center mb-4"
-            style={{ fontFamily: 'Lora, Georgia, serif', color: '#1C1C1E' }}
-          >
-            Everything you need to read deeply
-          </h2>
-          <p className="text-center text-base mb-14" style={{ color: '#6B6860' }}>
-            Folio combines a beautiful reader with powerful tools to help you learn as you read.
-          </p>
+          <FadeIn>
+            <h2
+              className="text-3xl md:text-4xl font-bold text-center mb-4"
+              style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
+            >
+              Everything you need to read deeply
+            </h2>
+            <p className="text-center text-base mb-14" style={{ color: 'var(--text-secondary)' }}>
+              Folio combines a beautiful reader with powerful tools to help you learn as you read.
+            </p>
+          </FadeIn>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map(({ icon: Icon, title, desc }) => (
+            {FEATURES.map(({ icon: Icon, title, desc }, idx) => (
+              <FadeIn key={title} delay={0.1 * (idx % 3)} className="h-full">
               <div
-                key={title}
-                className="rounded-2xl border p-6 transition-all hover:shadow-lg hover:-translate-y-0.5"
-                style={{ backgroundColor: '#fff', borderColor: '#E5E0D8' }}
+                className="h-full rounded-2xl border p-6 transition-all hover:shadow-soft-lg hover:-translate-y-1 bg-white/60 backdrop-blur-sm flex flex-col"
+                style={{ borderColor: 'var(--border)' }}
               >
                 <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-                  style={{ backgroundColor: '#8B691415' }}
+                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 shadow-soft"
+                  style={{ backgroundColor: 'var(--accent-muted, #8B691415)' }}
                 >
-                  <Icon className="w-5 h-5" style={{ color: '#8B6914' }} />
+                  <Icon className="w-5 h-5" style={{ color: 'var(--accent)' }} />
                 </div>
                 <h3
                   className="font-semibold text-base mb-2"
-                  style={{ fontFamily: 'Lora, Georgia, serif', color: '#1C1C1E' }}
+                  style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
                 >
                   {title}
                 </h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#6B6860' }}>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   {desc}
                 </p>
               </div>
+              </FadeIn>
             ))}
           </div>
         </div>
@@ -297,42 +309,45 @@ export default async function LandingPage() {
 
       {/* ── CTA BANNER ── */}
       <section className="relative z-10 px-6 py-20 text-center">
+        <FadeIn direction="up">
         <div
-          className="max-w-2xl mx-auto rounded-3xl p-12"
-          style={{ backgroundColor: '#8B6914' }}
+          className="max-w-2xl mx-auto rounded-3xl p-12 relative overflow-hidden shadow-glass"
+          style={{ backgroundColor: 'var(--accent)' }}
         >
-          <BookOpen className="w-10 h-10 text-white/80 mx-auto mb-5" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+          <BookOpen className="relative z-10 w-10 h-10 text-white/80 mx-auto mb-5" />
           <h2
-            className="text-3xl font-bold text-white mb-4"
-            style={{ fontFamily: 'Lora, Georgia, serif' }}
+            className="relative z-10 text-3xl font-bold text-white mb-4"
+            style={{ fontFamily: 'var(--font-heading)' }}
           >
             Start your reading journey today
           </h2>
-          <p className="text-white/80 mb-8 leading-relaxed max-w-md mx-auto">
+          <p className="relative z-10 text-white/80 mb-8 leading-relaxed max-w-md mx-auto">
             Browse the community library or upload your own EPUBs. Get access to AI assistance,
             your Personal Vault, daily quizzes, and more — completely free.
           </p>
           <Link
             href="/login"
-            className="inline-block px-8 py-3.5 rounded-xl text-base font-semibold bg-white transition-all hover:opacity-90 hover:-translate-y-0.5"
-            style={{ color: '#8B6914' }}
+            className="relative z-10 inline-block px-8 py-3.5 rounded-xl text-base font-semibold bg-white transition-all hover:scale-105 hover:shadow-lg"
+            style={{ color: 'var(--accent)' }}
           >
             Create your account
           </Link>
         </div>
+        </FadeIn>
       </section>
 
       {/* ── FOOTER ── */}
       <footer
         className="relative z-10 border-t px-6 md:px-12 py-8"
-        style={{ borderColor: '#E5E0D8' }}
+        style={{ borderColor: 'var(--border)' }}
       >
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#8B6914' }}>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shadow-soft" style={{ backgroundColor: 'var(--accent)' }}>
               <BookOpen className="w-4 h-4 text-white" strokeWidth={2.5} />
             </div>
-            <span className="font-semibold" style={{ fontFamily: 'Lora, Georgia, serif', color: '#1C1C1E' }}>
+            <span className="font-semibold" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
               Folio
             </span>
           </div>

@@ -1,7 +1,8 @@
 'use client';
 
-import { Star, Quote } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { useRef, useState, useEffect } from 'react';
+import FadeIn from '@/components/ui/FadeIn';
 
 interface FeedbackProps {
   id: string;
@@ -20,13 +21,13 @@ interface FeaturedFeedbackProps {
 
 function StarDisplay({ rating }: { rating: number }) {
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
         <Star
           key={star}
-          className="w-3.5 h-3.5"
-          fill={star <= rating ? '#D4A017' : 'transparent'}
-          stroke={star <= rating ? '#D4A017' : 'var(--border)'}
+          className="w-4 h-4"
+          fill={star <= rating ? '#8B6914' : 'transparent'}
+          stroke={star <= rating ? '#8B6914' : '#E5E0D8'}
           strokeWidth={1.5}
         />
       ))}
@@ -37,68 +38,61 @@ function StarDisplay({ rating }: { rating: number }) {
 function FeedbackCard({ f }: { f: FeedbackProps }) {
   const [expanded, setExpanded] = useState(false);
   const text = f.feedback || "Excellent experience on the platform.";
-  const isLong = text.length > 140; // threshold for showing "Read more"
+  const isLong = text.length > 150;
 
   const user = f.user || { full_name: null, avatar_url: null };
   const initials = user.full_name
     ? user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'F'; // Default if no name
+    : 'R';
 
   return (
     <div 
-      className={`flex-none w-[280px] sm:w-[320px] rounded-2xl p-6 border transition-all duration-300 hover:shadow-soft hover:-translate-y-1 snap-start relative bg-white/50 backdrop-blur-md flex flex-col ${expanded ? 'h-fit' : 'h-[300px]'}`}
+      className={`flex-none w-[320px] sm:w-[380px] rounded-2xl p-8 bg-white transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative flex flex-col snap-center ${expanded ? 'h-fit' : 'h-[320px]'}`}
       style={{ 
-        borderColor: 'var(--border)',
-        background: 'linear-gradient(135deg, var(--bg-card, #fff) 0%, rgba(255,255,255,0.4) 100%)'
+        boxShadow: '0 4px 20px -2px rgba(0,0,0,0.03)',
+        border: '1px solid rgba(0,0,0,0.04)'
       }}
     >
-      <Quote className="absolute top-5 right-5 w-6 h-6 opacity-5" style={{ color: 'var(--text-primary)' }} />
-      
-      <div className="mb-4">
-        <StarDisplay rating={f.rating} />
-      </div>
-
-      <div className={`relative transition-all duration-300 ${expanded ? '' : 'h-[100px] overflow-hidden'}`}>
-        <p 
-          className={`text-sm leading-relaxed italic ${expanded ? 'pb-2' : 'line-clamp-4'}`} 
-          style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}
-        >
-          "{text}"
-        </p>
-        {/* Fade out text if overly long */}
-        {!expanded && isLong && (
-          <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white/20 to-transparent pointer-events-none" />
-        )}
-      </div>
-
-      <div className="min-h-[20px] mt-1">
-        {isLong && (
-          <button 
-            onClick={() => setExpanded(!expanded)}
-            className="text-xs font-semibold text-left opacity-70 hover:opacity-100 transition-opacity w-[fit-content]"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            {expanded ? 'Show less' : 'Read more'}
-          </button>
-        )}
-      </div>
-
-      <div className="flex items-center gap-3 mt-auto pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+      <div className="flex items-center gap-4 mb-6 flex-none">
         {user.avatar_url ? (
-          <img src={user.avatar_url} alt={user.full_name ?? ''} className="w-10 h-10 rounded-full object-cover shadow-sm" />
+          <img src={user.avatar_url} alt={user.full_name ?? ''} className="w-12 h-12 rounded-full object-cover shadow-sm ring-1 ring-black/5" />
         ) : (
-          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm" style={{ backgroundColor: '#F0EBE1', color: '#8B6914' }}>
+          <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-semibold shadow-sm ring-1 ring-black/5" style={{ backgroundColor: '#F9F6F0', color: '#8B6914' }}>
             {initials}
           </div>
         )}
         <div>
-          <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {user.full_name ?? 'Anonymous'}
+          <p className="text-sm font-bold tracking-tight text-gray-900">
+            {user.full_name ?? 'Folio Reader'}
           </p>
-          <p className="text-[10px] uppercase font-medium tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-            Folio Reader
-          </p>
+          <div className="mt-1">
+            <StarDisplay rating={f.rating} />
+          </div>
         </div>
+      </div>
+
+      <div className={`relative transition-all duration-300 flex-1 ${expanded ? '' : 'overflow-hidden'}`}>
+        <p 
+          className={`text-[15px] leading-relaxed text-gray-700 ${expanded ? 'pb-2' : 'line-clamp-5'}`} 
+          style={{ fontFamily: 'var(--font-inter, system-ui, sans-serif)' }}
+        >
+          "{text}"
+        </p>
+        {!expanded && isLong && (
+          <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+        )}
+      </div>
+
+      <div className="min-h-[20px] mt-2 flex-none">
+        {isLong && (
+          <button 
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs font-bold text-left opacity-60 hover:opacity-100 transition-opacity uppercase tracking-wider"
+            style={{ color: '#8B6914' }}
+          >
+            {expanded ? 'Read less' : 'Read more'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -127,54 +121,61 @@ export default function FeaturedFeedback({ feedbacks }: FeaturedFeedbackProps) {
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
-      const scrollAmount = 320; // card width approximately
+      const scrollAmount = 380; // card width approximately
       scrollRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
     }
   };
 
   return (
-    <section className="mt-16 mb-8 relative">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 px-2 gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold flex items-center gap-2" style={{ fontFamily: 'Lora, Georgia, serif', color: 'var(--text-primary)' }}>
-            Readers' Perspectives
-          </h2>
-          <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            Experiences and stories from the Folio community.
-          </p>
-        </div>
+    <section className="py-24 relative bg-[#FAF8F4] overflow-hidden border-t" style={{ borderColor: 'rgba(0,0,0,0.03)' }}>
+      {/* Background radial gradient */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 50% 0%, rgba(139,105,20,0.04) 0%, transparent 60%)' }} />
 
-        {feedbacks.length > 2 && (
-          <div className="flex items-center gap-2 hidden sm:flex">
-            <button 
-              onClick={() => scroll('left')}
-              disabled={!canScrollLeft}
-              className="w-8 h-8 flex items-center justify-center rounded-full border transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ backgroundColor: 'var(--bg-card, #fff)', borderColor: 'var(--border)' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-primary)' }}><path d="m15 18-6-6 6-6"/></svg>
-            </button>
-            <button 
-              onClick={() => scroll('right')}
-              disabled={!canScrollRight}
-              className="w-8 h-8 flex items-center justify-center rounded-full border transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-              style={{ backgroundColor: 'var(--bg-card, #fff)', borderColor: 'var(--border)' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-primary)' }}><path d="m9 18 6-6-6-6"/></svg>
-            </button>
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <FadeIn direction="up">
+          <div className="text-center mb-16 max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4" style={{ fontFamily: 'var(--font-heading)', color: '#1C1C1E' }}>
+              Readers' Perspectives
+            </h2>
+            <p className="text-base md:text-lg text-gray-600 leading-relaxed">
+              Discover how Folio is transforming the reading experience for book lovers around the world.
+            </p>
           </div>
-        )}
-      </div>
+        </FadeIn>
 
-      <div 
-        ref={scrollRef}
-        onScroll={updateScrollState}
-        className="flex overflow-x-auto gap-4 sm:gap-6 pb-6 px-2 snap-x snap-mandatory hide-scrollbars"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {feedbacks.map((f, idx) => (
-          <FeedbackCard key={f.id || idx} f={f} />
-        ))}
+        <div className="relative">
+          {feedbacks.length > 2 && (
+            <>
+              <button 
+                onClick={() => scroll('left')}
+                disabled={!canScrollLeft}
+                className="absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-14 h-14 flex items-center justify-center rounded-full bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all disabled:opacity-0 disabled:scale-90 hover:scale-110 hidden sm:flex"
+                style={{ color: '#8B6914' }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button 
+                onClick={() => scroll('right')}
+                disabled={!canScrollRight}
+                className="absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-14 h-14 flex items-center justify-center rounded-full bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all disabled:opacity-0 disabled:scale-90 hover:scale-110 hidden sm:flex"
+                style={{ color: '#8B6914' }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </>
+          )}
+
+          <div 
+            ref={scrollRef}
+            onScroll={updateScrollState}
+            className="flex overflow-x-auto gap-6 sm:gap-8 pb-12 pt-4 px-4 -mx-4 snap-x snap-mandatory hide-scrollbars items-start"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {feedbacks.map((f, idx) => (
+              <FeedbackCard key={f.id || idx} f={f} />
+            ))}
+          </div>
+        </div>
       </div>
       <style dangerouslySetInnerHTML={{__html: `
         .hide-scrollbars::-webkit-scrollbar {

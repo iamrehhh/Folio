@@ -37,14 +37,24 @@ export default function ChapterSidebar({ chapters, currentIndex, onSelect, onQui
   const [activeTab, setActiveTab] = useState<SidebarTab>('contents');
   const theme = useReaderStore((s) => s.theme);
   const borderColor   = theme === 'dark' ? '#333' : theme === 'dark-sepia' ? '#5C5243' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
-  const bgColor       = theme === 'dark' ? '#242424' : theme === 'dark-sepia' ? '#433B30' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
+  const bgColor       = theme === 'dark' ? 'rgba(36, 36, 36, 0.85)' : theme === 'dark-sepia' ? 'rgba(67, 59, 48, 0.85)' : theme === 'sepia' ? 'rgba(238, 228, 196, 0.85)' : 'rgba(242, 239, 233, 0.85)';
   const textPrimary   = theme === 'dark' ? '#E8E6E0' : theme === 'dark-sepia' ? '#FAECDC' : '#1C1C1E';
   const textSecondary = theme === 'dark' ? '#A0998C' : theme === 'dark-sepia' ? '#CEC3B6' : '#6B6860';
 
+  const isTopBarHidden = useReaderStore((s) => s.isTopBarHidden);
+
   return (
     <aside
-      className="w-56 flex-none border-r flex flex-col"
-      style={{ backgroundColor: bgColor, borderColor, height: '100%', minHeight: 0, marginTop: 0, transition: 'background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease' }}
+      className="w-56 flex-none border-r flex flex-col backdrop-blur-xl shadow-glass relative z-10"
+      style={{
+        backgroundColor: bgColor,
+        borderColor,
+        height: '100%',
+        minHeight: 0,
+        marginTop: 0,
+        paddingTop: isTopBarHidden ? '0px' : '49px',
+        transition: 'padding-top 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease'
+      }}
     >
       {/* Tab Header */}
       <div className="flex-none border-b" style={{ borderColor }}>

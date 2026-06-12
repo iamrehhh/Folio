@@ -9,7 +9,6 @@ import DailyQuote from '@/components/home/DailyQuote';
 import UpcomingBookBanner from '@/components/home/UpcomingBookBanner';
 import LiveNotification from '@/components/home/LiveNotification';
 import FeedbackPopup from '@/components/home/FeedbackPopup';
-import FeaturedFeedback from '@/components/home/FeaturedFeedback';
 import type { ReadingProgress, Highlight, VocabWord, ReadingStats, BookSchedule, Book } from '@/types';
 
 export default async function HomePage() {
@@ -28,9 +27,9 @@ export default async function HomePage() {
     { count: completedThisMonth },
     { count: completedThisYear },
     { count: completedAllTime },
-    { data: sessions }, // We use an RPC for this in the future, for now fallback to just not crashing the server
-    { data: upcomingSchedule },
-    { data: featuredFeedbacks }
+    { data: totalSecsData }, // Replaced memory-heavy query with RPC
+    { count: sessionCount }, // Replaced memory-heavy query with count
+    { data: upcomingSchedule }
   ] = await Promise.all([
     
     supabase.from('reading_progress').select('*, book:books(*)')
@@ -52,40 +51,17 @@ export default async function HomePage() {
     supabase.from('reading_progress').select('*', { count: 'exact', head: true })
       .eq('user_id', user.id).eq('progress_percent', 100),
       
-    supabase.from('reading_sessions').select('duration_seconds, started_at').eq('user_id', user.id).order('started_at', { ascending: true }), // Removed limit to calculate exact total; OOM risk is negligible for standard users
+    supabase.rpc('get_user_total_reading_time', { user_uuid: user.id }),
+      
+    supabase.from('reading_sessions').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
       
     supabase.from('book_schedules').select('*, book:books(*)')
       .eq('user_id', user.id).gte('scheduled_for', new Date().toISOString().split('T')[0])
-      .order('scheduled_for', { ascending: true }).limit(1).maybeSingle(),
-      
-    supabase.from('site_feedback').select('*, user:profiles(full_name, avatar_url)')
-      .eq('show_on_homepage', true)
-      .order('created_at', { ascending: false })
-      .limit(10)
+      .order('scheduled_for', { ascending: true }).limit(1).maybeSingle()
   ]);
 
-  let trueSessionCount = 0;
-  let totalSecs = 0;
-
-  if (sessions && sessions.length > 0) {
-    trueSessionCount = 1;
-    let lastSessionEnd = new Date(sessions[0].started_at).getTime() + (sessions[0].duration_seconds ?? 0) * 1000;
-    totalSecs += sessions[0].duration_seconds ?? 0;
-
-    for (let i = 1; i < sessions.length; i++) {
-      const s = sessions[i];
-      const startMs = new Date(s.started_at).getTime();
-      const durSecs = s.duration_seconds ?? 0;
-
-      // New session if gap is > 30 minutes
-      if (startMs - lastSessionEnd > 30 * 60 * 1000) {
-        trueSessionCount++;
-      }
-      
-      lastSessionEnd = Math.max(lastSessionEnd, startMs + durSecs * 1000);
-      totalSecs += durSecs;
-    }
-  }
+  const totalSecs = (totalSecsData as number) || 0;
+  const trueSessionCount = sessionCount || 0;
 
   const stats: ReadingStats = {
     booksCompletedThisMonth: completedThisMonth ?? 0,
@@ -130,10 +106,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* Featured Feedback Carousel */}
-        {featuredFeedbacks && featuredFeedbacks.length > 0 && (
-          <FeaturedFeedback feedbacks={featuredFeedbacks as any} />
-        )}
+
 
         <LiveNotification />
         <FeedbackPopup 

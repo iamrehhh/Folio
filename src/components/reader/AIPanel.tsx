@@ -21,7 +21,7 @@ const QUICK_PROMPTS = [
 ];
 
 export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose }: Props) {
-  const { aiMessages, addAIMessage, updateLastAIMessage, selectedText } = useReaderStore();
+  const { aiMessages, addAIMessage, updateLastAIMessage, selectedText, isTopBarHidden } = useReaderStore();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -47,11 +47,11 @@ export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose 
   }, [aiMessages]);
 
   const theme = useReaderStore((s) => s.theme);
-  const bg = theme === 'dark' ? '#242424' : theme === 'dark-sepia' ? '#433B30' : theme === 'sepia' ? '#EEE4C4' : '#F2EFE9';
+  const bg = theme === 'dark' ? 'rgba(36, 36, 36, 0.85)' : theme === 'dark-sepia' ? 'rgba(67, 59, 48, 0.85)' : theme === 'sepia' ? 'rgba(238, 228, 196, 0.85)' : 'rgba(242, 239, 233, 0.85)';
   const border = theme === 'dark' ? '#333' : theme === 'dark-sepia' ? '#5C5243' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
   const textPrimary = theme === 'dark' ? '#E8E6E0' : theme === 'dark-sepia' ? '#FAECDC' : '#1C1C1E';
   const textSecondary = theme === 'dark' ? '#A0998C' : theme === 'dark-sepia' ? '#CEC3B6' : '#6B6860';
-  const inputBg = theme === 'dark' ? '#1A1A1A' : theme === 'dark-sepia' ? '#362E25' : '#fff';
+  const inputBg = theme === 'dark' ? 'rgba(26, 26, 26, 0.8)' : theme === 'dark-sepia' ? 'rgba(54, 46, 37, 0.8)' : 'rgba(255, 255, 255, 0.8)';
 
   async function sendMessage(content: string) {
     if (!content.trim() || isLoading) return;
@@ -141,8 +141,13 @@ export default function AIPanel({ bookTitle, chapterText, chapterTitle, onClose 
 
   return (
     <aside
-      className="w-80 h-full flex-none border-l flex flex-col animate-slide-in-right"
-      style={{ backgroundColor: bg, borderColor: border }}
+      className="w-80 h-full flex-none border-l flex flex-col animate-slide-in-right backdrop-blur-xl shadow-glass"
+      style={{
+        backgroundColor: bg,
+        borderColor: border,
+        paddingTop: isTopBarHidden ? '0px' : '49px',
+        transition: 'padding-top 0.3s ease, background-color 0.3s ease, border-color 0.3s ease'
+      }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor: border }}>

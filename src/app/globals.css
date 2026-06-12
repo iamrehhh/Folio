@@ -6,7 +6,7 @@
 :root {
   /* Light theme (default) */
   --bg: #FAF8F4;
-  --bg-sidebar: #F2EFE9;
+  --bg-sidebar: rgba(242, 239, 233, 0.75);
   --bg-card: #FFFFFF;
   --text-primary: #1C1C1E;
   --text-secondary: #6B6860;
@@ -15,20 +15,22 @@
   --accent: #8B6914;
   --accent-hover: #A07D20;
 
-  --font-reading: Lora, Georgia, serif;
-  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-reading: var(--font-lora), Georgia, serif;
+  --font-ui: var(--font-outfit), 'Inter', system-ui, sans-serif;
+  --font-heading: var(--font-playfair), 'Lora', Georgia, serif;
 
-  --radius: 6px;
-  --radius-md: 8px;
-  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-soft-lg: 0 4px 20px rgba(0, 0, 0, 0.10);
-  --shadow-popover: 0 8px 30px rgba(0, 0, 0, 0.12);
+  --radius: 8px;
+  --radius-md: 12px;
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-soft-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-popover: 0 12px 40px rgba(0, 0, 0, 0.12);
+  --shadow-glass: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
 /* ─── Reading Themes ─────────────────────────── */
 [data-theme="light"] {
   --bg: #FAF8F4;
-  --bg-sidebar: #F2EFE9;
+  --bg-sidebar: rgba(242, 239, 233, 0.75);
   --bg-card: #FFFFFF;
   --text-primary: #1C1C1E;
   --text-secondary: #6B6860;
@@ -37,7 +39,7 @@
 
 [data-theme="sepia"] {
   --bg: #F5EDD6;
-  --bg-sidebar: #EEE4C4;
+  --bg-sidebar: rgba(238, 228, 196, 0.75);
   --bg-card: #FBF6E8;
   --text-primary: #1C1C1E;
   --text-secondary: #6B5E38;
@@ -46,7 +48,7 @@
 
 [data-theme="dark"] {
   --bg: #1A1A1A;
-  --bg-sidebar: #242424;
+  --bg-sidebar: rgba(36, 36, 36, 0.75);
   --bg-card: #2A2A2A;
   --text-primary: #E8E6E0;
   --text-secondary: #A0998C;

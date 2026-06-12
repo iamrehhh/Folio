@@ -55,6 +55,7 @@ export default function ReaderClient({
   const chapterTransitionRef = useRef('idle');
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isNavigatingRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
 
   // ── Bookmark state ──
   const [bookmarks, setBookmarks] = useState<Bookmark[]>(initialBookmarks);
@@ -240,7 +241,7 @@ export default function ReaderClient({
           doc.body.style.cssText = `
             width: 100% !important;
             margin: 0 !important;
-            padding: 1.5rem 4rem 3rem 4rem !important;
+            padding: 4rem 4rem 3rem 4rem !important;
             box-sizing: border-box !important;
             overflow-x: hidden !important;
             word-wrap: break-word !important;
@@ -434,9 +435,29 @@ export default function ReaderClient({
           }
         }
 
-        function onScroll() {
+        function onScroll(e?: Event) {
           if (scrollSaveTimer) clearTimeout(scrollSaveTimer);
           handleBottomCheck();
+
+          // Zen Mode: Auto-hide top bar on scroll down
+          let currentScrollTop = 0;
+          const target = e?.target as HTMLElement | undefined;
+          if (target && 'scrollTop' in target) {
+            currentScrollTop = target.scrollTop;
+          } else {
+            try { currentScrollTop = contents.window.scrollY; } catch { }
+          }
+          
+          const delta = currentScrollTop - lastScrollTopRef.current;
+          if (Math.abs(delta) > 15) {
+            const store = useReaderStore.getState();
+            if (delta > 0 && !store.isTopBarHidden && currentScrollTop > 100) {
+              useReaderStore.setState({ isTopBarHidden: true });
+            } else if (delta < 0 && store.isTopBarHidden) {
+              useReaderStore.setState({ isTopBarHidden: false });
+            }
+            lastScrollTopRef.current = currentScrollTop;
+          }
 
           scrollSaveTimer = setTimeout(async () => {
             if (!mounted || !renditionRef.current) return;
@@ -701,7 +722,7 @@ export default function ReaderClient({
             const iframe = viewerRef.current?.querySelector('iframe') as HTMLIFrameElement | null;
             if (iframe) iframe.style.cssText = 'width:100% !important;height:100% !important;border:none !important;';
             const doc = contents.document;
-            if (doc?.body) doc.body.style.cssText = 'width:100% !important;margin:0 !important;padding:3rem 5rem !important;box-sizing:border-box !important;overflow-x:hidden !important;word-wrap:break-word !important;';
+            if (doc?.body) doc.body.style.cssText = 'width:100% !important;margin:0 !important;padding:4rem 5rem !important;box-sizing:border-box !important;overflow-x:hidden !important;word-wrap:break-word !important;';
             doc.addEventListener('click', () => {
               const sel = contents.window.getSelection();
               if (!sel || sel.isCollapsed) { setSelectionToolbar(null); setWordPopover(null); }
@@ -1468,21 +1489,22 @@ export default function ReaderClient({
 
         /* ── Top Bar slide animation ── */
         .topbar-wrapper {
-          position: relative;
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
           z-index: 50;
-          transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+          transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
                       opacity 0.3s ease;
         }
         .topbar-wrapper.topbar-visible {
-          max-height: 56px; /* h-12 = 48px + 0.5 progress strip + a tiny buffer */
+          transform: translateY(0);
           opacity: 1;
-          overflow: visible;
         }
         .topbar-wrapper.topbar-hidden {
-          max-height: 0px;
+          transform: translateY(-100%);
           opacity: 0;
           pointer-events: none;
-          overflow: hidden;
         }
 
         /* ── Reveal handle when bar is hidden ── */

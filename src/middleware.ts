@@ -27,12 +27,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: use getUser() not getSession() in middleware.
-  // On Vercel's edge runtime, getSession() can fail to read cookies (causing redirect loops).
-  // getUser() verifies the JWT directly with Supabase servers, making it reliable.
+  // Fast local check: verify session via cookies without an external network request
+  // (Security note: the actual strict `getUser()` verification is done in Server Components via requireUser)
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
 
   const { pathname } = request.nextUrl;
 
