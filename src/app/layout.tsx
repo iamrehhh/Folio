@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Lora, Merriweather, Outfit, Playfair_Display } from 'next/font/google';
+import { Inter, Lora, Outfit, Playfair_Display } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 import NavigationProgress from '@/components/layout/NavigationProgress';
 import './globals.css';
@@ -16,12 +16,6 @@ const lora = Lora({
   display: 'swap',
 });
 
-const merriweather = Merriweather({
-  subsets: ['latin'],
-  weight: ['300', '400', '700'],
-  variable: '--font-merriweather',
-  display: 'swap',
-});
 
 const outfit = Outfit({
   subsets: ['latin'],
@@ -47,7 +41,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${lora.variable} ${merriweather.variable} ${outfit.variable} ${playfair.variable} font-sans antialiased bg-bg text-text-primary`}>
+      <body className={`${inter.variable} ${lora.variable} ${outfit.variable} ${playfair.variable} font-sans antialiased bg-bg text-text-primary`}>
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var s=localStorage.getItem('folio-sidebar-open');if(s==='false')document.documentElement.setAttribute('data-sidebar-closed','')}catch(e){}})();`,

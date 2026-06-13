@@ -9,7 +9,10 @@ import Link from 'next/link';
 import { BookOpen, Highlighter, BookMarked, Sparkles, GraduationCap, BarChart2, Library, Archive } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/server';
 import FeaturedFeedback from '@/components/home/FeaturedFeedback';
-import FadeIn from '@/components/ui/FadeIn';
+import FadeInCSS from '@/components/ui/FadeInCSS';
+
+// ISR: cache this page for 1 hour instead of re-rendering on every request
+export const revalidate = 3600;
 
 export const metadata = {
   title: 'Folio | Your Intelligent Reading Companion',
@@ -117,7 +120,7 @@ export default async function LandingPage() {
 
       {/* ── HERO ── */}
       <section className="relative z-10 text-center px-6 pt-16 pb-20 md:pt-24 md:pb-28">
-        <FadeIn delay={0.1}>
+        <FadeInCSS delay={0.1}>
           <div
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-sm font-medium mb-8"
             style={{ backgroundColor: '#8B691410', borderColor: '#8B691430', color: '#8B6914' }}
@@ -125,9 +128,9 @@ export default async function LandingPage() {
             <Sparkles className="w-3.5 h-3.5" />
             AI-Powered Reading Companion
           </div>
-        </FadeIn>
+        </FadeInCSS>
 
-        <FadeIn delay={0.2}>
+        <FadeInCSS delay={0.2}>
           <h1
             className="text-4xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6 mx-auto max-w-4xl"
             style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
@@ -135,9 +138,9 @@ export default async function LandingPage() {
             Read smarter.<br />
             <span style={{ color: 'var(--accent)' }}>Remember more.</span>
           </h1>
-        </FadeIn>
+        </FadeInCSS>
 
-        <FadeIn delay={0.3}>
+        <FadeInCSS delay={0.3}>
           <p
             className="text-lg md:text-xl leading-relaxed mb-10 mx-auto max-w-xl"
             style={{ color: 'var(--text-secondary)' }}
@@ -162,10 +165,10 @@ export default async function LandingPage() {
               Browse Public Library →
             </Link>
           </div>
-        </FadeIn>
+        </FadeInCSS>
 
         {/* Mock reader window */}
-        <FadeIn delay={0.5} direction="up">
+        <FadeInCSS delay={0.5} direction="up">
         <div
           className="relative mt-16 mx-auto max-w-4xl rounded-2xl border overflow-hidden shadow-glass"
           style={{ borderColor: 'var(--border)' }}
@@ -253,13 +256,13 @@ export default async function LandingPage() {
             </div>
           </div>
         </div>
-        </FadeIn>
+        </FadeInCSS>
       </section>
 
       {/* ── FEATURES ── */}
       <section className="relative z-10 px-6 md:px-12 py-20">
         <div className="max-w-5xl mx-auto">
-          <FadeIn>
+          <FadeInCSS>
             <h2
               className="text-3xl md:text-4xl font-bold text-center mb-4"
               style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}
@@ -269,11 +272,11 @@ export default async function LandingPage() {
             <p className="text-center text-base mb-14" style={{ color: 'var(--text-secondary)' }}>
               Folio combines a beautiful reader with powerful tools to help you learn as you read.
             </p>
-          </FadeIn>
+          </FadeInCSS>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {FEATURES.map(({ icon: Icon, title, desc }, idx) => (
-              <FadeIn key={title} delay={0.1 * (idx % 3)} className="h-full">
+              <FadeInCSS key={title} delay={0.1 * (idx % 3)} className="h-full">
               <div
                 className="h-full rounded-2xl border p-6 transition-all hover:shadow-soft-lg hover:-translate-y-1 bg-white/60 backdrop-blur-sm flex flex-col"
                 style={{ borderColor: 'var(--border)' }}
@@ -294,7 +297,7 @@ export default async function LandingPage() {
                   {desc}
                 </p>
               </div>
-              </FadeIn>
+              </FadeInCSS>
             ))}
           </div>
         </div>
@@ -309,7 +312,7 @@ export default async function LandingPage() {
 
       {/* ── CTA BANNER ── */}
       <section className="relative z-10 px-6 py-20 text-center">
-        <FadeIn direction="up">
+        <FadeInCSS direction="up">
         <div
           className="max-w-2xl mx-auto rounded-3xl p-12 relative overflow-hidden shadow-glass"
           style={{ backgroundColor: 'var(--accent)' }}
@@ -334,7 +337,7 @@ export default async function LandingPage() {
             Create your account
           </Link>
         </div>
-        </FadeIn>
+        </FadeInCSS>
       </section>
 
       {/* ── FOOTER ── */}

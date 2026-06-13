@@ -67,6 +67,19 @@ body {
   font-family: var(--font-ui);
 }
 
+/* ─── Lightweight FadeIn (CSS-only, no framer-motion) ── */
+.fadein-init {
+  opacity: 0;
+  transition: opacity 0.6s cubic-bezier(0.21, 0.47, 0.32, 0.98),
+              transform 0.6s cubic-bezier(0.21, 0.47, 0.32, 0.98);
+  will-change: opacity, transform;
+}
+
+.fadein-visible {
+  opacity: 1 !important;
+  transform: translate(0) !important;
+}
+
 /* Hide genre sidebar on first paint when user previously closed it (pre-hydration) */
 html[data-sidebar-closed] [data-genre-sidebar] {
   width: 0 !important;

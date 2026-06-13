@@ -4,6 +4,14 @@ import { NextResponse, type NextRequest } from 'next/server';
 const ADMIN_EMAILS = ['abdulrehanoffical@gmail.com', 'jesanequebal649@gmail.com'];
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Fast path: skip Supabase entirely for public-only routes that never need auth
+  const publicOnlyRoutes = ['/privacy', '/terms', '/forgot-password'];
+  if (publicOnlyRoutes.includes(pathname)) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -33,8 +41,6 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
   const user = session?.user;
-
-  const { pathname } = request.nextUrl;
 
   // Protect /admin — only the designated admin email can access
   if (pathname.startsWith('/admin')) {

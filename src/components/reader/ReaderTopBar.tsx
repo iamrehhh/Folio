@@ -107,7 +107,7 @@ export default function ReaderTopBar({ book, chapterTitle, progressPercent, sess
 
   const textColor = theme === 'dark' ? '#D4C5A0' : theme === 'dark-sepia' ? '#FAECDC' : '#1C1C1E';
   const borderColor = theme === 'dark' ? '#333' : theme === 'dark-sepia' ? '#5C5243' : theme === 'sepia' ? '#DDD0A8' : '#E5E0D8';
-  const bgColor = theme === 'dark' ? 'rgba(36, 36, 36, 0.75)' : theme === 'dark-sepia' ? 'rgba(67, 59, 48, 0.75)' : theme === 'sepia' ? 'rgba(238, 228, 196, 0.75)' : 'rgba(242, 239, 233, 0.75)';
+  const bgColor = theme === 'dark' ? 'rgb(36, 36, 36)' : theme === 'dark-sepia' ? 'rgb(67, 59, 48)' : theme === 'sepia' ? 'rgb(238, 228, 196)' : 'rgb(242, 239, 233)';
   const mutedColor = theme === 'dark' ? '#A0998C' : theme === 'dark-sepia' ? '#CEC3B6' : '#6B6860';
 
   return (
