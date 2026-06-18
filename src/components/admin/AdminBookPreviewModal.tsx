@@ -56,7 +56,7 @@ export default function AdminBookPreviewModal({ bookId, bookTitle, currentVisibi
         const book = ePub(arrayBuffer);
         bookRef.current = book;
 
-    const rendition = book.renderTo(viewerRef.current, {
+    const rendition = book.renderTo(viewerRef.current!, {
       width: '100%',
       height: '100%',
       spread: 'none',
