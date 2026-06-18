@@ -3,13 +3,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Search, BookOpen, Loader2, AlertCircle, Globe, Lock, UserCheck,
-  Edit3, ChevronDown, Filter, Check, Trash2
+  Edit3, ChevronDown, Filter, Check, Trash2, Upload, Eye, Shield, User
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import BookAccessModal from './BookAccessModal';
 import BulkBookAccessModal from './BulkBookAccessModal';
 import BulkLanguageModal from './BulkLanguageModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import AdminBulkUploadModal from './AdminBulkUploadModal';
+import AdminBookPreviewModal from './AdminBookPreviewModal';
 import type { BookVisibility } from '@/types';
 
 interface AdminBook {
@@ -21,6 +23,7 @@ interface AdminBook {
   language: string | null;
   uploaded_by: string;
   visibility: BookVisibility;
+  uploaded_via: 'library' | 'admin';
   is_default: boolean;
   created_at: string;
   uploader_name: string;
@@ -57,6 +60,8 @@ export default function AdminBookManager() {
   const [bulkLanguageModalOpen, setBulkLanguageModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [previewModal, setPreviewModal] = useState<{ bookId: string; title: string; visibility: BookVisibility } | null>(null);
 
   useEffect(() => {
     loadBooks();
@@ -220,6 +225,14 @@ export default function AdminBookManager() {
           >
             All Books ({filtered.length})
           </h2>
+          <button
+            onClick={() => setShowBulkUpload(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90"
+            style={{ backgroundColor: '#8B6914' }}
+          >
+            <Upload className="w-3.5 h-3.5" />
+            Upload Books
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -341,6 +354,17 @@ export default function AdminBookManager() {
                         <span className="ml-0.5">· {book.assigned_count}</span>
                       )}
                     </span>
+                    {/* Upload source badge */}
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide flex-none"
+                      style={{
+                        backgroundColor: book.uploaded_via === 'admin' ? '#8B691412' : '#6B728012',
+                        color: book.uploaded_via === 'admin' ? '#8B6914' : '#6B7280',
+                      }}
+                    >
+                      {book.uploaded_via === 'admin' ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                      {book.uploaded_via === 'admin' ? 'Admin' : 'User'}
+                    </span>
                   </div>
                   <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
                     {book.author}
@@ -355,18 +379,33 @@ export default function AdminBookManager() {
                 </div>
 
                 {/* Actions */}
-                <button
-                  onClick={() => setAccessModal({
-                    bookId: book.id,
-                    title: book.title,
-                    visibility: book.visibility,
-                  })}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all hover:shadow-sm hover:border-[#8B6914] hover:text-[#8B6914]"
-                  style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Manage Access</span>
-                </button>
+                <div className="flex items-center gap-2 flex-none">
+                  <button
+                    onClick={() => setPreviewModal({
+                      bookId: book.id,
+                      title: book.title,
+                      visibility: book.visibility,
+                    })}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all hover:shadow-sm hover:border-[#8B6914] hover:text-[#8B6914]"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                    title="Preview book"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Preview</span>
+                  </button>
+                  <button
+                    onClick={() => setAccessModal({
+                      bookId: book.id,
+                      title: book.title,
+                      visibility: book.visibility,
+                    })}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all hover:shadow-sm hover:border-[#8B6914] hover:text-[#8B6914]"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Manage Access</span>
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -420,6 +459,33 @@ export default function AdminBookManager() {
           onClose={() => setDeleteModalOpen(false)}
           onConfirm={executeBulkDelete}
           isDeleting={deleting}
+        />
+      )}
+
+      {/* Admin bulk upload modal */}
+      {showBulkUpload && (
+        <AdminBulkUploadModal
+          onClose={() => setShowBulkUpload(false)}
+          onUploaded={() => {
+            setShowBulkUpload(false);
+            loadBooks();
+          }}
+        />
+      )}
+
+      {/* Admin book preview modal */}
+      {previewModal && (
+        <AdminBookPreviewModal
+          bookId={previewModal.bookId}
+          bookTitle={previewModal.title}
+          currentVisibility={previewModal.visibility}
+          onClose={() => setPreviewModal(null)}
+          onVisibilityChanged={(newVis) => {
+            setBooks(prev => prev.map(b =>
+              b.id === previewModal.bookId ? { ...b, visibility: newVis as BookVisibility } : b
+            ));
+            setPreviewModal(prev => prev ? { ...prev, visibility: newVis as BookVisibility } : null);
+          }}
         />
       )}
     </div>

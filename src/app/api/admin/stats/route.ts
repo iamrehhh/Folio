@@ -35,7 +35,7 @@ export async function GET() {
     const profiles = await fetchAll(admin, 'profiles', 'id, email, full_name, avatar_url, created_at, gamify_score, force_feedback_request', q => q.order('created_at', { ascending: false }));
 
     // 2. All books with uploader info
-    const books = await fetchAll(admin, 'books', 'id, title, author, genre, uploaded_by, is_default, visibility, created_at, epub_path, cover_path', q => q.order('created_at', { ascending: false }));
+    const books = await fetchAll(admin, 'books', 'id, title, author, genre, uploaded_by, is_default, visibility, uploaded_via, created_at, epub_path, cover_path', q => q.order('created_at', { ascending: false }));
 
     // 3. Reading progress stats
     const progressRows = await fetchAll(admin, 'reading_progress', 'user_id, progress_percent, last_read_at');
@@ -57,9 +57,9 @@ export async function GET() {
 
     // ── Aggregate per-user stats ──
     const userStats = (profiles ?? []).map(profile => {
-      // Books uploaded by this user (excluding defaults)
+      // Books uploaded by this user via personal library (excluding admin uploads)
       const userBooks = (books ?? []).filter(
-        b => b.uploaded_by === profile.id && b.visibility === 'private'
+        b => b.uploaded_by === profile.id && (b.uploaded_via === 'library' || !b.uploaded_via)
       );
 
       // Reading progress

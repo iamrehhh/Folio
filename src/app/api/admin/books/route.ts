@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
     const { data: books, error: booksError } = await admin
       .from('books')
-      .select('id, title, author, cover_url, genre, language, uploaded_by, is_default, visibility, created_at')
+      .select('id, title, author, cover_url, genre, language, uploaded_by, is_default, visibility, uploaded_via, created_at')
       .order('created_at', { ascending: false });
 
     if (booksError) throw booksError;

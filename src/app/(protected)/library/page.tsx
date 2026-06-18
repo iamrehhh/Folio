@@ -34,10 +34,10 @@ export default async function LibraryPage() {
 
     if (assignedIds.length > 0) {
       booksQuery = booksQuery.or(
-        `uploaded_by.eq.${user.id},visibility.eq.public,and(visibility.eq.assigned,id.in.(${assignedIds.join(',')}))`
+        `and(uploaded_by.eq.${user.id},uploaded_via.eq.library),visibility.eq.public,and(visibility.eq.assigned,id.in.(${assignedIds.join(',')}))`
       );
     } else {
-      booksQuery = booksQuery.or(`uploaded_by.eq.${user.id},visibility.eq.public`);
+      booksQuery = booksQuery.or(`and(uploaded_by.eq.${user.id},uploaded_via.eq.library),visibility.eq.public`);
     }
 
     const { data: newBooks, error: booksError } = await booksQuery;

@@ -35,6 +35,7 @@ export interface Book {
   is_default: boolean; // Retained for backward compat
   visibility: BookVisibility;
   language: string | null;
+  uploaded_via: 'library' | 'admin';
   created_at: string;
 }
 

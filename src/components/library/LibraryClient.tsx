@@ -148,7 +148,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
   }, [authorStats, authorSearch]);
 
   // Count books in each mode for badges
-  const myLibraryCount = useMemo(() => books.filter(b => myLibraryIds.has(b.id) || b.uploaded_by === userId).length, [books, myLibraryIds, userId]);
+  const myLibraryCount = useMemo(() => books.filter(b => myLibraryIds.has(b.id) || (b.uploaded_by === userId && b.uploaded_via !== 'admin')).length, [books, myLibraryIds, userId]);
   const publicCount = useMemo(() => books.length, [books]);
 
   // Add a book to user's personal library
@@ -177,7 +177,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
   const filteredAndSorted = useMemo(() => {
     const filtered = books.filter((book) => {
       // Library mode filter
-      if (libraryMode === 'my_library' && !(myLibraryIds.has(book.id) || book.uploaded_by === userId)) return false;
+      if (libraryMode === 'my_library' && !(myLibraryIds.has(book.id) || (book.uploaded_by === userId && book.uploaded_via !== 'admin'))) return false;
 
       const pct = progressMap.get(book.id)?.progress_percent ?? 0;
       const isScheduled = scheduleMap.has(book.id);
@@ -671,6 +671,11 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                 const isUnread = pct === 0;
                 const isCompleted = pct >= 100;
                 const menuOpen = openMenuId === book.id;
+                
+                // A book is in the user's personal library if they explicitly added it, 
+                // OR if they uploaded it via the personal library (not via admin)
+                const isInMyLibrary = myLibraryIds.has(book.id) || (book.uploaded_by === userId && book.uploaded_via !== 'admin');
+                const isPersonallyUploaded = book.uploaded_by === userId && book.uploaded_via !== 'admin';
 
                 return (
                   <motion.div 
@@ -738,7 +743,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                                   </button>
                                 </>
                               )}
-                              {myLibraryIds.has(book.id) && book.uploaded_by !== userId && (
+                              {isInMyLibrary && !isPersonallyUploaded && (
                                 <button
                                   onClick={() => { handleRemoveFromLibrary(book.id); setOpenMenuId(null); }}
                                   className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm hover:bg-red-50 transition-colors"
@@ -746,7 +751,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                                   <BookMarked className="w-3.5 h-3.5 opacity-60" /> Remove from library
                                 </button>
                               )}
-                              {!myLibraryIds.has(book.id) && book.uploaded_by !== userId && (
+                              {!isInMyLibrary && (
                                 <button
                                   onClick={() => { handleAddToLibrary(book.id); setOpenMenuId(null); }}
                                   className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm hover:bg-[var(--border)] transition-colors"
@@ -782,7 +787,7 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
                         </div>
                       )}
                       <div className="mt-auto pt-2">
-                        {!myLibraryIds.has(book.id) && book.uploaded_by !== userId ? (
+                        {!isInMyLibrary ? (
                           <button
                             onClick={() => handleAddToLibrary(book.id)}
                             disabled={addingToLibrary === book.id}
