@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn, truncate } from '@/lib/utils';
 import type { Book, BookSchedule } from '@/types';
 import BookUploadModal from './BookUploadModal';
-import BulkUploadModal from './BulkUploadModal';
 import BookEditModal from './BookEditModal';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -40,7 +39,6 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [selectedLanguage, setSelectedLanguage] = useState('All');
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | null>(null);
   const [schedulingBook, setSchedulingBook] = useState<Book | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -618,14 +616,6 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
             {/* Add Book — My Library only */}
             {libraryMode === 'my_library' && (
               <>
-                {isAdmin && (
-                  <button onClick={() => setShowBulkUploadModal(true)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors hover:bg-[var(--border)] whitespace-nowrap"
-                    style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
-                    <Upload className="w-4 h-4" />
-                    <span className="hidden sm:inline">Bulk Upload</span>
-                  </button>
-                )}
                 <button onClick={() => setShowUploadModal(true)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 whitespace-nowrap"
                   style={{ backgroundColor: '#8B6914' }}>
@@ -867,7 +857,6 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
         )}
       </AnimatePresence>
       {showUploadModal && <BookUploadModal onClose={() => { setShowUploadModal(false); router.refresh(); }} />}
-      {showBulkUploadModal && <BulkUploadModal onClose={() => { setShowBulkUploadModal(false); router.refresh(); }} />}
       
       {schedulingBook && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
