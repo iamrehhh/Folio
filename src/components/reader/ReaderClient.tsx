@@ -56,6 +56,7 @@ export default function ReaderClient({
   const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isNavigatingRef = useRef(false);
   const lastScrollTopRef = useRef(0);
+  const autoHiddenByScrollRef = useRef(false);
 
   // ── Bookmark state ──
   const [bookmarks, setBookmarks] = useState<Bookmark[]>(initialBookmarks);
@@ -110,6 +111,12 @@ export default function ReaderClient({
     }
     return () => unsub?.();
   }, []);
+
+  useEffect(() => {
+    if (!isTopBarHidden) {
+      autoHiddenByScrollRef.current = false;
+    }
+  }, [isTopBarHidden]);
 
   const themeBg = { light: '#FAF8F4', sepia: '#F5EDD6', dark: '#1A1A1A', 'dark-sepia': '#433B30' }[theme] ?? '#FAF8F4';
   const themeText = { light: '#1C1C1E', sepia: '#1C1C1E', dark: '#D4C5A0', 'dark-sepia': '#FAECDC' }[theme] ?? '#1C1C1E';
@@ -452,9 +459,13 @@ export default function ReaderClient({
           if (Math.abs(delta) > 15) {
             const store = useReaderStore.getState();
             if (delta > 0 && !store.isTopBarHidden && currentScrollTop > 100) {
+              autoHiddenByScrollRef.current = true;
               useReaderStore.setState({ isTopBarHidden: true });
             } else if (delta < 0 && store.isTopBarHidden) {
-              useReaderStore.setState({ isTopBarHidden: false });
+              if (autoHiddenByScrollRef.current) {
+                useReaderStore.setState({ isTopBarHidden: false });
+                autoHiddenByScrollRef.current = false;
+              }
             }
             lastScrollTopRef.current = currentScrollTop;
           }
@@ -1932,7 +1943,7 @@ function applyTheme(rendition: any, theme: string, fontFamily: string, fontSize:
       'line-height': String(lineHeight),
       'width': '100%',
       'margin': '0 auto !important',
-      'padding': '64px 0 64px 0 !important',
+      'padding': '64px 48px 64px 48px !important',
       'box-sizing': 'border-box',
       'overflow-x': 'hidden',
       'word-wrap': 'break-word',

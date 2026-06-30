@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download, Globe, PanelLeftClose, PanelLeftOpen, Users, ChevronDown, Plus, BookMarked, Library } from 'lucide-react';
+import { Search, BookOpen, Upload, MoreVertical, Pencil, Trash2, SlidersHorizontal, X, Calendar, Star, ArrowUpDown, Check, Download, Globe, PanelLeftClose, PanelLeftOpen, Users, ChevronDown, Plus, BookMarked, Library, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, truncate } from '@/lib/utils';
 import type { Book, BookSchedule } from '@/types';
@@ -630,6 +630,25 @@ export default function LibraryClient({ books: initialBooks, progressMap, schedu
 
         {/* Book grid */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
+          {libraryMode === 'public' && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 rounded-xl border p-4 flex gap-3.5 shadow-sm"
+              style={{ backgroundColor: '#8B691408', borderColor: '#8B691420' }}
+            >
+              <div className="flex-shrink-0 mt-0.5">
+                <Info className="w-5 h-5" style={{ color: '#8B6914' }} />
+              </div>
+              <div className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                <p className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Experimental Public Library</p>
+                <p>
+                  The books available here have been uploaded solely by the administration for experimental purposes, allowing users to try out the reading features before uploading their own books. <strong style={{ color: 'var(--text-primary)' }}>We strictly do not endorse piracy or the distribution of copyrighted material.</strong>
+                </p>
+              </div>
+            </motion.div>
+          )}
+
           {filteredAndSorted.length === 0 ? (
             <div className="text-center py-20">
               <BookOpen className="w-10 h-10 mx-auto mb-3 opacity-20" style={{ color: 'var(--text-secondary)' }} />
