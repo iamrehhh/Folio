@@ -1,6 +1,6 @@
 'use client';
 
-import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar, Keyboard, KeyRound, BookMarked, Library, Users, Bookmark } from 'lucide-react';
+import { X, Book, FileText, Cpu, UserCircle, Mail, Trophy, Bug, Calendar, Keyboard, KeyRound, BookMarked, Library, Users, Bookmark, Linkedin } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -259,9 +259,14 @@ export default function GuideModal({ onClose }: Props) {
               <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
                 Creator Information
               </h3>
-              <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-                Folio is passionately designed and built by me, Abdul Rehan.
-              </p>
+              <div className="text-sm mb-4 leading-relaxed space-y-2" style={{ color: 'var(--text-secondary)' }}>
+                <p>
+                  Hi, I'm Abdul Rehan, a college student with no traditional coding background. Fascinated by the concept of "vibe coding", I learned how to build full-stack web applications entirely by interacting with AI tools like Antigravity and Claude, alongside watching YouTube tutorials.
+                </p>
+                <p>
+                  I've experimented with building various projects through prompt engineering, and Folio stands as the proudest and most advanced platform I've created so far!
+                </p>
+              </div>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex items-center gap-2 text-sm">
                   <UserCircle className="w-4 h-4" style={{ color: '#8B6914' }} />
@@ -269,20 +274,32 @@ export default function GuideModal({ onClose }: Props) {
                 </div>
                 <div className="hidden sm:block text-gray-300">•</div>
                 <a
-                  href="mailto:mintbyte90@gmail.com"
+                  href="mailto:rehanabduloffical@gmail.com"
                   className="flex items-center gap-2 text-sm hover:underline"
                   style={{ color: '#8B6914' }}
                 >
                   <Mail className="w-4 h-4" />
-                  mintbyte90@gmail.com
+                  rehanabduloffical@gmail.com
+                </a>
+                <div className="hidden sm:block text-gray-300">•</div>
+                <a
+                  href="https://www.linkedin.com/in/abdul-rehan-239267419/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm hover:underline"
+                  style={{ color: '#8B6914' }}
+                >
+                  <Linkedin className="w-4 h-4" />
+                  LinkedIn
                 </a>
               </div>
             </div>
           </section>
           {/* Disclaimer */}
           <section>
-            <p className="text-xs italic text-center mx-auto max-w-lg mt-4" style={{ color: 'var(--text-secondary)' }}>
-              The content present in this site has been submitted by users (made it public for user testing purposes only) and the site is not responsible for the content uploaded.
+            <p className="text-xs text-center mx-auto max-w-lg mt-4 px-4 py-3 rounded-lg" style={{ color: '#ef4444', backgroundColor: '#ef444410', border: '1px solid #ef444430' }}>
+              The books in the public library do not have any copyright issues, and have been solely uploaded by the admin for experimental purposes to try out the reading features before users upload their own books.<br/><br/>
+              <strong>We strictly do not endorse piracy or copyrighted material.</strong>
             </p>
           </section>
         </div>

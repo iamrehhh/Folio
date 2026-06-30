@@ -362,7 +362,7 @@ export default async function LandingPage() {
             <Link href="/terms" className="hover:text-[#8B6914] transition-colors">
               Terms of Service
             </Link>
-            <a href="mailto:mintbyte90@gmail.com" className="hover:text-[#8B6914] transition-colors">
+            <a href="mailto:rehanabduloffical@gmail.com" className="hover:text-[#8B6914] transition-colors">
               Contact
             </a>
             <Link href="/login" className="hover:text-[#8B6914] transition-colors">

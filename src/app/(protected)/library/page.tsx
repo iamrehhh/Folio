@@ -12,27 +12,27 @@ export default async function LibraryPage() {
 
   const isAdmin = ADMIN_EMAILS.includes(user.email as string);
 
-  // Check if this user has full public library access
-  const { data: profileData } = await admin
-    .from('profiles')
-    .select('can_view_all_public_books')
-    .eq('id', user.id)
-    .single();
+  // Run independent queries in parallel to drastically reduce waterfall delay
+  const [
+    profileRes,
+    accessRes,
+    progressRes,
+    schedulesRes,
+    userLibraryRes
+  ] = await Promise.all([
+    admin.from('profiles').select('can_view_all_public_books').eq('id', user.id).single(),
+    admin.from('book_access').select('book_id').eq('user_id', user.id),
+    supabase.from('reading_progress').select('book_id, progress_percent, last_read_at, chapter_title').eq('user_id', user.id),
+    supabase.from('book_schedules').select('*').eq('user_id', user.id),
+    supabase.from('user_library').select('book_id, added_at').eq('user_id', user.id)
+  ]);
 
-  const canViewAllPublic = isAdmin || (profileData?.can_view_all_public_books ?? false);
+  const canViewAllPublic = isAdmin || (profileRes.data?.can_view_all_public_books ?? false);
 
-  // Fetch books the user can access using admin client (bypasses RLS).
-  // We handle access filtering ourselves below.
   let books: any[] | null = null;
 
-  // Get book IDs assigned to this user
-  const { data: assignedBookIds, error: accessError } = await admin
-    .from('book_access')
-    .select('book_id')
-    .eq('user_id', user.id);
-
-  if (!accessError) {
-    const assignedIds = (assignedBookIds ?? []).map(r => r.book_id);
+  if (!accessRes.error) {
+    const assignedIds = (accessRes.data ?? []).map(r => r.book_id);
 
     // Use admin client — no RLS interference
     let booksQuery = admin
@@ -42,9 +42,6 @@ export default async function LibraryPage() {
       .limit(500);
 
     // Build the OR filter based on access level:
-    // - User's own books (uploaded via library) are always included
-    // - Public books: ALL if canViewAllPublic, otherwise only is_showcase=true
-    // - Assigned books: included if user has book_access entries
     const publicFilter = canViewAllPublic
       ? 'visibility.eq.public'
       : 'and(visibility.eq.public,is_showcase.eq.true)';
@@ -76,35 +73,12 @@ export default async function LibraryPage() {
     books = legacyBooks;
   }
 
-  const { data: progress } = await supabase
-    .from('reading_progress')
-    .select('book_id, progress_percent, last_read_at, chapter_title')
-    .eq('user_id', user.id);
+  const progressMap = new Map((progressRes.data ?? []).map(p => [p.book_id, p]));
+  const scheduleMap = new Map((schedulesRes.data ?? []).map(s => [s.book_id, s]));
 
-  const progressMap = new Map(
-    (progress ?? []).map(p => [p.book_id, p])
-  );
-
-  const { data: schedules } = await supabase
-    .from('book_schedules')
-    .select('*')
-    .eq('user_id', user.id);
-
-  const scheduleMap = new Map(
-    (schedules ?? []).map(s => [s.book_id, s])
-  );
-
-
-  // Fetch the user's personal library entries
-  const { data: userLibraryData } = await supabase
-    .from('user_library')
-    .select('book_id, added_at')
-    .eq('user_id', user.id);
-  
-  const userLibraryBookIds = (userLibraryData ?? []).map(r => r.book_id);
-
+  const userLibraryBookIds = (userLibraryRes.data ?? []).map(r => r.book_id);
   const userLibraryAddedAt: Record<string, string> = {};
-  (userLibraryData ?? []).forEach(r => {
+  (userLibraryRes.data ?? []).forEach(r => {
     userLibraryAddedAt[r.book_id] = r.added_at;
   });
 
