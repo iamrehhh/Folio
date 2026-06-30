@@ -55,6 +55,55 @@ export default function GuideModal({ onClose }: Props) {
         {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 custom-scrollbar">
 
+          {/* Creator Information */}
+          <section>
+            <div
+              className="p-5 rounded-2xl border"
+              style={{
+                backgroundColor: 'var(--bg-sidebar, #F2EFE9)',
+                borderColor: 'var(--border)',
+              }}
+            >
+              <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
+                Creator Information
+              </h3>
+              <div className="text-sm mb-4 leading-relaxed space-y-2" style={{ color: 'var(--text-secondary)' }}>
+                <p>
+                  Hi, I'm Abdul Rehan, a college student with no traditional coding background. Fascinated by the concept of "vibe coding", I learned how to build full-stack web applications entirely by interacting with AI tools like Antigravity and Claude, alongside watching YouTube tutorials.
+                </p>
+                <p>
+                  I've experimented with building various projects through prompt engineering, and Folio stands as the proudest and most advanced platform I've created so far!
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <UserCircle className="w-4 h-4" style={{ color: '#8B6914' }} />
+                  <span style={{ color: 'var(--text-primary)' }} className="font-medium">Abdul Rehan</span>
+                </div>
+                <div className="hidden sm:block text-gray-300">•</div>
+                <a
+                  href="mailto:rehanabduloffical@gmail.com"
+                  className="flex items-center gap-2 text-sm hover:underline"
+                  style={{ color: '#8B6914' }}
+                >
+                  <Mail className="w-4 h-4" />
+                  rehanabduloffical@gmail.com
+                </a>
+                <div className="hidden sm:block text-gray-300">•</div>
+                <a
+                  href="https://www.linkedin.com/in/abdul-rehan-239267419/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm hover:underline"
+                  style={{ color: '#8B6914' }}
+                >
+                  <Linkedin className="w-4 h-4" />
+                  LinkedIn
+                </a>
+              </div>
+            </div>
+          </section>
+
           {/* How to use */}
           <section>
             <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
@@ -247,54 +296,6 @@ export default function GuideModal({ onClose }: Props) {
             </div>
           </section>
 
-          {/* Creator Information */}
-          <section>
-            <div
-              className="p-5 rounded-2xl border"
-              style={{
-                backgroundColor: 'var(--bg-sidebar, #F2EFE9)',
-                borderColor: 'var(--border)',
-              }}
-            >
-              <h3 className="font-semibold mb-1" style={{ color: 'var(--text-primary)', fontFamily: 'Lora, Georgia, serif' }}>
-                Creator Information
-              </h3>
-              <div className="text-sm mb-4 leading-relaxed space-y-2" style={{ color: 'var(--text-secondary)' }}>
-                <p>
-                  Hi, I'm Abdul Rehan, a college student with no traditional coding background. Fascinated by the concept of "vibe coding", I learned how to build full-stack web applications entirely by interacting with AI tools like Antigravity and Claude, alongside watching YouTube tutorials.
-                </p>
-                <p>
-                  I've experimented with building various projects through prompt engineering, and Folio stands as the proudest and most advanced platform I've created so far!
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <UserCircle className="w-4 h-4" style={{ color: '#8B6914' }} />
-                  <span style={{ color: 'var(--text-primary)' }} className="font-medium">Abdul Rehan</span>
-                </div>
-                <div className="hidden sm:block text-gray-300">•</div>
-                <a
-                  href="mailto:rehanabduloffical@gmail.com"
-                  className="flex items-center gap-2 text-sm hover:underline"
-                  style={{ color: '#8B6914' }}
-                >
-                  <Mail className="w-4 h-4" />
-                  rehanabduloffical@gmail.com
-                </a>
-                <div className="hidden sm:block text-gray-300">•</div>
-                <a
-                  href="https://www.linkedin.com/in/abdul-rehan-239267419/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm hover:underline"
-                  style={{ color: '#8B6914' }}
-                >
-                  <Linkedin className="w-4 h-4" />
-                  LinkedIn
-                </a>
-              </div>
-            </div>
-          </section>
           {/* Disclaimer */}
           <section>
             <p className="text-xs text-center mx-auto max-w-lg mt-4 px-4 py-3 rounded-lg" style={{ color: '#ef4444', backgroundColor: '#ef444410', border: '1px solid #ef444430' }}>
