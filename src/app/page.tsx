@@ -6,7 +6,7 @@
 //   (unauthenticated users at '/' will just see the landing page naturally)
 
 import Link from 'next/link';
-import { BookOpen, Highlighter, BookMarked, Sparkles, GraduationCap, BarChart2, Library, Archive } from 'lucide-react';
+import { BookOpen, Highlighter, BookMarked, Sparkles, GraduationCap, BarChart2, Library, Archive, Github, Linkedin, Mail } from 'lucide-react';
 import { createAdminClient } from '@/lib/supabase/server';
 import FeaturedFeedback from '@/components/home/FeaturedFeedback';
 import FadeInCSS from '@/components/ui/FadeInCSS';
@@ -165,6 +165,21 @@ export default async function LandingPage() {
               Browse Public Library →
             </Link>
           </div>
+
+          <div className="mt-8 flex justify-center">
+            <a 
+              href="#creator"
+              className="group flex items-center gap-3 px-4 py-2 rounded-full border bg-white/40 backdrop-blur-sm transition-all hover:bg-white hover:shadow-soft"
+              style={{ borderColor: 'var(--border)' }}
+            >
+               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#8B6914] to-[#A07D20] flex items-center justify-center text-white text-[10px] font-bold">
+                 AR
+               </div>
+               <span className="text-sm font-medium transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                 Crafted by <span style={{ color: 'var(--text-primary)' }}>Abdul Rehan</span>
+               </span>
+            </a>
+          </div>
         </FadeInCSS>
 
         {/* Mock reader window */}
@@ -309,6 +324,50 @@ export default async function LandingPage() {
           <FeaturedFeedback feedbacks={featuredFeedbacks as any} />
         </section>
       )}
+
+      {/* ── CREATOR INFO ── */}
+      <section id="creator" className="relative z-10 px-6 py-20 max-w-5xl mx-auto">
+        <FadeInCSS>
+          <div className="rounded-3xl border bg-white/40 backdrop-blur-md p-8 md:p-12 shadow-soft flex flex-col md:flex-row items-center gap-10" style={{ borderColor: 'var(--border)' }}>
+            
+            <div className="flex-none relative mx-auto md:mx-0">
+              <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-[#8B6914] to-[#A07D20] p-1 shadow-xl">
+                <div className="w-full h-full rounded-full bg-[#FAF8F4] flex items-center justify-center border-4 border-transparent overflow-hidden">
+                   <span className="text-4xl md:text-5xl font-bold" style={{ color: '#8B6914', fontFamily: 'var(--font-heading)' }}>AR</span>
+                </div>
+              </div>
+              <div className="absolute -bottom-2 -right-2 bg-white p-2 rounded-full shadow-lg border" style={{ borderColor: 'var(--border)' }}>
+                <Sparkles className="w-5 h-5 text-[#8B6914]" />
+              </div>
+            </div>
+
+            <div className="flex-1 text-center md:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold mb-4" style={{ backgroundColor: '#8B691410', borderColor: '#8B691430', color: '#8B6914' }}>
+                Meet the Creator
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
+                Abdul Rehan
+              </h2>
+              <p className="text-base md:text-lg leading-relaxed mb-6" style={{ color: 'var(--text-secondary)' }}>
+                "I built Folio because I believe reading should be an immersive, intelligent experience. My goal is to combine elegant design with powerful AI to help people read smarter, remember more, and truly enjoy the learning process."
+              </p>
+              
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                <a href="https://github.com/iamrehhh" target="_blank" rel="noreferrer" className="p-2.5 rounded-full border bg-white text-[#6B6860] hover:text-[#1C1C1E] hover:border-[#1C1C1E] hover:-translate-y-1 transition-all shadow-sm">
+                  <Github className="w-5 h-5" />
+                </a>
+                <a href="https://www.linkedin.com/in/abdul-rehan-239267419/" target="_blank" rel="noreferrer" className="p-2.5 rounded-full border bg-white text-[#6B6860] hover:text-[#0A66C2] hover:border-[#0A66C2] hover:-translate-y-1 transition-all shadow-sm">
+                  <Linkedin className="w-5 h-5" />
+                </a>
+                <a href="mailto:rehanabduloffical@gmail.com" className="p-2.5 rounded-full border bg-white text-[#6B6860] hover:text-[#EA4335] hover:border-[#EA4335] hover:-translate-y-1 transition-all shadow-sm">
+                  <Mail className="w-5 h-5" />
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </FadeInCSS>
+      </section>
 
       {/* ── CTA BANNER ── */}
       <section className="relative z-10 px-6 py-20 text-center">
