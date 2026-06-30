@@ -361,7 +361,7 @@ export default async function LandingPage() {
                 <a href="https://github.com/iamrehhh" target="_blank" rel="noreferrer" className="p-2.5 rounded-full border bg-white text-[#6B6860] hover:text-[#1C1C1E] hover:border-[#1C1C1E] hover:-translate-y-1 transition-all shadow-sm">
                   <Github className="w-5 h-5" />
                 </a>
-                <a href="https://www.linkedin.com/in/abdul-rehan-239267419/" target="_blank" rel="noreferrer" className="p-2.5 rounded-full border bg-white text-[#6B6860] hover:text-[#0A66C2] hover:border-[#0A66C2] hover:-translate-y-1 transition-all shadow-sm">
+                <a href="https://www.linkedin.com/in/abdulrehan90/" target="_blank" rel="noreferrer" className="p-2.5 rounded-full border bg-white text-[#6B6860] hover:text-[#0A66C2] hover:border-[#0A66C2] hover:-translate-y-1 transition-all shadow-sm">
                   <Linkedin className="w-5 h-5" />
                 </a>
                 <a href="mailto:rehanabduloffical@gmail.com" className="p-2.5 rounded-full border bg-white text-[#6B6860] hover:text-[#EA4335] hover:border-[#EA4335] hover:-translate-y-1 transition-all shadow-sm">

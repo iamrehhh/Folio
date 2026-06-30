@@ -91,7 +91,7 @@ export default function GuideModal({ onClose }: Props) {
                 </a>
                 <div className="hidden sm:block text-gray-300">•</div>
                 <a
-                  href="https://www.linkedin.com/in/abdul-rehan-239267419/"
+                  href="https://www.linkedin.com/in/abdulrehan90/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-sm hover:underline"
