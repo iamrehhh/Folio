@@ -348,9 +348,14 @@ export default async function LandingPage() {
               <h2 className="text-2xl md:text-3xl font-bold mb-4" style={{ fontFamily: 'var(--font-heading)', color: 'var(--text-primary)' }}>
                 Abdul Rehan
               </h2>
-              <p className="text-base md:text-lg leading-relaxed mb-6" style={{ color: 'var(--text-secondary)' }}>
-                "I built Folio because I believe reading should be an immersive, intelligent experience. My goal is to combine elegant design with powerful AI to help people read smarter, remember more, and truly enjoy the learning process."
-              </p>
+              <div className="text-base md:text-lg leading-relaxed mb-6 space-y-4" style={{ color: 'var(--text-secondary)' }}>
+                <p>
+                  Hi, I'm Abdul Rehan, a college student with no traditional coding background. Fascinated by the concept of &quot;vibe coding&quot;, I learned how to build full-stack web applications entirely by interacting with AI tools like Antigravity and Claude, alongside watching YouTube tutorials.
+                </p>
+                <p>
+                  I've experimented with building various projects through prompt engineering, and Folio stands as the proudest and most advanced platform I've created so far!
+                </p>
+              </div>
               
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
                 <a href="https://github.com/iamrehhh" target="_blank" rel="noreferrer" className="p-2.5 rounded-full border bg-white text-[#6B6860] hover:text-[#1C1C1E] hover:border-[#1C1C1E] hover:-translate-y-1 transition-all shadow-sm">
