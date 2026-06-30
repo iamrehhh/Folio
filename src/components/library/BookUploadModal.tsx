@@ -485,6 +485,22 @@ export default function BookUploadModal({ onClose }: Props) {
                 )}
               </div>
 
+              {/* Anti-piracy disclaimer */}
+              <div
+                className="rounded-lg px-4 py-3 text-xs leading-relaxed"
+                style={{ backgroundColor: '#FEE2E2', border: '1px solid #FECACA', color: '#991B1B' }}
+              >
+                <p className="font-semibold mb-1" style={{ color: '#7F1D1D' }}>⚠️ Copyright Notice</p>
+                <p>
+                  The administrators of Folio <strong>do not promote, support, or encourage piracy</strong> of any books or copyrighted material. 
+                  We strongly recommend using websites like{' '}
+                  <a href="https://www.gutenberg.org" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-[#7F1D1D]">Project Gutenberg</a>{' '}and{' '}
+                  <a href="https://standardebooks.org" target="_blank" rel="noopener noreferrer" className="underline font-medium hover:text-[#7F1D1D]">Standard Ebooks</a>{' '}
+                  to access books that are 100% copyright-free and in the public domain. 
+                  Any piracy or copyright infringement carried out by a user is entirely their own responsibility — the administrators are not liable for and do not endorse such actions.
+                </p>
+              </div>
+
               {/* EPUB */}
               <div>
                 <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-primary)' }}>

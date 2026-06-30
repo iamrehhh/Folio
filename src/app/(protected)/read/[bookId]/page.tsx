@@ -28,8 +28,21 @@ export default async function ReadPage({ params, searchParams }: ReadPageProps) 
 
   // Verify access manually
   let hasAccess = false;
-  if (ADMIN_EMAILS.includes(user.email as string) || book.uploaded_by === user.id || book.visibility === 'public' || book.is_default) {
+  if (ADMIN_EMAILS.includes(user.email as string) || book.uploaded_by === user.id) {
     hasAccess = true;
+  } else if (book.visibility === 'public' || book.is_default) {
+    // Public books: check if showcase or user has full public access
+    if (book.is_showcase) {
+      hasAccess = true;
+    } else {
+      // Check user's can_view_all_public_books flag
+      const { data: profileData } = await admin
+        .from('profiles')
+        .select('can_view_all_public_books')
+        .eq('id', user.id)
+        .single();
+      if (profileData?.can_view_all_public_books) hasAccess = true;
+    }
   } else if (book.visibility === 'assigned') {
     const { data: access } = await admin
       .from('book_access')

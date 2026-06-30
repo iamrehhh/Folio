@@ -12,6 +12,15 @@ export default async function LibraryPage() {
 
   const isAdmin = ADMIN_EMAILS.includes(user.email as string);
 
+  // Check if this user has full public library access
+  const { data: profileData } = await admin
+    .from('profiles')
+    .select('can_view_all_public_books')
+    .eq('id', user.id)
+    .single();
+
+  const canViewAllPublic = isAdmin || (profileData?.can_view_all_public_books ?? false);
+
   // Fetch books the user can access using admin client (bypasses RLS).
   // We handle access filtering ourselves below.
   let books: any[] | null = null;
@@ -32,12 +41,20 @@ export default async function LibraryPage() {
       .order('created_at', { ascending: false })
       .limit(500);
 
+    // Build the OR filter based on access level:
+    // - User's own books (uploaded via library) are always included
+    // - Public books: ALL if canViewAllPublic, otherwise only is_showcase=true
+    // - Assigned books: included if user has book_access entries
+    const publicFilter = canViewAllPublic
+      ? 'visibility.eq.public'
+      : 'and(visibility.eq.public,is_showcase.eq.true)';
+
     if (assignedIds.length > 0) {
       booksQuery = booksQuery.or(
-        `and(uploaded_by.eq.${user.id},uploaded_via.eq.library),visibility.eq.public,and(visibility.eq.assigned,id.in.(${assignedIds.join(',')}))`
+        `and(uploaded_by.eq.${user.id},uploaded_via.eq.library),${publicFilter},and(visibility.eq.assigned,id.in.(${assignedIds.join(',')}))`
       );
     } else {
-      booksQuery = booksQuery.or(`and(uploaded_by.eq.${user.id},uploaded_via.eq.library),visibility.eq.public`);
+      booksQuery = booksQuery.or(`and(uploaded_by.eq.${user.id},uploaded_via.eq.library),${publicFilter}`);
     }
 
     const { data: newBooks, error: booksError } = await booksQuery;

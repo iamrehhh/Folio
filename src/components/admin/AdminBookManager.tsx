@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   Search, BookOpen, Loader2, AlertCircle, Globe, Lock, UserCheck,
-  Edit3, ChevronDown, Filter, Check, Trash2, Upload, Eye, Shield, User
+  Edit3, ChevronDown, Filter, Check, Trash2, Upload, Eye, Shield, User, Star
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import BookAccessModal from './BookAccessModal';
@@ -25,6 +25,7 @@ interface AdminBook {
   visibility: BookVisibility;
   uploaded_via: 'library' | 'admin';
   is_default: boolean;
+  is_showcase: boolean;
   created_at: string;
   uploader_name: string;
   assigned_count: number;
@@ -365,6 +366,16 @@ export default function AdminBookManager() {
                       {book.uploaded_via === 'admin' ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
                       {book.uploaded_via === 'admin' ? 'Admin' : 'User'}
                     </span>
+                    {/* Showcase badge */}
+                    {book.is_showcase && (
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide flex-none"
+                        style={{ backgroundColor: '#F59E0B15', color: '#D97706' }}
+                      >
+                        <Star className="w-3 h-3" fill="#D97706" />
+                        Showcase
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
                     {book.author}
@@ -380,6 +391,36 @@ export default function AdminBookManager() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 flex-none">
+                  {/* Showcase toggle (only for public books) */}
+                  {book.visibility === 'public' && (
+                    <button
+                      onClick={async () => {
+                        const newValue = !book.is_showcase;
+                        try {
+                          const res = await fetch('/api/admin/books', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ bookId: book.id, is_showcase: newValue })
+                          });
+                          if (!res.ok) throw new Error('Failed to update');
+                          setBooks(prev => prev.map(b => b.id === book.id ? { ...b, is_showcase: newValue } : b));
+                          toast.success(newValue ? 'Marked as Showcase' : 'Removed from Showcase');
+                        } catch {
+                          toast.error('Failed to update showcase status');
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs font-medium transition-all hover:shadow-sm"
+                      style={{
+                        borderColor: book.is_showcase ? '#D97706' : 'var(--border)',
+                        color: book.is_showcase ? '#D97706' : 'var(--text-secondary)',
+                        backgroundColor: book.is_showcase ? '#F59E0B10' : 'transparent',
+                      }}
+                      title={book.is_showcase ? 'Remove from Showcase' : 'Add to Showcase'}
+                    >
+                      <Star className="w-3.5 h-3.5" fill={book.is_showcase ? '#D97706' : 'none'} />
+                      <span className="hidden sm:inline">{book.is_showcase ? 'Showcase' : 'Showcase'}</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => setPreviewModal({
                       bookId: book.id,

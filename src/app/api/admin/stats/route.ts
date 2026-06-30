@@ -32,7 +32,7 @@ export async function GET() {
     const admin = createAdminClient();
 
     // 1. All users (profiles)
-    const profiles = await fetchAll(admin, 'profiles', 'id, email, full_name, avatar_url, created_at, gamify_score, force_feedback_request', q => q.order('created_at', { ascending: false }));
+    const profiles = await fetchAll(admin, 'profiles', 'id, email, full_name, avatar_url, created_at, gamify_score, force_feedback_request, can_view_all_public_books', q => q.order('created_at', { ascending: false }));
 
     // 2. All books with uploader info
     const books = await fetchAll(admin, 'books', 'id, title, author, genre, uploaded_by, is_default, visibility, uploaded_via, created_at, epub_path, cover_path', q => q.order('created_at', { ascending: false }));
@@ -116,6 +116,7 @@ export async function GET() {
         chapter_quizzes_taken: userChapterQuizzes.length,
         avg_chapter_quiz_score: avgChapterScore,
         force_feedback_request: profile.force_feedback_request || false,
+        can_view_all_public_books: profile.can_view_all_public_books || false,
       };
     });
 

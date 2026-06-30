@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 
     const { data: books, error: booksError } = await admin
       .from('books')
-      .select('id, title, author, cover_url, genre, language, uploaded_by, is_default, visibility, uploaded_via, created_at')
+      .select('id, title, author, cover_url, genre, language, uploaded_by, is_default, visibility, uploaded_via, is_showcase, created_at')
       .order('created_at', { ascending: false });
 
     if (booksError) throw booksError;
@@ -69,7 +69,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { bookId, bookIds, visibility, language } = await req.json() as { bookId?: string; bookIds?: string[]; visibility?: BookVisibility; language?: string | null };
+    const { bookId, bookIds, visibility, language, is_showcase } = await req.json() as { bookId?: string; bookIds?: string[]; visibility?: BookVisibility; language?: string | null; is_showcase?: boolean };
     
     const targetIds = bookIds || (bookId ? [bookId] : []);
 
@@ -84,6 +84,9 @@ export async function PATCH(req: Request) {
     }
     if (language !== undefined) {
       updates.language = language;
+    }
+    if (is_showcase !== undefined) {
+      updates.is_showcase = is_showcase;
     }
 
     if (Object.keys(updates).length === 0) {

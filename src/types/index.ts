@@ -16,6 +16,7 @@ export interface Profile {
   line_height: number; // 1.4–2.2
   gamify_score: number;
   force_feedback_request: boolean;
+  can_view_all_public_books: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +37,7 @@ export interface Book {
   visibility: BookVisibility;
   language: string | null;
   uploaded_via: 'library' | 'admin';
+  is_showcase: boolean;
   created_at: string;
 }
 

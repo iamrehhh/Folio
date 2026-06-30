@@ -10,7 +10,7 @@ import AdminBookManager from './AdminBookManager';
 import AdminNotificationsManager from './AdminNotificationsManager';
 import AdminFeedbackViewer from './AdminFeedbackViewer';
 import AdminReportsViewer from './AdminReportsViewer';
-import { Bell, MessageSquare, ShieldAlert } from 'lucide-react';
+import { Bell, MessageSquare, ShieldAlert, Globe } from 'lucide-react';
 
 interface UserStat {
   id: string;
@@ -32,6 +32,7 @@ interface UserStat {
   chapter_quizzes_taken: number;
   avg_chapter_quiz_score: number;
   force_feedback_request?: boolean;
+  can_view_all_public_books?: boolean;
 }
 
 interface Overview {
@@ -90,6 +91,7 @@ function UserRow({ user: initialUser }: { user: UserStat }) {
   const [expanded, setExpanded] = useState(false);
   const [user, setUser] = useState(initialUser);
   const [isRequesting, setIsRequesting] = useState(false);
+  const [isTogglingAccess, setIsTogglingAccess] = useState(false);
 
   const initials = user.full_name
     ? user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -206,7 +208,37 @@ function UserRow({ user: initialUser }: { user: UserStat }) {
             </p>
           )}
 
-          <div className="mt-4 pt-4 border-t flex justify-end" style={{ borderColor: 'var(--border)' }}>
+          <div className="mt-4 pt-4 border-t flex justify-end gap-2 flex-wrap" style={{ borderColor: 'var(--border)' }}>
+            <button
+              disabled={isTogglingAccess}
+              onClick={async (e) => {
+                e.stopPropagation();
+                setIsTogglingAccess(true);
+                const newValue = !user.can_view_all_public_books;
+                try {
+                  const res = await fetch('/api/admin/users/public-access', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user.id, can_view_all_public_books: newValue })
+                  });
+                  if (!res.ok) throw new Error('Failed to update access');
+                  setUser(prev => ({ ...prev, can_view_all_public_books: newValue }));
+                } catch (err) {
+                  console.error(err);
+                } finally {
+                  setIsTogglingAccess(false);
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+              style={{ 
+                backgroundColor: user.can_view_all_public_books ? '#22C55E' : 'var(--bg-card,#fff)', 
+                color: user.can_view_all_public_books ? '#fff' : 'var(--text-secondary)',
+                border: user.can_view_all_public_books ? 'none' : '1px solid var(--border)'
+              }}
+            >
+              {isTogglingAccess ? <Loader2 className="w-3 h-3 animate-spin" /> : <Globe className="w-3 h-3" />}
+              {user.can_view_all_public_books ? 'Full Library ✓' : 'Grant Full Library'}
+            </button>
             <button
               disabled={isRequesting || user.force_feedback_request}
               onClick={async (e) => {
