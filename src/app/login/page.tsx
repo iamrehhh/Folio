@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
@@ -13,6 +13,18 @@ export default function LoginPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const supabase = createClient();
   const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get('error');
+      if (err === 'auth_callback_failed') {
+        setError('Email confirmation failed. Please try opening the link in the same browser you used to sign up, or sign in to get a new link.');
+      } else if (err) {
+        setError(err);
+      }
+    }
+  }, []);
 
   // Sign In Form States
   const [signInEmail, setSignInEmail] = useState('');
@@ -100,7 +112,7 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      setSuccess('Registration successful! Please check your email to verify your account.');
+      setSuccess("We've sent a confirmation link to your email address. Please click it to verify your account.");
     }
     setIsLoading(false);
   }
@@ -161,33 +173,39 @@ export default function LoginPage() {
                   <span>{error}</span>
                 </div>
               )}
-              {success && (
-                <div className="mb-6 px-4 py-3 rounded-xl bg-green-50 text-sm text-green-700 flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>{success}</span>
-                </div>
-              )}
 
               {isRightPanelActive ? (
-                 <form onSubmit={handleSignUp} className="flex flex-col gap-4 animate-in slide-in-from-right fade-in">
-                    <input type="text" placeholder="Full Name" value={signUpName} onChange={(e) => setSignUpName(e.target.value)} required className="w-full px-5 py-4 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
-                    <input type="email" placeholder="Email Address" value={signUpEmail} onChange={(e) => setSignUpEmail(e.target.value)} required className="w-full px-5 py-4 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
-                    <input type="password" placeholder="Password" value={signUpPassword} onChange={(e) => setSignUpPassword(e.target.value)} required className="w-full px-5 py-4 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
-                    <button disabled={isLoading} type="submit" className="w-full mt-2 bg-[#8B6914] text-white py-4 rounded-xl font-medium shadow-lg shadow-[#8B6914]/20 hover:-translate-y-0.5 transition-all disabled:opacity-50">
-                       {isLoading ? <Spinner /> : 'SIGN UP'}
-                    </button>
-                    <div className="relative flex items-center py-4">
-                      <div className="flex-grow border-t border-[#E5E0D8]"></div>
-                      <span className="flex-shrink-0 mx-4 text-sm text-[#9B9890]">or use</span>
-                      <div className="flex-grow border-t border-[#E5E0D8]"></div>
-                    </div>
-                    <button type="button" onClick={handleGoogleSignIn} disabled={isLoading} className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-xl border border-[#E5E0D8] bg-white text-[15px] font-medium text-[#1C1C1E] shadow-sm transition-all hover:bg-gray-50">
-                      <GoogleIcon /> Continue with Google
-                    </button>
-                    <p className="text-center mt-6 text-sm text-[#6B6860]">
-                       Already have an account? <button type="button" onClick={togglePanel} className="text-[#8B6914] font-semibold">Sign In</button>
-                    </p>
-                 </form>
+                 success ? (
+                   <div className="flex flex-col items-center text-center mt-8 p-6 bg-white rounded-2xl shadow-sm border border-[#E5E0D8] animate-in zoom-in-95 fade-in">
+                     <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mb-4">
+                       <CheckCircle2 className="w-8 h-8" />
+                     </div>
+                     <h3 className="text-xl font-serif font-semibold mb-2 text-[#1C1C1E]">Check your email</h3>
+                     <p className="text-[#6B6860] leading-relaxed">
+                       {success}
+                     </p>
+                   </div>
+                 ) : (
+                   <form onSubmit={handleSignUp} className="flex flex-col gap-4 animate-in slide-in-from-right fade-in">
+                      <input type="text" placeholder="Full Name" value={signUpName} onChange={(e) => setSignUpName(e.target.value)} required className="w-full px-5 py-4 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
+                      <input type="email" placeholder="Email Address" value={signUpEmail} onChange={(e) => setSignUpEmail(e.target.value)} required className="w-full px-5 py-4 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
+                      <input type="password" placeholder="Password" value={signUpPassword} onChange={(e) => setSignUpPassword(e.target.value)} required className="w-full px-5 py-4 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
+                      <button disabled={isLoading} type="submit" className="w-full mt-2 bg-[#8B6914] text-white py-4 rounded-xl font-medium shadow-lg shadow-[#8B6914]/20 hover:-translate-y-0.5 transition-all disabled:opacity-50">
+                         {isLoading ? <Spinner /> : 'SIGN UP'}
+                      </button>
+                      <div className="relative flex items-center py-4">
+                        <div className="flex-grow border-t border-[#E5E0D8]"></div>
+                        <span className="flex-shrink-0 mx-4 text-sm text-[#9B9890]">or use</span>
+                        <div className="flex-grow border-t border-[#E5E0D8]"></div>
+                      </div>
+                      <button type="button" onClick={handleGoogleSignIn} disabled={isLoading} className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-xl border border-[#E5E0D8] bg-white text-[15px] font-medium text-[#1C1C1E] shadow-sm transition-all hover:bg-gray-50">
+                        <GoogleIcon /> Continue with Google
+                      </button>
+                      <p className="text-center mt-6 text-sm text-[#6B6860]">
+                         Already have an account? <button type="button" onClick={togglePanel} className="text-[#8B6914] font-semibold">Sign In</button>
+                      </p>
+                   </form>
+                 )
               ) : (
                  <form onSubmit={handleSignIn} className="flex flex-col gap-4 animate-in slide-in-from-left fade-in">
                     <input type="email" placeholder="Email Address" value={signInEmail} onChange={(e) => setSignInEmail(e.target.value)} required className="w-full px-5 py-4 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
@@ -234,15 +252,27 @@ export default function LoginPage() {
             </div>
             <p className="text-center text-[13px] text-[#9B9890] mb-6">or use your email for registration</p>
 
-            <form onSubmit={handleSignUp} className="flex flex-col gap-4">
-              <input type="text" placeholder="Full Name" value={signUpName} onChange={(e) => setSignUpName(e.target.value)} required className="w-full px-5 py-3.5 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
-              <input type="email" placeholder="Email Address" value={signUpEmail} onChange={(e) => setSignUpEmail(e.target.value)} required className="w-full px-5 py-3.5 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
-              <input type="password" placeholder="Password" value={signUpPassword} onChange={(e) => setSignUpPassword(e.target.value)} required className="w-full px-5 py-3.5 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
-              
-              <button disabled={isLoading} type="submit" className="mt-4 mx-auto w-[60%] bg-[#8B6914] text-white py-3.5 rounded-full font-semibold shadow-lg shadow-[#8B6914]/20 hover:-translate-y-0.5 transition-all disabled:opacity-50 transform hover:scale-105 duration-300">
-                {isLoading ? <Spinner className="text-white mx-auto" /> : 'SIGN UP'}
-              </button>
-            </form>
+            {success ? (
+              <div className="flex flex-col items-center text-center mt-4 p-8 bg-white/50 backdrop-blur-sm rounded-2xl border border-green-100 animate-in zoom-in-95 fade-in">
+                <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mb-4 shadow-sm">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-serif font-semibold mb-2 text-[#1C1C1E]">Check your email</h3>
+                <p className="text-[#6B6860] leading-relaxed">
+                  {success}
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSignUp} className="flex flex-col gap-4">
+                <input type="text" placeholder="Full Name" value={signUpName} onChange={(e) => setSignUpName(e.target.value)} required className="w-full px-5 py-3.5 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
+                <input type="email" placeholder="Email Address" value={signUpEmail} onChange={(e) => setSignUpEmail(e.target.value)} required className="w-full px-5 py-3.5 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
+                <input type="password" placeholder="Password" value={signUpPassword} onChange={(e) => setSignUpPassword(e.target.value)} required className="w-full px-5 py-3.5 rounded-xl bg-[#F5F3ED] border-none text-[#1C1C1E] focus:ring-2 focus:ring-[#8B6914] focus:outline-none transition-all placeholder:text-[#9B9890]" />
+                
+                <button disabled={isLoading} type="submit" className="mt-4 mx-auto w-[60%] bg-[#8B6914] text-white py-3.5 rounded-full font-semibold shadow-lg shadow-[#8B6914]/20 hover:-translate-y-0.5 transition-all disabled:opacity-50 transform hover:scale-105 duration-300">
+                  {isLoading ? <Spinner className="text-white mx-auto" /> : 'SIGN UP'}
+                </button>
+              </form>
+            )}
           </div>
 
           {/* Sign In Container - Right Side Initially (Wait, usually Sign In is on Left. If Sign up is on the right, the slider starts on the right) */}
@@ -282,11 +312,6 @@ export default function LoginPage() {
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /><span>{error}</span>
               </div>
             )}
-            {success && !isRightPanelActive && (
-                 <div className="px-4 py-3 rounded-xl bg-green-50 text-sm text-green-700 flex items-start gap-2 shadow-sm animate-in fade-in slide-in-from-top-2">
-                    <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" /><span>{success}</span>
-                 </div>
-              )}
           </div>
           <div className={`absolute top-8 left-0 w-1/2 px-12 z-50 pointer-events-none transition-transform duration-[800ms] ${isRightPanelActive ? 'translate-x-[100%]' : 'opacity-0'}`}>
             {error && isRightPanelActive && (
@@ -294,11 +319,6 @@ export default function LoginPage() {
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" /><span>{error}</span>
               </div>
             )}
-             {success && isRightPanelActive && (
-                 <div className="px-4 py-3 rounded-xl bg-green-50 text-sm text-green-700 flex items-start gap-2 shadow-sm animate-in fade-in slide-in-from-top-2">
-                    <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" /><span>{success}</span>
-                 </div>
-              )}
           </div>
 
           {/* Overlay Container */}
